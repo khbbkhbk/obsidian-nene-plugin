@@ -1,6 +1,6 @@
 {
   "id": "obsidian-nene-plugin",
-  "name": "obsidian-nene-plugin",
+  "name": "ねね",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
   "description": "为第三方插件列表添加 data-plugin-name 属性，以支持自定义 CSS 样式。",
