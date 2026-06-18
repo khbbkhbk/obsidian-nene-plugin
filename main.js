@@ -7,7 +7,7 @@ var obsidian = require('obsidian');
 /* ------------------------------ */
 
 // 定义文件标记面板的唯一视图类型，后续用于注册和激活侧边栏视图。
-const FILE_MARKER_VIEW_TYPE = 'plugin-style-marker-file-panel';
+const FILE_MARKER_VIEW_TYPE = 'obsidian-nene-plugin-file-panel';
 
 // 定义默认分组的标识，所有未指定分组的文件都会归入该分组。
 const DEFAULT_GROUP_ID = 'ungrouped';
@@ -873,7 +873,7 @@ class PluginListEnhancer {
   // 注入少量基础样式，保持原有插件列表标记功能继续生效。
   addBaseStyles() {
     this.styleEl = document.createElement('style');
-    this.styleEl.id = 'plugin-style-marker-styles';
+    this.styleEl.id = 'obsidian-nene-plugin-styles';
     this.styleEl.textContent = `
       .marked-plugin-item[data-plugin-id] {
         position: relative;
@@ -890,7 +890,7 @@ class PluginListEnhancer {
 }
 
 // 定义插件主类，作为模块装配层，统一协调数据、视图、弹窗和旧功能增强模块。
-class PluginStyleMarker extends obsidian.Plugin {
+class ObsidianNenePlugin extends obsidian.Plugin {
   constructor() {
     super(...arguments);
     this.store = new FileMarkerStore(this); // 管理文件标记业务数据
@@ -904,7 +904,7 @@ class PluginStyleMarker extends obsidian.Plugin {
 
   // 插件加载时执行初始化逻辑。
   async onload() {
-    console.log('Loading Plugin Style Marker');
+    console.log('Loading obsidian-nene-plugin');
 
     await this.store.load(); // 先加载本地持久化数据
     await this.store.pruneMissingMarks(); // 清理已经不存在的文件标记
@@ -920,7 +920,7 @@ class PluginStyleMarker extends obsidian.Plugin {
 
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
-    console.log('Unloading Plugin Style Marker');
+    console.log('Unloading obsidian-nene-plugin');
     this.pluginListEnhancer.stop();
 
     this.app.workspace.getLeavesOfType(FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
@@ -1129,4 +1129,4 @@ class PluginStyleMarker extends obsidian.Plugin {
   }
 }
 
-module.exports = PluginStyleMarker; // 导出插件主类，供 Obsidian 加载
+module.exports = ObsidianNenePlugin; // 导出插件主类，供 Obsidian 加载

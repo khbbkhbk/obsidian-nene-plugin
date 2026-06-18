@@ -128,7 +128,7 @@ class PluginListEnhancer {
   // 注入少量基础样式，保持原有插件列表标记功能继续生效。
   addBaseStyles() {
     this.styleEl = document.createElement('style');
-    this.styleEl.id = 'plugin-style-marker-styles';
+    this.styleEl.id = 'obsidian-nene-plugin-styles';
     this.styleEl.textContent = `
       .marked-plugin-item[data-plugin-id] {
         position: relative;

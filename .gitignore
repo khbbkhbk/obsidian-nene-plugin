@@ -1,0 +1,10 @@
+.history/
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+dist/
+build/
+.dbg/
+.bin/
+desktop.ini

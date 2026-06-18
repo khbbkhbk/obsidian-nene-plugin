@@ -1,7 +1,7 @@
 'use strict';
 
 // 定义文件标记面板的唯一视图类型，后续用于注册和激活侧边栏视图。
-const FILE_MARKER_VIEW_TYPE = 'plugin-style-marker-file-panel';
+const FILE_MARKER_VIEW_TYPE = 'obsidian-nene-plugin-file-panel';
 
 // 定义默认分组的标识，所有未指定分组的文件都会归入该分组。
 const DEFAULT_GROUP_ID = 'ungrouped';
