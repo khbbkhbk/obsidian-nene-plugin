@@ -1,10 +1,18 @@
 {
-  "marks": {},
+  "marks": {
+    "未命名.md": {
+      "path": "未命名.md",
+      "status": "pending",
+      "note": "",
+      "groupId": "group-1778734809796-128ef1",
+      "updatedAt": 1782295481854
+    }
+  },
   "groups": [
     {
       "id": "ungrouped",
       "name": "未分组",
-      "collapsed": false
+      "collapsed": true
     },
     {
       "id": "group-1778734809796-128ef1",
