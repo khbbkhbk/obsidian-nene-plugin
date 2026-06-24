@@ -1,5 +1,8 @@
 {
   "features": {
+    "fileMarker": {
+      "enabled": false
+    },
     "anchorGraph": {
       "enabled": true
     }

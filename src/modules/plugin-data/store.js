@@ -59,8 +59,11 @@ class PluginDataStore {
   // 归一化插件级功能开关结构。
   normalizeFeatures(features) {
     return {
+      fileMarker: {
+        enabled: features?.fileMarker?.enabled === true
+      },
       anchorGraph: {
-        enabled: features?.anchorGraph?.enabled !== false
+        enabled: features?.anchorGraph?.enabled === true
       }
     };
   }

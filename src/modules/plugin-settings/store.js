@@ -2,7 +2,7 @@
 
 var constants = require('./constants');
 
-// 定义插件级功能设置仓库，只负责跨模块功能开关，不再处理 file-marker 数据。
+// 定义插件级功能设置仓库，统一负责各子功能模块的启用状态持久化。
 class PluginSettingsStore {
   constructor(plugin) {
     this.plugin = plugin; // 保存插件实例，便于访问插件级数据仓库
@@ -19,6 +19,18 @@ class PluginSettingsStore {
     this.settings = this.normalizeSettings(this.settings);
     this.plugin.dataStore.setFeatures(this.settings);
     await this.plugin.dataStore.save();
+  }
+
+  // 返回文件标记模块是否启用，供主入口和设置页统一读取。
+  isFileMarkerEnabled() {
+    return Boolean(this.settings.fileMarker.enabled);
+  }
+
+  // 切换文件标记模块的启用状态，并立即持久化到本地。
+  async setFileMarkerEnabled(enabled) {
+    this.settings.fileMarker.enabled = Boolean(enabled);
+    await this.save();
+    return this.isFileMarkerEnabled();
   }
 
   // 返回关系图谱增强是否启用，供主入口和设置页统一读取。
@@ -42,8 +54,11 @@ class PluginSettingsStore {
   normalizeSettings(data) {
     const source = data || constants.DEFAULT_FEATURE_SETTINGS;
     return {
+      fileMarker: {
+        enabled: source.fileMarker?.enabled === true
+      },
       anchorGraph: {
-        enabled: source.anchorGraph?.enabled !== false
+        enabled: source.anchorGraph?.enabled === true
       }
     };
   }

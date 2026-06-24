@@ -295,7 +295,7 @@ class AnchorGraphLinkEnhancer {
   extractInternalAnchorTargets(content) {
     if (typeof content !== 'string' || !content.includes('<a')) return [];
 
-    const anchorTags = content.match(/<a\b[^>]*>/gi) || [];
+    const anchorTags = this.extractAnchorStartTags(content);
     const targets = [];
 
     anchorTags.forEach((tagText) => {
@@ -312,13 +312,69 @@ class AnchorGraphLinkEnhancer {
     return targets;
   }
 
+  // 逐字符提取 a 起始标签，避免属性值中的 >、< 或换行导致正则提前截断。
+  extractAnchorStartTags(content) {
+    const anchorTags = [];
+    let searchIndex = 0;
+
+    while (searchIndex < content.length) {
+      const tagStart = content.indexOf('<', searchIndex);
+      if (tagStart === -1) break;
+
+      const tagNameFirstChar = content[tagStart + 1];
+      if (!tagNameFirstChar || tagNameFirstChar.toLowerCase() !== 'a') {
+        searchIndex = tagStart + 1;
+        continue;
+      }
+
+      const tagNameBoundaryChar = content[tagStart + 2];
+      if (tagNameBoundaryChar && /[a-z0-9:_-]/i.test(tagNameBoundaryChar)) {
+        searchIndex = tagStart + 1;
+        continue;
+      }
+
+      let quoteChar = '';
+      let tagEnd = -1;
+
+      for (let index = tagStart + 2; index < content.length; index += 1) {
+        const currentChar = content[index];
+
+        if (quoteChar) {
+          if (currentChar === quoteChar) {
+            quoteChar = '';
+          }
+          continue;
+        }
+
+        if (currentChar === '"' || currentChar === '\'') {
+          quoteChar = currentChar;
+          continue;
+        }
+
+        if (currentChar === '>') {
+          tagEnd = index;
+          break;
+        }
+      }
+
+      if (tagEnd === -1) break;
+
+      anchorTags.push(content.slice(tagStart, tagEnd + 1));
+      searchIndex = tagEnd + 1;
+    }
+
+    return anchorTags;
+  }
+
   // 从单个 HTML 标签字符串中读取指定属性值。
   readAttribute(tagText, attributeName) {
     const escapedName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const attributeMatch = tagText.match(new RegExp(`${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i'));
+    const attributeMatch = tagText.match(
+      new RegExp(`(?:^|[\\s<])${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\\x60]+))`, 'i')
+    );
     if (!attributeMatch) return '';
 
-    return attributeMatch[1] || attributeMatch[2] || '';
+    return attributeMatch[1] || attributeMatch[2] || attributeMatch[3] || '';
   }
 
   // 规范化目标链接，过滤外链、空值和仅锚点链接。
@@ -342,12 +398,38 @@ class AnchorGraphLinkEnhancer {
 
   // 解码常见 HTML 实体，保证 data-href 中的字符能被正确解析。
   decodeHtmlEntities(value) {
+    const namedEntities = {
+      amp: '&',
+      quot: '"',
+      apos: '\'',
+      lt: '<',
+      gt: '>',
+      nbsp: ' '
+    };
+
     return value
-      .replace(/&amp;/gi, '&')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;/gi, '\'')
-      .replace(/&lt;/gi, '<')
-      .replace(/&gt;/gi, '>');
+      .replace(/&#x([0-9a-f]+);?/gi, (match, hexCode) => this.decodeHtmlCodePoint(parseInt(hexCode, 16), match))
+      .replace(/&#([0-9]+);?/g, (match, decimalCode) => this.decodeHtmlCodePoint(parseInt(decimalCode, 10), match))
+      .replace(/&([a-z]+);/gi, (match, entityName) => {
+        const normalizedName = entityName.toLowerCase();
+        return Object.prototype.hasOwnProperty.call(namedEntities, normalizedName)
+          ? namedEntities[normalizedName]
+          : match;
+      })
+      .replace(/&#39;/gi, '\'');
+  }
+
+  // 仅在码点合法时解码数字实体，避免异常值污染链接文本。
+  decodeHtmlCodePoint(codePoint, fallbackValue) {
+    if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10FFFF) {
+      return fallbackValue;
+    }
+
+    try {
+      return String.fromCodePoint(codePoint);
+    } catch (error) {
+      return fallbackValue;
+    }
   }
 
   // 将链接目标解析为真实文件路径，供关系图谱的 resolvedLinks 使用。

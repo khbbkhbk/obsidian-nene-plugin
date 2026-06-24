@@ -53,8 +53,11 @@ test('插件级数据仓库会按当前模块切片结构补齐默认值', () =>
   const defaultSettings = store.normalizeData({});
   const normalizedSettings = store.normalizeData({
     features: {
+      fileMarker: {
+        enabled: true
+      },
       anchorGraph: {
-        enabled: false
+        enabled: true
       }
     },
     fileMarker: {
@@ -74,11 +77,46 @@ test('插件级数据仓库会按当前模块切片结构补齐默认值', () =>
     }
   });
 
-  assert.equal(defaultSettings.features.anchorGraph.enabled, true);
+  assert.equal(defaultSettings.features.fileMarker.enabled, false);
+  assert.equal(defaultSettings.features.anchorGraph.enabled, false);
   assert.equal(defaultSettings.fileMarker.groups[0].id, 'ungrouped');
-  assert.equal(normalizedSettings.features.anchorGraph.enabled, false);
+  assert.equal(normalizedSettings.features.fileMarker.enabled, true);
+  assert.equal(normalizedSettings.features.anchorGraph.enabled, true);
   assert.equal(normalizedSettings.fileMarker.marks['a.md'].path, 'a.md');
   assert.equal(normalizedSettings.fileMarker.groups[0].id, 'custom');
+});
+
+test('插件级功能设置仓库会持久化文件标记与关系图谱启用状态', async () => {
+  const obsidianStub = createObsidianStub();
+  const { PluginSettingsStore } = loadModuleWithObsidianStub('src/modules/plugin-settings/store.js', obsidianStub);
+  const savedSnapshots = [];
+  const pluginStub = {
+    dataStore: {
+      setFeatures(features) {
+        savedSnapshots.push(JSON.parse(JSON.stringify(features)));
+      },
+      save: async () => {}
+    }
+  };
+  const settingsStore = new PluginSettingsStore(pluginStub);
+
+  settingsStore.load({});
+  assert.equal(settingsStore.isFileMarkerEnabled(), false);
+  assert.equal(settingsStore.isAnchorGraphEnabled(), false);
+
+  await settingsStore.setFileMarkerEnabled(true);
+  await settingsStore.setAnchorGraphEnabled(true);
+
+  assert.equal(settingsStore.isFileMarkerEnabled(), true);
+  assert.equal(settingsStore.isAnchorGraphEnabled(), true);
+  assert.deepEqual(savedSnapshots.at(-1), {
+    fileMarker: {
+      enabled: true
+    },
+    anchorGraph: {
+      enabled: true
+    }
+  });
 });
 
 test('关系图谱增强会根据运行环境兼容性进行启用或降级', () => {
@@ -124,6 +162,40 @@ test('关系图谱增强会根据运行环境兼容性进行启用或降级', ()
 
   assert.equal(compatibleEnhancer.ensureCompatibleRuntime(false), true);
   assert.equal(compatibleEnhancer.getRuntimeStatus().state, 'active');
+});
+
+test('HTML 内部链接提取可兼容属性值中的特殊字符与复杂写法', () => {
+  const obsidianStub = createObsidianStub();
+  const { AnchorGraphLinkEnhancer } = loadModuleWithObsidianStub(
+    'src/modules/anchor-graph-links/index.js',
+    obsidianStub
+  );
+  const enhancer = new AnchorGraphLinkEnhancer({
+    isAnchorGraphEnabled: () => true,
+    app: {
+      metadataCache: {
+        resolvedLinks: {},
+        getFirstLinkpathDest: () => null
+      }
+    }
+  });
+
+  const content = [
+    '<span style="cursor: pointer; font-weight: var(--bold-weight)" title="Programming Languages"><a data-tooltip-position="top" aria-label="后端开发 > ^oqhc5p" data-href="后端开发#^oqhc5p" href="后端开发#^oqhc5p" class="internal-link" target="_blank" rel="noopener">服务器端语言</a></span>',
+    '<a class="internal-link extra-link" data-href="Topic &amp; Tools#^block" title="1 < 2 &quot;quoted&quot;" data-note="&#x4F60;&#22909;">Entity Link</a>',
+    '<a class=\'internal-link\' aria-label=\'Alpha > Beta\' data-href=\'Single Quote Target#^block\'>Single Quote</a>',
+    '<a\n class=internal-link\n data-href=PlainTarget\n title="line break > still works"\n>Plain Target</a>',
+    '<a class="external-link" href="https://example.com?a=1&amp;b=2">External</a>',
+    '<a class="internal-link" data-href="#local-only">Local Only</a>',
+    '<abbr data-href="Ignored">Not A Link</abbr>'
+  ].join('\n');
+
+  assert.deepEqual(enhancer.extractInternalAnchorTargets(content), [
+    '后端开发#^oqhc5p',
+    'Topic & Tools#^block',
+    'Single Quote Target#^block',
+    'PlainTarget'
+  ]);
 });
 
 test('大仓库快照构建会按批次让出主线程，避免长时间阻塞', async () => {

@@ -10,4 +10,4 @@ Obsidian插件ねね，集成功能列表：
     - [ ] 每个链接支持新建窗口模式下打开、新建标签页打开、当前标签页打开
   - [ ] 每个笔记窗口附带一个小窗口
 - [x] 关系图谱
-    - 支持额外实时识别a标签形式的正向链接：class包含internal-link，且带有data-href或href的HTML a标签。
+    - 支持额外实时识别a标签形式的正向链接：class包含internal-link，且带有data-href或href的HTML a标签（排除特殊字符干扰）。

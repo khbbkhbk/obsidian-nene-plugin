@@ -42,6 +42,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
 
     this.pluginListEnhancer.start();
+    this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
   }
 
@@ -72,6 +73,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   setupFileMenu() {
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
+        if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
         const hasMark = Boolean(this.getMarkRecord(file.path));
@@ -118,7 +120,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       id: 'open-file-marker-view',
       name: '打开文件标记面板',
       callback: async () => {
-        await this.ensureFileMarkerViewOpen();
+        await this.startFileMarkerFeature();
       }
     });
 
@@ -238,6 +240,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
   }
 
+  // 返回文件标记模块当前是否被用户启用。
+  isFileMarkerEnabled() {
+    return this.pluginSettingsStore.isFileMarkerEnabled();
+  }
+
+  // 返回文件标记面板当前是否已在工作区打开。
+  isFileMarkerViewOpen() {
+    return this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).length > 0;
+  }
+
   // 返回设置页所需的数据摘要，统一管理展示字段。
   getSettingsSummary() {
     const anchorGraphStats = this.anchorGraphLinkEnhancer.getStats();
@@ -246,6 +258,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return {
       markCount: this.getMarkCount(),
       groupCount: this.getGroups().length,
+      fileMarkerEnabled: this.isFileMarkerEnabled(),
+      fileMarkerViewOpen: this.isFileMarkerViewOpen(),
       anchorGraphSourceFileCount: anchorGraphStats.sourceFileCount,
       anchorGraphEdgeCount: anchorGraphStats.edgeCount,
       anchorGraphEnabled: this.isAnchorGraphEnabled(),
@@ -322,6 +336,23 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return hasChanged;
   }
 
+  // 更新文件标记模块开关，并根据当前设置立即同步启停状态。
+  async updateFileMarkerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setFileMarkerEnabled(enabled);
+    this.syncFileMarkerFeatureState();
+    return nextEnabled;
+  }
+
+  // 一键启动文件标记模块，确保右侧面板已创建并处于可见状态。
+  async startFileMarkerFeature() {
+    if (!this.isFileMarkerEnabled()) {
+      new obsidian.Notice('文件标记面板当前已关闭，请先在设置页中启用。');
+      return;
+    }
+
+    await this.ensureFileMarkerViewOpen();
+  }
+
   // 更新关系图谱增强开关，并根据当前设置立即同步启停状态。
   async updateAnchorGraphEnabled(enabled) {
     const nextEnabled = await this.pluginSettingsStore.setAnchorGraphEnabled(enabled);
@@ -341,12 +372,22 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     await this.anchorGraphLinkEnhancer.refreshAll(Boolean(showNotice));
   }
 
+  // 一键启动关系图谱 HTML 链接增强，必要时先启用开关后再执行一次刷新。
+  async startAnchorGraphFeature() {
+    await this.refreshAnchorGraphLinks(true);
+  }
+
   /* ------------------------------ */
   /* 视图控制 */
   /* ------------------------------ */
 
   // 激活文件标记面板，若面板尚未创建则自动在右侧侧边栏打开。
   async ensureFileMarkerViewOpen() {
+    if (!this.isFileMarkerEnabled()) {
+      new obsidian.Notice('文件标记面板当前已关闭，请先在设置页中启用。');
+      return;
+    }
+
     let leaf = this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE)[0];
 
     if (!leaf) {
@@ -370,6 +411,17 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       if (leaf.view instanceof fileMarker.FileMarkerView) {
         leaf.view.render();
       }
+    });
+  }
+
+  // 根据当前设置同步文件标记模块的启停状态，关闭时回收已打开面板。
+  syncFileMarkerFeatureState() {
+    if (this.isFileMarkerEnabled()) {
+      return;
+    }
+
+    this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
+      leaf.detach();
     });
   }
 
