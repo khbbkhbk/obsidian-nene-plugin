@@ -800,9 +800,14 @@ var require_anchor_graph_links = __commonJS({
         this.plugin = plugin;
         this.syntheticResolvedLinks = {};
         this.refreshTimer = null;
+        this.sourceRefreshTimer = null;
+        this.pendingSourceRefresh = null;
         this.isRefreshing = false;
         this.pendingFullRefresh = false;
         this.pendingNotice = false;
+        this.graphButtonObserver = null;
+        this.graphButtonProcessTimer = null;
+        this.styleEl = null;
         this.stats = {
           sourceFileCount: 0,
           edgeCount: 0
@@ -810,6 +815,9 @@ var require_anchor_graph_links = __commonJS({
       }
       // 启动增强器时执行一次全量构建，保证图谱立即可见。
       start() {
+        this.addGraphRefreshButtonStyles();
+        this.setupGraphRefreshButtonObserver();
+        this.processGraphRefreshButtons();
         this.scheduleFullRefresh(0);
       }
       // 停止增强器时回滚注入的关系边，避免影响其他插件或 Obsidian 原生索引。
@@ -818,6 +826,24 @@ var require_anchor_graph_links = __commonJS({
           window.clearTimeout(this.refreshTimer);
           this.refreshTimer = null;
         }
+        if (this.sourceRefreshTimer) {
+          window.clearTimeout(this.sourceRefreshTimer);
+          this.sourceRefreshTimer = null;
+        }
+        if (this.graphButtonProcessTimer) {
+          window.clearTimeout(this.graphButtonProcessTimer);
+          this.graphButtonProcessTimer = null;
+        }
+        if (this.graphButtonObserver) {
+          this.graphButtonObserver.disconnect();
+          this.graphButtonObserver = null;
+        }
+        if (this.styleEl) {
+          this.styleEl.remove();
+          this.styleEl = null;
+        }
+        this.pendingSourceRefresh = null;
+        this.removeGraphRefreshButtons();
         this.clearSyntheticResolvedLinks();
       }
       // 返回当前已注入的关系图谱统计信息，供设置页展示。
@@ -836,6 +862,24 @@ var require_anchor_graph_links = __commonJS({
           this.refreshTimer = null;
           await this.refreshAll(this.pendingNotice);
         }, typeof delay === "number" ? delay : 400);
+      }
+      // 在编辑器输入过程中按源文件做防抖刷新，减少“必须保存后才生效”的感知延迟。
+      scheduleSourceRefresh(file, content, delay) {
+        if (!(file instanceof obsidian2.TFile) || file.extension !== "md") return;
+        this.pendingSourceRefresh = {
+          file,
+          content
+        };
+        if (this.sourceRefreshTimer) {
+          window.clearTimeout(this.sourceRefreshTimer);
+        }
+        this.sourceRefreshTimer = window.setTimeout(async () => {
+          const pendingRefresh = this.pendingSourceRefresh;
+          this.pendingSourceRefresh = null;
+          this.sourceRefreshTimer = null;
+          if (!pendingRefresh) return;
+          await this.refreshSourceFile(pendingRefresh.file, pendingRefresh.content);
+        }, typeof delay === "number" ? delay : 240);
       }
       // 手动或启动时执行全量刷新，重建全部 a.internal-link 的关系边。
       async refreshAll(showNotice) {
@@ -1044,6 +1088,143 @@ var require_anchor_graph_links = __commonJS({
         if (typeof this.plugin.app.metadataCache.trigger === "function") {
           this.plugin.app.metadataCache.trigger("resolved");
         }
+        this.refreshOpenGraphViews();
+        this.processGraphRefreshButtons();
+      }
+      // 返回当前所有已打开的全局图谱与局部图谱叶子，便于统一补按钮与尝试重绘。
+      getOpenGraphLeaves() {
+        const graphViewTypes = ["graph", "localgraph"];
+        const leaves = [];
+        graphViewTypes.forEach((viewType) => {
+          this.plugin.app.workspace.getLeavesOfType(viewType).forEach((leaf) => {
+            leaves.push(leaf);
+          });
+        });
+        return leaves;
+      }
+      // 尝试通知已打开的关系图谱视图立即重绘，降低“数据已更新但界面未同步”的概率。
+      refreshOpenGraphViews() {
+        this.getOpenGraphLeaves().forEach((leaf) => {
+          this.refreshGraphLeaf(leaf);
+        });
+      }
+      // 对单个图谱叶子执行最温和的重绘尝试，优先调用现成方法，失败时只记录警告。
+      refreshGraphLeaf(leaf) {
+        const view = leaf && leaf.view;
+        if (!view) return;
+        const refreshMethodNames = ["onMetadataCacheChanged", "updateView", "render", "onResize"];
+        for (const methodName of refreshMethodNames) {
+          if (typeof view[methodName] !== "function") continue;
+          try {
+            view[methodName]();
+            return;
+          } catch (error) {
+            console.warn(`调用关系图谱视图方法 ${methodName} 刷新失败`, error);
+          }
+        }
+      }
+      // 监听文档中的视图切换与图谱 DOM 挂载，按需在图谱中补充刷新按钮。
+      setupGraphRefreshButtonObserver() {
+        let shouldProcess = false;
+        this.graphButtonObserver = new MutationObserver((mutations) => {
+          shouldProcess = mutations.some((mutation) => {
+            if (mutation.type !== "childList") return false;
+            return Array.from(mutation.addedNodes).some((node) => {
+              return node instanceof HTMLElement;
+            });
+          });
+          if (!shouldProcess) return;
+          if (this.graphButtonProcessTimer) {
+            window.clearTimeout(this.graphButtonProcessTimer);
+          }
+          this.graphButtonProcessTimer = window.setTimeout(() => {
+            this.graphButtonProcessTimer = null;
+            this.processGraphRefreshButtons();
+          }, 100);
+        });
+        this.graphButtonObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+      // 为已打开的关系图谱补充刷新按钮，避免用户必须回到设置页手动刷新。
+      processGraphRefreshButtons() {
+        this.getOpenGraphLeaves().forEach((leaf) => {
+          this.ensureGraphRefreshButton(leaf);
+        });
+      }
+      // 在单个关系图谱视图中挂载按钮，复用 Obsidian 图标按钮样式以保持界面一致。
+      ensureGraphRefreshButton(leaf) {
+        const view = leaf && leaf.view;
+        if (!view) return;
+        const hostEl = view.contentEl instanceof HTMLElement ? view.contentEl : view.containerEl instanceof HTMLElement ? view.containerEl : null;
+        if (!hostEl) return;
+        hostEl.classList.add("nene-graph-refresh-host");
+        if (hostEl.querySelector(".nene-graph-refresh-button")) return;
+        const buttonEl = hostEl.createEl("button", {
+          cls: "clickable-icon nene-graph-refresh-button"
+        });
+        buttonEl.setAttribute("type", "button");
+        buttonEl.setAttribute("id", "refresh-html");
+        buttonEl.setAttribute("aria-label", "刷新链接");
+        buttonEl.setAttribute("title", "刷新链接");
+        obsidian2.setIcon(buttonEl, "refresh-cw");
+        buttonEl.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (buttonEl.disabled) return;
+          buttonEl.disabled = true;
+          buttonEl.classList.add("is-disabled");
+          try {
+            await this.refreshAll(true);
+          } finally {
+            buttonEl.disabled = false;
+            buttonEl.classList.remove("is-disabled");
+          }
+        });
+      }
+      // 清理图谱中动态注入的刷新按钮和宿主样式类，避免插件卸载后残留节点。
+      removeGraphRefreshButtons() {
+        document.querySelectorAll(".nene-graph-refresh-button").forEach((buttonEl) => {
+          buttonEl.remove();
+        });
+        document.querySelectorAll(".nene-graph-refresh-host").forEach((hostEl) => {
+          hostEl.classList.remove("nene-graph-refresh-host");
+        });
+      }
+      // 注入少量样式，让刷新按钮固定显示在图谱视图右上角且兼容桌面端与移动端。
+      addGraphRefreshButtonStyles() {
+        this.styleEl = document.createElement("style");
+        this.styleEl.id = "obsidian-nene-plugin-graph-refresh-styles";
+        this.styleEl.textContent = `
+      .nene-graph-refresh-host {
+        position: relative;
+      }
+
+      .nene-graph-refresh-button {
+        position: absolute;
+        top: 10px;
+        right: 48px;
+        z-index: 10;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--background-secondary);
+        border: 1px solid var(--background-modifier-border);
+        border-radius: var(--radius-s);
+      }
+
+      .nene-graph-refresh-button.is-disabled {
+        opacity: 0.65;
+        pointer-events: none;
+      }
+
+      body.is-mobile .nene-graph-refresh-button {
+        top: 8px;
+        right: 44px;
+      }
+    `;
+        document.head.appendChild(this.styleEl);
       }
     };
     module2.exports = {
@@ -1071,6 +1252,9 @@ var require_settings_tab = __commonJS({
         containerEl.createEl("p", {
           text: "当前设置页以快捷操作和状态展示为主，默认行为保持与原有插件逻辑一致。"
         });
+        containerEl.createEl("p", {
+          text: `关系图谱 HTML 链接增强默认始终开启，当前已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边，可直接在关系图谱视图右上角点击刷新按钮手动重建。`
+        });
         new obsidian2.Setting(containerEl).setName("文件标记面板").setDesc(`当前共有 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组，可直接打开右侧文件标记面板。`).addButton((button) => {
           button.setButtonText("打开面板").setCta().onClick(async () => {
             await this.plugin.ensureFileMarkerViewOpen();
@@ -1080,12 +1264,6 @@ var require_settings_tab = __commonJS({
           button.setButtonText("立即清理").onClick(async () => {
             const hasChanged = await this.plugin.pruneMissingMarkRecords();
             new obsidian2.Notice(hasChanged ? "失效标记已清理" : "当前没有需要清理的失效标记");
-            this.display();
-          });
-        });
-        new obsidian2.Setting(containerEl).setName("关系图谱 HTML 链接增强").setDesc(`已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`).addButton((button) => {
-          button.setButtonText("立即刷新").onClick(async () => {
-            await this.plugin.refreshAnchorGraphLinks(true);
             this.display();
           });
         });
@@ -1216,11 +1394,19 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on("layout-change", () => {
         this.pluginListEnhancer.processPluginList();
+        this.anchorGraphLinkEnhancer.processGraphRefreshButtons();
       })
     );
   }
   // 注册关系图谱 HTML 链接刷新事件，兼顾单文件更新和结构变化后的全量重建。
   setupAnchorGraphEvents() {
+    this.registerEvent(
+      this.app.workspace.on("editor-change", (editor, view) => {
+        const file = view && view.file instanceof obsidian.TFile ? view.file : this.app.workspace.getActiveFile();
+        if (!(file instanceof obsidian.TFile) || file.extension !== "md") return;
+        this.anchorGraphLinkEnhancer.scheduleSourceRefresh(file, editor.getValue(), 240);
+      })
+    );
     this.registerEvent(
       this.app.metadataCache.on("changed", async (file, data) => {
         await this.anchorGraphLinkEnhancer.refreshSourceFile(file, data);
@@ -1337,7 +1523,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     return hasChanged;
   }
-  // 手动刷新关系图谱 HTML 链接识别结果，供设置页与命令面板调用。
+  // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     await this.anchorGraphLinkEnhancer.refreshAll(Boolean(showNotice));
   }

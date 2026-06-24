@@ -19,6 +19,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     containerEl.createEl('p', {
       text: '当前设置页以快捷操作和状态展示为主，默认行为保持与原有插件逻辑一致。'
     });
+    containerEl.createEl('p', {
+      text: `关系图谱 HTML 链接增强默认始终开启，当前已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边，可直接在关系图谱视图右上角点击刷新按钮手动重建。`
+    });
 
     new obsidian.Setting(containerEl)
       .setName('文件标记面板')
@@ -41,18 +44,6 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
           .onClick(async () => {
             const hasChanged = await this.plugin.pruneMissingMarkRecords();
             new obsidian.Notice(hasChanged ? '失效标记已清理' : '当前没有需要清理的失效标记');
-            this.display();
-          });
-      });
-
-    new obsidian.Setting(containerEl)
-      .setName('关系图谱 HTML 链接增强')
-      .setDesc(`已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`)
-      .addButton((button) => {
-        button
-          .setButtonText('立即刷新')
-          .onClick(async () => {
-            await this.plugin.refreshAnchorGraphLinks(true);
             this.display();
           });
       });

@@ -130,12 +130,24 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on('layout-change', () => {
         this.pluginListEnhancer.processPluginList();
+        this.anchorGraphLinkEnhancer.processGraphRefreshButtons();
       })
     );
   }
 
   // 注册关系图谱 HTML 链接刷新事件，兼顾单文件更新和结构变化后的全量重建。
   setupAnchorGraphEvents() {
+    this.registerEvent(
+      this.app.workspace.on('editor-change', (editor, view) => {
+        const file = view && view.file instanceof obsidian.TFile
+          ? view.file
+          : this.app.workspace.getActiveFile();
+        if (!(file instanceof obsidian.TFile) || file.extension !== 'md') return;
+
+        this.anchorGraphLinkEnhancer.scheduleSourceRefresh(file, editor.getValue(), 240);
+      })
+    );
+
     this.registerEvent(
       this.app.metadataCache.on('changed', async (file, data) => {
         await this.anchorGraphLinkEnhancer.refreshSourceFile(file, data);
@@ -281,7 +293,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return hasChanged;
   }
 
-  // 手动刷新关系图谱 HTML 链接识别结果，供设置页与命令面板调用。
+  // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     await this.anchorGraphLinkEnhancer.refreshAll(Boolean(showNotice));
   }

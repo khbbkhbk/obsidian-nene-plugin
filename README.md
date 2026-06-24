@@ -9,3 +9,6 @@ Obsidian插件ねね，集成功能列表：
     - [ ] 入链默认折叠，出链默认展开
     - [ ] 每个链接支持新建窗口模式下打开、新建标签页打开、当前标签页打开
   - [ ] 每个笔记窗口附带一个小窗口
+- [x] 关系图谱
+    - 支持实时识别a标签形式的正向链接，形式参考：\<a data-tooltip-position="top" aria-label="后端开发 > ^oqhc5p" data-href="后端开发#^oqhc5p" href="后端开发#^oqhc5p" class="internal-link" target="_blank" rel="noopener">服务器端语言\</a>
+-
