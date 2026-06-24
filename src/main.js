@@ -2,6 +2,8 @@
 
 var obsidian = require('obsidian');
 var fileMarker = require('./modules/file-marker/index.js');
+var pluginData = require('./modules/plugin-data/index.js');
+var pluginSettings = require('./modules/plugin-settings/index.js');
 var pluginListEnhancerModule = require('./modules/plugin-list-enhancer/index.js');
 var anchorGraphLinksModule = require('./modules/anchor-graph-links/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
@@ -10,22 +12,26 @@ var settingsTabModule = require('./modules/settings-tab/index.js');
 class ObsidianNenePlugin extends obsidian.Plugin {
   constructor() {
     super(...arguments);
-    this.store = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
+    this.dataStore = new pluginData.PluginDataStore(this); // 管理整份插件数据及旧结构迁移
+    this.pluginSettingsStore = new pluginSettings.PluginSettingsStore(this); // 管理插件级功能开关
+    this.fileMarkerStore = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this); // 管理旧设置页增强逻辑
     this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
-    return this.store.getSettings();
+    return this.dataStore.getData();
   }
 
   // 插件加载时执行初始化逻辑。
   async onload() {
     console.log('Loading obsidian-nene-plugin');
 
-    await this.store.load(); // 先加载本地持久化数据
-    await this.store.pruneMissingMarks(); // 清理已经不存在的文件标记
+    await this.dataStore.load(); // 先加载整份插件数据并迁移旧结构
+    this.pluginSettingsStore.load(this.dataStore.getFeatures()); // 将插件级功能开关注入设置仓库
+    this.fileMarkerStore.load(this.dataStore.getFileMarkerData()); // 将文件标记切片挂载到业务仓库
+    await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
     this.setupFileMarkerView();
     this.setupFileMenu();
@@ -36,7 +42,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
 
     this.pluginListEnhancer.start();
-    this.anchorGraphLinkEnhancer.start();
+    this.syncAnchorGraphEnhancerState();
   }
 
   // 插件卸载时清理动态资源和已打开视图。
@@ -87,7 +93,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       this.app.vault.on('rename', async (file, oldPath) => {
         if (!(file instanceof obsidian.TFile)) return;
 
-        const hasChanged = await this.store.renameMark(file, oldPath);
+        const hasChanged = await this.fileMarkerStore.renameMark(file, oldPath);
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
@@ -98,7 +104,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       this.app.vault.on('delete', async (file) => {
         if (!(file instanceof obsidian.TFile)) return;
 
-        const hasChanged = await this.store.removeMarkByFile(file);
+        const hasChanged = await this.fileMarkerStore.removeMarkByFile(file);
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
@@ -139,6 +145,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   setupAnchorGraphEvents() {
     this.registerEvent(
       this.app.workspace.on('editor-change', (editor, view) => {
+        if (!this.isAnchorGraphEnabled()) return;
+
         const file = view && view.file instanceof obsidian.TFile
           ? view.file
           : this.app.workspace.getActiveFile();
@@ -150,31 +158,38 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
     this.registerEvent(
       this.app.metadataCache.on('changed', async (file, data) => {
+        if (!this.isAnchorGraphEnabled()) return;
         await this.anchorGraphLinkEnhancer.refreshSourceFile(file, data);
       })
     );
 
     this.registerEvent(
-      this.app.vault.on('create', (file) => {
+      this.app.vault.on('create', async (file) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        await this.anchorGraphLinkEnhancer.refreshSourceFileFromVault(file);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
 
     this.registerEvent(
-      this.app.vault.on('rename', (file) => {
+      this.app.vault.on('rename', async (file, oldPath) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        await this.anchorGraphLinkEnhancer.handleSourceFileRename(file, oldPath);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
 
     this.registerEvent(
       this.app.vault.on('delete', (file) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        this.anchorGraphLinkEnhancer.removeSourceFileLinks(file.path);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
   }
@@ -185,43 +200,57 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 返回指定路径的标记记录，未命中时返回空值。
   getMarkRecord(filePath) {
-    return this.settings.marks[filePath] || null;
+    return this.fileMarkerStore.getSettings().marks[filePath] || null;
   }
 
   // 返回当前全部分组信息。
   getGroups() {
-    return this.store.getGroups();
+    return this.fileMarkerStore.getGroups();
   }
 
   // 根据状态值获取显示名称。
   getStatusLabel(statusValue) {
-    return this.store.getStatusLabel(statusValue);
+    return this.fileMarkerStore.getStatusLabel(statusValue);
   }
 
   // 根据文件类型返回图标名称。
   getFileIcon(file) {
-    return this.store.getFileIcon(file);
+    return this.fileMarkerStore.getFileIcon(file);
   }
 
   // 返回格式化后的更新时间文本。
   formatTime(timestamp) {
-    return this.store.formatTime(timestamp);
+    return this.fileMarkerStore.formatTime(timestamp);
   }
 
   // 返回按分组整理后的文件标记数据。
   getGroupedMarkedFiles() {
-    return this.store.getGroupedMarkedFiles();
+    return this.fileMarkerStore.getGroupedMarkedFiles();
+  }
+
+  // 返回关系图谱增强当前是否被用户启用。
+  isAnchorGraphEnabled() {
+    return this.pluginSettingsStore.isAnchorGraphEnabled();
+  }
+
+  // 返回当前文件标记数量，供设置页与后续状态摘要复用。
+  getMarkCount() {
+    return Object.keys(this.fileMarkerStore.getSettings().marks).length;
   }
 
   // 返回设置页所需的数据摘要，统一管理展示字段。
   getSettingsSummary() {
     const anchorGraphStats = this.anchorGraphLinkEnhancer.getStats();
+    const anchorGraphRuntime = this.anchorGraphLinkEnhancer.getRuntimeStatus();
 
     return {
-      markCount: Object.keys(this.settings.marks).length,
+      markCount: this.getMarkCount(),
       groupCount: this.getGroups().length,
       anchorGraphSourceFileCount: anchorGraphStats.sourceFileCount,
-      anchorGraphEdgeCount: anchorGraphStats.edgeCount
+      anchorGraphEdgeCount: anchorGraphStats.edgeCount,
+      anchorGraphEnabled: this.isAnchorGraphEnabled(),
+      anchorGraphRuntimeState: anchorGraphRuntime.state,
+      anchorGraphRuntimeMessage: anchorGraphRuntime.message
     };
   }
 
@@ -236,13 +265,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 保存单个文件的标记记录，并刷新视图。
   async saveMarkRecord(file, payload) {
-    await this.store.saveMark(file, payload);
+    await this.fileMarkerStore.saveMark(file, payload);
     this.refreshAllFileMarkerViews();
   }
 
   // 删除单个文件的标记记录，并刷新视图。
   async removeMarkRecord(filePath) {
-    const hasChanged = await this.store.removeMark(filePath);
+    const hasChanged = await this.fileMarkerStore.removeMark(filePath);
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
@@ -252,14 +281,14 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 新增分组，并在保存后刷新视图。
   async createMarkGroup(groupName) {
-    const result = await this.store.addGroup(groupName);
+    const result = await this.fileMarkerStore.addGroup(groupName);
     this.refreshAllFileMarkerViews();
     return result;
   }
 
   // 切换指定分组的展开或折叠状态。
   async updateGroupCollapsedState(groupId, collapsed) {
-    const hasChanged = await this.store.setGroupCollapsed(groupId, collapsed);
+    const hasChanged = await this.fileMarkerStore.setGroupCollapsed(groupId, collapsed);
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
@@ -269,13 +298,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 一键展开或折叠全部分组。
   async updateAllGroupsCollapsedState(collapsed) {
-    await this.store.setAllGroupsCollapsed(collapsed);
+    await this.fileMarkerStore.setAllGroupsCollapsed(collapsed);
     this.refreshAllFileMarkerViews();
   }
 
   // 打开指定路径对应的文件，不存在时提示用户。
   async openMarkedFileByPath(filePath) {
-    const result = await this.store.openMarkedFile(filePath);
+    const result = await this.fileMarkerStore.openMarkedFile(filePath);
     if (!result.success && result.message) {
       new obsidian.Notice(result.message);
     }
@@ -285,7 +314,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 清理已经不存在的文件标记，并在有变更时刷新文件标记视图。
   async pruneMissingMarkRecords() {
-    const hasChanged = await this.store.pruneMissingMarks();
+    const hasChanged = await this.fileMarkerStore.pruneMissingMarks();
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
@@ -293,8 +322,22 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return hasChanged;
   }
 
+  // 更新关系图谱增强开关，并根据当前设置立即同步启停状态。
+  async updateAnchorGraphEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setAnchorGraphEnabled(enabled);
+    this.syncAnchorGraphEnhancerState();
+    return nextEnabled;
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
+    if (!this.isAnchorGraphEnabled()) {
+      if (showNotice) {
+        new obsidian.Notice('关系图谱 HTML 链接增强当前已关闭，请先在设置页中启用。');
+      }
+      return;
+    }
+
     await this.anchorGraphLinkEnhancer.refreshAll(Boolean(showNotice));
   }
 
@@ -328,6 +371,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
         leaf.view.render();
       }
     });
+  }
+
+  // 根据当前设置同步关系图谱增强模块的启停状态，供启动和设置切换共用。
+  syncAnchorGraphEnhancerState() {
+    if (this.isAnchorGraphEnabled()) {
+      this.anchorGraphLinkEnhancer.start();
+      return;
+    }
+
+    this.anchorGraphLinkEnhancer.stop();
   }
 }
 

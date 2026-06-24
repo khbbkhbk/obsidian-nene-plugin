@@ -1,23 +1,22 @@
 {
-  "marks": {
-    "未命名.md": {
-      "path": "未命名.md",
-      "status": "pending",
-      "note": "",
-      "groupId": "group-1778734809796-128ef1",
-      "updatedAt": 1782295481854
+  "features": {
+    "anchorGraph": {
+      "enabled": true
     }
   },
-  "groups": [
-    {
-      "id": "ungrouped",
-      "name": "未分组",
-      "collapsed": true
-    },
-    {
-      "id": "group-1778734809796-128ef1",
-      "name": "软件设计",
-      "collapsed": true
-    }
-  ]
+  "fileMarker": {
+    "marks": {},
+    "groups": [
+      {
+        "id": "ungrouped",
+        "name": "未分组",
+        "collapsed": true
+      },
+      {
+        "id": "group-1778734809796-128ef1",
+        "name": "软件设计",
+        "collapsed": false
+      }
+    ]
+  }
 }

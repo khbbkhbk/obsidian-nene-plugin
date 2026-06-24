@@ -6,20 +6,21 @@ var constants = require('./constants');
 // 定义文件标记数据仓库，统一管理配置读写、数据归一化和文件标记业务规则。
 class FileMarkerStore {
   constructor(plugin) {
-    this.plugin = plugin; // 保存插件实例，便于访问 app、loadData 和 saveData
-    this.settings = this.normalizeSettings(); // 初始化默认配置，避免首次读取时报空
+    this.plugin = plugin; // 保存插件实例，便于访问 app 与插件级数据仓库
+    this.settings = this.normalizeSettings(); // 当前仅保存 file-marker 自己的配置切片
   }
 
-  // 加载本地持久化数据，并在加载后统一归一化结构。
-  async load() {
-    const data = await this.plugin.loadData();
-    this.settings = this.normalizeSettings(data);
+  // 挂载当前插件数据中的 file-marker 切片，并按本模块规则进一步归一化。
+  load(settings) {
+    this.settings = this.normalizeSettings(settings);
+    this.plugin.dataStore.setFileMarkerData(this.settings);
   }
 
-  // 保存当前配置数据到本地。
+  // 将最新 file-marker 切片同步到插件级数据仓库并持久化到本地。
   async save() {
     this.settings = this.normalizeSettings(this.settings);
-    await this.plugin.saveData(this.settings);
+    this.plugin.dataStore.setFileMarkerData(this.settings);
+    await this.plugin.dataStore.save();
   }
 
   // 返回完整配置对象，便于上层做只读使用。
@@ -58,9 +59,9 @@ class FileMarkerStore {
     return constants.STATUS_OPTIONS.some((status) => status.value === statusValue);
   }
 
-  // 归一化数据结构，防止旧数据或异常数据导致运行时报错。
+  // 归一化 file-marker 自己的数据结构，避免旧数据或异常数据导致运行时报错。
   normalizeSettings(data) {
-    const source = data || constants.DEFAULT_SETTINGS;
+    const source = data || constants.DEFAULT_FILE_MARKER_SETTINGS;
     const normalizedMarks = {};
     const marks = source.marks || {};
 

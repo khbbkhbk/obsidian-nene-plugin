@@ -14,8 +14,8 @@ const STATUS_OPTIONS = [
   { value: 'paused', label: '已搁置', color: 'var(--color-yellow)' }
 ];
 
-// 定义插件持久化数据的默认结构，保证首次安装时也有可用数据。
-const DEFAULT_SETTINGS = {
+// 定义文件标记模块自己的默认数据结构，仅包含本模块负责的字段。
+const DEFAULT_FILE_MARKER_SETTINGS = {
   marks: {},
   groups: [
     {
@@ -66,7 +66,7 @@ const FILE_ICON_MAP = {
 
 module.exports = {
   DEFAULT_GROUP_ID,
-  DEFAULT_SETTINGS,
+  DEFAULT_FILE_MARKER_SETTINGS,
   FILE_ICON_MAP,
   FILE_MARKER_VIEW_TYPE,
   STATUS_OPTIONS

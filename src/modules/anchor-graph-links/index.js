@@ -2,6 +2,11 @@
 
 var obsidian = require('obsidian');
 
+const MIN_GRAPH_COMPATIBLE_API_VERSION = '1.4.16';
+const STARTUP_FULL_REFRESH_DELAY = 1200;
+const STRUCTURE_FULL_REFRESH_DELAY = 3000;
+const FULL_REFRESH_BATCH_SIZE = 20;
+
 // 为关系图谱补充 HTML 内部链接识别能力，将 a.internal-link 注入为合成正向链接。
 class AnchorGraphLinkEnhancer {
   constructor(plugin) {
@@ -20,18 +25,42 @@ class AnchorGraphLinkEnhancer {
       sourceFileCount: 0,
       edgeCount: 0
     };
+    this.isStarted = false; // 标记当前是否已完成模块启动，避免重复注册观察器和样式
+    this.isCompatibleRuntime = false; // 标记当前运行环境是否允许启用图谱增强
+    this.compatibilityWarningShown = false; // 避免重复弹出兼容性降级提示
+    this.lastCompatibilityMessage = ''; // 保存最近一次兼容性降级原因，供设置页展示
   }
 
   // 启动增强器时执行一次全量构建，保证图谱立即可见。
   start() {
+    if (!this.isFeatureEnabled()) {
+      this.isStarted = false;
+      this.isCompatibleRuntime = false;
+      return;
+    }
+
+    if (this.isStarted) {
+      this.processGraphRefreshButtons();
+      return;
+    }
+
+    this.isCompatibleRuntime = this.ensureCompatibleRuntime(true);
+    if (!this.isCompatibleRuntime) {
+      return;
+    }
+
+    this.isStarted = true;
     this.addGraphRefreshButtonStyles();
     this.setupGraphRefreshButtonObserver();
     this.processGraphRefreshButtons();
-    this.scheduleFullRefresh(0);
+    this.scheduleFullRefresh(STARTUP_FULL_REFRESH_DELAY);
   }
 
   // 停止增强器时回滚注入的关系边，避免影响其他插件或 Obsidian 原生索引。
   stop() {
+    this.isStarted = false;
+    this.isCompatibleRuntime = false;
+
     if (this.refreshTimer) {
       window.clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
@@ -67,8 +96,44 @@ class AnchorGraphLinkEnhancer {
     return Object.assign({}, this.stats);
   }
 
+  // 返回关系图谱增强的运行时状态，供设置页展示启用、降级与兼容性信息。
+  getRuntimeStatus() {
+    if (!this.isFeatureEnabled()) {
+      return {
+        state: 'disabled',
+        message: '关系图谱 HTML 链接增强已在设置中关闭。'
+      };
+    }
+
+    if (this.isCompatibleRuntime) {
+      return {
+        state: 'active',
+        message: `关系图谱 HTML 链接增强已启用，兼容目标为 Obsidian ${MIN_GRAPH_COMPATIBLE_API_VERSION}+。`
+      };
+    }
+
+    if (this.lastCompatibilityMessage) {
+      return {
+        state: 'degraded',
+        message: this.lastCompatibilityMessage
+      };
+    }
+
+    return {
+      state: 'idle',
+      message: '关系图谱 HTML 链接增强等待初始化。'
+    };
+  }
+
+  // 返回默认的结构变化全量刷新延时，统一由主入口复用。
+  getStructureRefreshDelay() {
+    return STRUCTURE_FULL_REFRESH_DELAY;
+  }
+
   // 计划一次全量刷新，在文件结构变化时重新解析全部 HTML 内部链接。
   scheduleFullRefresh(delay, showNotice) {
+    if (!this.ensureCompatibleRuntime(showNotice)) return;
+
     if (showNotice) {
       this.pendingNotice = true;
     }
@@ -85,6 +150,7 @@ class AnchorGraphLinkEnhancer {
 
   // 在编辑器输入过程中按源文件做防抖刷新，减少“必须保存后才生效”的感知延迟。
   scheduleSourceRefresh(file, content, delay) {
+    if (!this.ensureCompatibleRuntime(false)) return;
     if (!(file instanceof obsidian.TFile) || file.extension !== 'md') return;
 
     this.pendingSourceRefresh = {
@@ -108,6 +174,8 @@ class AnchorGraphLinkEnhancer {
 
   // 手动或启动时执行全量刷新，重建全部 a.internal-link 的关系边。
   async refreshAll(showNotice) {
+    if (!this.ensureCompatibleRuntime(showNotice)) return;
+
     if (showNotice) {
       this.pendingNotice = true;
     }
@@ -122,16 +190,8 @@ class AnchorGraphLinkEnhancer {
     this.pendingNotice = false;
 
     try {
-      const nextSyntheticResolvedLinks = {};
       const markdownFiles = this.plugin.app.vault.getMarkdownFiles();
-
-      for (const file of markdownFiles) {
-        const content = await this.plugin.app.vault.cachedRead(file);
-        const resolvedCounts = this.buildResolvedCountsFromContent(content, file.path);
-        if (Object.keys(resolvedCounts).length > 0) {
-          nextSyntheticResolvedLinks[file.path] = resolvedCounts;
-        }
-      }
+      const nextSyntheticResolvedLinks = await this.buildResolvedLinksSnapshot(markdownFiles);
 
       this.commitSyntheticResolvedLinks(nextSyntheticResolvedLinks);
 
@@ -155,6 +215,7 @@ class AnchorGraphLinkEnhancer {
 
   // 在单个 Markdown 文件重新索引后，仅刷新当前源文件对应的合成关系边。
   async refreshSourceFile(file, content) {
+    if (!this.ensureCompatibleRuntime(false)) return;
     if (!(file instanceof obsidian.TFile) || file.extension !== 'md') return;
 
     if (this.isRefreshing) {
@@ -177,6 +238,42 @@ class AnchorGraphLinkEnhancer {
         this.scheduleFullRefresh(0, this.pendingNotice);
       }
     }
+  }
+
+  // 从磁盘缓存中读取指定文件内容，再走单文件刷新流程，避免结构变化后立刻全库扫描。
+  async refreshSourceFileFromVault(file) {
+    if (!this.ensureCompatibleRuntime(false)) return;
+    if (!(file instanceof obsidian.TFile) || file.extension !== 'md') return;
+
+    try {
+      const content = await this.plugin.app.vault.cachedRead(file);
+      await this.refreshSourceFile(file, content);
+    } catch (error) {
+      console.error(`读取文件 ${file.path} 以刷新关系图谱 HTML 链接失败`, error);
+    }
+  }
+
+  // 在文件重命名后先迁移当前源文件的合成关系边，再按需安排后台全量刷新。
+  async handleSourceFileRename(file, oldPath) {
+    if (!this.ensureCompatibleRuntime(false)) return;
+    if (typeof oldPath === 'string' && oldPath && oldPath !== file.path) {
+      this.replaceSyntheticResolvedLinksForSource(oldPath, null);
+    }
+
+    await this.refreshSourceFileFromVault(file);
+  }
+
+  // 在文件删除后先移除对应源文件的合成关系边，降低后续全量重建前的错误残留。
+  removeSourceFileLinks(filePath) {
+    if (!this.ensureCompatibleRuntime(false)) return false;
+    if (typeof filePath !== 'string' || !filePath) return false;
+
+    if (!this.syntheticResolvedLinks[filePath]) {
+      return false;
+    }
+
+    this.replaceSyntheticResolvedLinksForSource(filePath, null);
+    return true;
   }
 
   // 基于文件内容提取并解析 a.internal-link，返回当前源文件的目标计数字典。
@@ -266,6 +363,8 @@ class AnchorGraphLinkEnhancer {
 
   // 用新的全量结果替换旧的合成关系边，并同步更新统计信息。
   commitSyntheticResolvedLinks(nextSyntheticResolvedLinks) {
+    if (!this.ensureCompatibleRuntime(false)) return;
+
     this.removeResolvedLinkCounts(this.syntheticResolvedLinks);
     this.addResolvedLinkCounts(nextSyntheticResolvedLinks);
     this.syntheticResolvedLinks = nextSyntheticResolvedLinks;
@@ -275,6 +374,8 @@ class AnchorGraphLinkEnhancer {
 
   // 仅替换单个源文件对应的合成关系边，避免单文件编辑时全量重建。
   replaceSyntheticResolvedLinksForSource(sourcePath, nextResolvedCounts) {
+    if (!this.ensureCompatibleRuntime(false)) return;
+
     const previousResolvedCounts = this.syntheticResolvedLinks[sourcePath];
     if (previousResolvedCounts) {
       this.removeResolvedLinkCounts({
@@ -297,6 +398,12 @@ class AnchorGraphLinkEnhancer {
 
   // 从 metadataCache.resolvedLinks 中移除当前插件此前注入的关系边。
   clearSyntheticResolvedLinks() {
+    if (!this.hasResolvedLinksStore()) {
+      this.syntheticResolvedLinks = {};
+      this.recalculateStats();
+      return;
+    }
+
     this.removeResolvedLinkCounts(this.syntheticResolvedLinks);
     this.syntheticResolvedLinks = {};
     this.recalculateStats();
@@ -306,6 +413,7 @@ class AnchorGraphLinkEnhancer {
   // 将一批合成关系边累加到 Obsidian 原生 resolvedLinks 中。
   addResolvedLinkCounts(resolvedLinkMap) {
     const resolvedLinks = this.getResolvedLinksStore();
+    if (!resolvedLinks) return;
 
     Object.entries(resolvedLinkMap).forEach(([sourcePath, destinations]) => {
       if (!resolvedLinks[sourcePath]) {
@@ -321,6 +429,7 @@ class AnchorGraphLinkEnhancer {
   // 从 Obsidian 原生 resolvedLinks 中扣除插件注入的计数，保留其他来源的原始链接。
   removeResolvedLinkCounts(resolvedLinkMap) {
     const resolvedLinks = this.getResolvedLinksStore();
+    if (!resolvedLinks) return;
 
     Object.entries(resolvedLinkMap).forEach(([sourcePath, destinations]) => {
       if (!resolvedLinks[sourcePath]) return;
@@ -345,8 +454,8 @@ class AnchorGraphLinkEnhancer {
 
   // 返回 Obsidian 的 resolvedLinks 存储对象，必要时按需初始化。
   getResolvedLinksStore() {
-    if (!this.plugin.app.metadataCache.resolvedLinks) {
-      this.plugin.app.metadataCache.resolvedLinks = {};
+    if (!this.hasResolvedLinksStore()) {
+      return null;
     }
 
     return this.plugin.app.metadataCache.resolvedLinks;
@@ -371,7 +480,6 @@ class AnchorGraphLinkEnhancer {
       this.plugin.app.metadataCache.trigger('resolved');
     }
 
-    this.refreshOpenGraphViews();
     this.processGraphRefreshButtons();
   }
 
@@ -387,32 +495,6 @@ class AnchorGraphLinkEnhancer {
     });
 
     return leaves;
-  }
-
-  // 尝试通知已打开的关系图谱视图立即重绘，降低“数据已更新但界面未同步”的概率。
-  refreshOpenGraphViews() {
-    this.getOpenGraphLeaves().forEach((leaf) => {
-      this.refreshGraphLeaf(leaf);
-    });
-  }
-
-  // 对单个图谱叶子执行最温和的重绘尝试，优先调用现成方法，失败时只记录警告。
-  refreshGraphLeaf(leaf) {
-    const view = leaf && leaf.view;
-    if (!view) return;
-
-    const refreshMethodNames = ['onMetadataCacheChanged', 'updateView', 'render', 'onResize'];
-
-    for (const methodName of refreshMethodNames) {
-      if (typeof view[methodName] !== 'function') continue;
-
-      try {
-        view[methodName]();
-        return;
-      } catch (error) {
-        console.warn(`调用关系图谱视图方法 ${methodName} 刷新失败`, error);
-      }
-    }
   }
 
   // 监听文档中的视图切换与图谱 DOM 挂载，按需在图谱中补充刷新按钮。
@@ -448,6 +530,8 @@ class AnchorGraphLinkEnhancer {
 
   // 为已打开的关系图谱补充刷新按钮，避免用户必须回到设置页手动刷新。
   processGraphRefreshButtons() {
+    if (!this.isFeatureEnabled()) return;
+
     this.getOpenGraphLeaves().forEach((leaf) => {
       this.ensureGraphRefreshButton(leaf);
     });
@@ -507,6 +591,8 @@ class AnchorGraphLinkEnhancer {
 
   // 注入少量样式，让刷新按钮固定显示在图谱视图右上角且兼容桌面端与移动端。
   addGraphRefreshButtonStyles() {
+    if (this.styleEl) return;
+
     this.styleEl = document.createElement('style');
     this.styleEl.id = 'obsidian-nene-plugin-graph-refresh-styles';
     this.styleEl.textContent = `
@@ -539,6 +625,98 @@ class AnchorGraphLinkEnhancer {
     `;
 
     document.head.appendChild(this.styleEl);
+  }
+
+  // 检查当前运行环境是否满足图谱增强的最低要求，不满足时直接降级为关闭状态。
+  ensureCompatibleRuntime(showNotice) {
+    if (!this.isFeatureEnabled()) {
+      this.isCompatibleRuntime = false;
+      return false;
+    }
+
+    if (!obsidian.requireApiVersion(MIN_GRAPH_COMPATIBLE_API_VERSION)) {
+      this.isCompatibleRuntime = false;
+      this.warnCompatibility(
+        `关系图谱 HTML 链接增强仅在 Obsidian ${MIN_GRAPH_COMPATIBLE_API_VERSION}+ 上启用，当前版本将自动跳过。`,
+        showNotice
+      );
+      return false;
+    }
+
+    if (!this.hasResolvedLinksStore()) {
+      this.isCompatibleRuntime = false;
+      this.warnCompatibility(
+        '当前 Obsidian 运行环境未暴露可写的关系图谱链接索引，已跳过 HTML 链接增强。',
+        showNotice
+      );
+      return false;
+    }
+
+    this.isCompatibleRuntime = true;
+    this.lastCompatibilityMessage = '';
+    return true;
+  }
+
+  // 返回关系图谱增强是否被用户在设置中启用。
+  isFeatureEnabled() {
+    if (typeof this.plugin.isAnchorGraphEnabled === 'function') {
+      return this.plugin.isAnchorGraphEnabled();
+    }
+
+    return this.plugin.settings?.features?.anchorGraph?.enabled !== false;
+  }
+
+  // 判断当前是否存在可安全写入的 resolvedLinks 存储。
+  hasResolvedLinksStore() {
+    const metadataCache = this.plugin.app && this.plugin.app.metadataCache;
+    if (!metadataCache) return false;
+
+    const resolvedLinks = metadataCache.resolvedLinks;
+    return Boolean(
+      resolvedLinks
+      && typeof resolvedLinks === 'object'
+      && !Array.isArray(resolvedLinks)
+      && typeof metadataCache.getFirstLinkpathDest === 'function'
+    );
+  }
+
+  // 在不兼容环境下给出一次性提示，避免用户误以为功能静默损坏。
+  warnCompatibility(message, showNotice) {
+    this.lastCompatibilityMessage = message;
+    if (this.compatibilityWarningShown) return;
+
+    this.compatibilityWarningShown = true;
+    console.warn(message);
+    if (!showNotice) return;
+
+    new obsidian.Notice(message, 6000);
+  }
+
+  // 分批读取全库 Markdown，避免长时间占用主线程导致界面卡顿。
+  async buildResolvedLinksSnapshot(markdownFiles) {
+    const nextSyntheticResolvedLinks = {};
+
+    for (let index = 0; index < markdownFiles.length; index += 1) {
+      const file = markdownFiles[index];
+      const content = await this.plugin.app.vault.cachedRead(file);
+      const resolvedCounts = this.buildResolvedCountsFromContent(content, file.path);
+      if (Object.keys(resolvedCounts).length > 0) {
+        nextSyntheticResolvedLinks[file.path] = resolvedCounts;
+      }
+
+      if ((index + 1) % FULL_REFRESH_BATCH_SIZE === 0) {
+        await this.yieldToMainThread();
+      }
+    }
+
+    return nextSyntheticResolvedLinks;
+  }
+
+  // 在大库扫描过程中主动让出一次事件循环，降低启动和结构变更时的阻塞感。
+  async yieldToMainThread() {
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
   }
 }
 

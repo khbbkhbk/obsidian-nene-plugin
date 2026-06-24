@@ -1,0 +1,81 @@
+/* ------------------------------ */
+/* 文件标记弹窗样式 */
+/* ------------------------------ */
+
+/* 弹窗使用紧凑但清晰的表单布局。 */
+.file-marker-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 文件路径提示使用弱化文字。 */
+.file-marker-modal-path {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* 表单主体统一垂直排列。 */
+.file-marker-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 每个字段单独成组，保持逻辑清晰。 */
+.file-marker-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 标签文本稍强调，提升可读性。 */
+.file-marker-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+/* 内联控件用于分组选择与新增按钮并列。 */
+.file-marker-inline-controls {
+  display: flex;
+  gap: 8px;
+}
+
+/* 下拉框和输入框统一风格。 */
+.file-marker-select,
+.file-marker-text-input,
+.file-marker-textarea {
+  width: 100%;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+/* 单行输入框与下拉框使用一致高度。 */
+.file-marker-select,
+.file-marker-text-input {
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+/* 文本域允许备注多行录入。 */
+.file-marker-textarea {
+  min-height: 120px;
+  padding: 10px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* 操作区靠右对齐，符合常见弹窗习惯。 */
+.file-marker-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}

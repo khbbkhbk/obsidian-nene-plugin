@@ -19,7 +19,7 @@ var require_constants = __commonJS({
       { value: "completed", label: "已完成", color: "var(--color-green)" },
       { value: "paused", label: "已搁置", color: "var(--color-yellow)" }
     ];
-    var DEFAULT_SETTINGS = {
+    var DEFAULT_FILE_MARKER_SETTINGS = {
       marks: {},
       groups: [
         {
@@ -67,7 +67,7 @@ var require_constants = __commonJS({
     };
     module2.exports = {
       DEFAULT_GROUP_ID,
-      DEFAULT_SETTINGS,
+      DEFAULT_FILE_MARKER_SETTINGS,
       FILE_ICON_MAP,
       FILE_MARKER_VIEW_TYPE,
       STATUS_OPTIONS
@@ -86,15 +86,16 @@ var require_store = __commonJS({
         this.plugin = plugin;
         this.settings = this.normalizeSettings();
       }
-      // 加载本地持久化数据，并在加载后统一归一化结构。
-      async load() {
-        const data = await this.plugin.loadData();
-        this.settings = this.normalizeSettings(data);
+      // 挂载当前插件数据中的 file-marker 切片，并按本模块规则进一步归一化。
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+        this.plugin.dataStore.setFileMarkerData(this.settings);
       }
-      // 保存当前配置数据到本地。
+      // 将最新 file-marker 切片同步到插件级数据仓库并持久化到本地。
       async save() {
         this.settings = this.normalizeSettings(this.settings);
-        await this.plugin.saveData(this.settings);
+        this.plugin.dataStore.setFileMarkerData(this.settings);
+        await this.plugin.dataStore.save();
       }
       // 返回完整配置对象，便于上层做只读使用。
       getSettings() {
@@ -125,9 +126,9 @@ var require_store = __commonJS({
       isValidStatus(statusValue) {
         return constants.STATUS_OPTIONS.some((status) => status.value === statusValue);
       }
-      // 归一化数据结构，防止旧数据或异常数据导致运行时报错。
+      // 归一化 file-marker 自己的数据结构，避免旧数据或异常数据导致运行时报错。
       normalizeSettings(data) {
-        const source = data || constants.DEFAULT_SETTINGS;
+        const source = data || constants.DEFAULT_FILE_MARKER_SETTINGS;
         const normalizedMarks = {};
         const marks = source.marks || {};
         Object.entries(marks).forEach(([path, mark]) => {
@@ -672,6 +673,190 @@ var require_file_marker = __commonJS({
   }
 });
 
+// src/modules/plugin-data/constants.js
+var require_constants2 = __commonJS({
+  "src/modules/plugin-data/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_PLUGIN_DATA = {
+      features: {
+        anchorGraph: {
+          enabled: true
+        }
+      },
+      fileMarker: {
+        marks: {},
+        groups: [
+          {
+            id: "ungrouped",
+            name: "未分组",
+            collapsed: false
+          }
+        ]
+      }
+    };
+    module2.exports = {
+      DEFAULT_PLUGIN_DATA
+    };
+  }
+});
+
+// src/modules/plugin-data/store.js
+var require_store2 = __commonJS({
+  "src/modules/plugin-data/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants2();
+    var PluginDataStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.data = this.normalizeData();
+      }
+      // 加载本地持久化数据，并按当前模块切片结构归一化。
+      async load() {
+        const rawData = await this.plugin.loadData();
+        this.data = this.normalizeData(rawData);
+      }
+      // 保存当前整份插件数据到本地。
+      async save() {
+        this.data = this.normalizeData(this.data);
+        await this.plugin.saveData(this.data);
+      }
+      // 返回整份插件数据对象，供主入口按需透传。
+      getData() {
+        return this.data;
+      }
+      // 返回插件级功能开关切片。
+      getFeatures() {
+        return this.data.features;
+      }
+      // 更新插件级功能开关切片。
+      setFeatures(features) {
+        this.data.features = this.normalizeFeatures(features);
+      }
+      // 返回文件标记数据切片。
+      getFileMarkerData() {
+        return this.data.fileMarker;
+      }
+      // 更新文件标记数据切片。
+      setFileMarkerData(fileMarkerData) {
+        this.data.fileMarker = this.normalizeFileMarkerData(fileMarkerData);
+      }
+      // 归一化整份插件数据，只接受当前模块切片结构。
+      normalizeData(data) {
+        const source = data && typeof data === "object" ? data : {};
+        return {
+          features: this.normalizeFeatures(source.features),
+          fileMarker: this.normalizeFileMarkerData(source.fileMarker)
+        };
+      }
+      // 归一化插件级功能开关结构。
+      normalizeFeatures(features) {
+        return {
+          anchorGraph: {
+            enabled: features?.anchorGraph?.enabled !== false
+          }
+        };
+      }
+      // 归一化文件标记切片的顶层结构，具体业务字段由 file-marker 模块进一步收敛。
+      normalizeFileMarkerData(fileMarkerData) {
+        const source = fileMarkerData && typeof fileMarkerData === "object" ? fileMarkerData : {};
+        const defaultFileMarker = constants.DEFAULT_PLUGIN_DATA.fileMarker;
+        return {
+          marks: source.marks && typeof source.marks === "object" ? source.marks : defaultFileMarker.marks,
+          groups: Array.isArray(source.groups) ? source.groups : defaultFileMarker.groups
+        };
+      }
+    };
+    module2.exports = {
+      PluginDataStore
+    };
+  }
+});
+
+// src/modules/plugin-data/index.js
+var require_plugin_data = __commonJS({
+  "src/modules/plugin-data/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants2();
+    var store = require_store2();
+    module2.exports = Object.assign({}, constants, store);
+  }
+});
+
+// src/modules/plugin-settings/constants.js
+var require_constants3 = __commonJS({
+  "src/modules/plugin-settings/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_FEATURE_SETTINGS = {
+      anchorGraph: {
+        enabled: true
+      }
+    };
+    module2.exports = {
+      DEFAULT_FEATURE_SETTINGS
+    };
+  }
+});
+
+// src/modules/plugin-settings/store.js
+var require_store3 = __commonJS({
+  "src/modules/plugin-settings/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants3();
+    var PluginSettingsStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = this.normalizeSettings();
+      }
+      // 挂载插件级数据中的功能开关切片，供后续业务逻辑复用。
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+      }
+      // 将最新功能开关同步到插件级数据仓库并持久化到本地。
+      async save() {
+        this.settings = this.normalizeSettings(this.settings);
+        this.plugin.dataStore.setFeatures(this.settings);
+        await this.plugin.dataStore.save();
+      }
+      // 返回关系图谱增强是否启用，供主入口和设置页统一读取。
+      isAnchorGraphEnabled() {
+        return Boolean(this.settings.anchorGraph.enabled);
+      }
+      // 切换关系图谱增强的启用状态，并立即持久化到本地。
+      async setAnchorGraphEnabled(enabled) {
+        this.settings.anchorGraph.enabled = Boolean(enabled);
+        await this.save();
+        return this.isAnchorGraphEnabled();
+      }
+      // 返回功能设置对象，供主入口与设置页读取当前切片。
+      getSettings() {
+        return this.settings;
+      }
+      // 归一化插件级功能设置结构。
+      normalizeSettings(data) {
+        const source = data || constants.DEFAULT_FEATURE_SETTINGS;
+        return {
+          anchorGraph: {
+            enabled: source.anchorGraph?.enabled !== false
+          }
+        };
+      }
+    };
+    module2.exports = {
+      PluginSettingsStore
+    };
+  }
+});
+
+// src/modules/plugin-settings/index.js
+var require_plugin_settings = __commonJS({
+  "src/modules/plugin-settings/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants3();
+    var store = require_store3();
+    module2.exports = Object.assign({}, constants, store);
+  }
+});
+
 // src/modules/plugin-list-enhancer/index.js
 var require_plugin_list_enhancer = __commonJS({
   "src/modules/plugin-list-enhancer/index.js"(exports2, module2) {
@@ -795,6 +980,10 @@ var require_anchor_graph_links = __commonJS({
   "src/modules/anchor-graph-links/index.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
+    var MIN_GRAPH_COMPATIBLE_API_VERSION = "1.4.16";
+    var STARTUP_FULL_REFRESH_DELAY = 1200;
+    var STRUCTURE_FULL_REFRESH_DELAY = 3e3;
+    var FULL_REFRESH_BATCH_SIZE = 20;
     var AnchorGraphLinkEnhancer = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -812,16 +1001,36 @@ var require_anchor_graph_links = __commonJS({
           sourceFileCount: 0,
           edgeCount: 0
         };
+        this.isStarted = false;
+        this.isCompatibleRuntime = false;
+        this.compatibilityWarningShown = false;
+        this.lastCompatibilityMessage = "";
       }
       // 启动增强器时执行一次全量构建，保证图谱立即可见。
       start() {
+        if (!this.isFeatureEnabled()) {
+          this.isStarted = false;
+          this.isCompatibleRuntime = false;
+          return;
+        }
+        if (this.isStarted) {
+          this.processGraphRefreshButtons();
+          return;
+        }
+        this.isCompatibleRuntime = this.ensureCompatibleRuntime(true);
+        if (!this.isCompatibleRuntime) {
+          return;
+        }
+        this.isStarted = true;
         this.addGraphRefreshButtonStyles();
         this.setupGraphRefreshButtonObserver();
         this.processGraphRefreshButtons();
-        this.scheduleFullRefresh(0);
+        this.scheduleFullRefresh(STARTUP_FULL_REFRESH_DELAY);
       }
       // 停止增强器时回滚注入的关系边，避免影响其他插件或 Obsidian 原生索引。
       stop() {
+        this.isStarted = false;
+        this.isCompatibleRuntime = false;
         if (this.refreshTimer) {
           window.clearTimeout(this.refreshTimer);
           this.refreshTimer = null;
@@ -850,8 +1059,38 @@ var require_anchor_graph_links = __commonJS({
       getStats() {
         return Object.assign({}, this.stats);
       }
+      // 返回关系图谱增强的运行时状态，供设置页展示启用、降级与兼容性信息。
+      getRuntimeStatus() {
+        if (!this.isFeatureEnabled()) {
+          return {
+            state: "disabled",
+            message: "关系图谱 HTML 链接增强已在设置中关闭。"
+          };
+        }
+        if (this.isCompatibleRuntime) {
+          return {
+            state: "active",
+            message: `关系图谱 HTML 链接增强已启用，兼容目标为 Obsidian ${MIN_GRAPH_COMPATIBLE_API_VERSION}+。`
+          };
+        }
+        if (this.lastCompatibilityMessage) {
+          return {
+            state: "degraded",
+            message: this.lastCompatibilityMessage
+          };
+        }
+        return {
+          state: "idle",
+          message: "关系图谱 HTML 链接增强等待初始化。"
+        };
+      }
+      // 返回默认的结构变化全量刷新延时，统一由主入口复用。
+      getStructureRefreshDelay() {
+        return STRUCTURE_FULL_REFRESH_DELAY;
+      }
       // 计划一次全量刷新，在文件结构变化时重新解析全部 HTML 内部链接。
       scheduleFullRefresh(delay, showNotice) {
+        if (!this.ensureCompatibleRuntime(showNotice)) return;
         if (showNotice) {
           this.pendingNotice = true;
         }
@@ -865,6 +1104,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 在编辑器输入过程中按源文件做防抖刷新，减少“必须保存后才生效”的感知延迟。
       scheduleSourceRefresh(file, content, delay) {
+        if (!this.ensureCompatibleRuntime(false)) return;
         if (!(file instanceof obsidian2.TFile) || file.extension !== "md") return;
         this.pendingSourceRefresh = {
           file,
@@ -883,6 +1123,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 手动或启动时执行全量刷新，重建全部 a.internal-link 的关系边。
       async refreshAll(showNotice) {
+        if (!this.ensureCompatibleRuntime(showNotice)) return;
         if (showNotice) {
           this.pendingNotice = true;
         }
@@ -894,15 +1135,8 @@ var require_anchor_graph_links = __commonJS({
         const shouldShowNotice = this.pendingNotice;
         this.pendingNotice = false;
         try {
-          const nextSyntheticResolvedLinks = {};
           const markdownFiles = this.plugin.app.vault.getMarkdownFiles();
-          for (const file of markdownFiles) {
-            const content = await this.plugin.app.vault.cachedRead(file);
-            const resolvedCounts = this.buildResolvedCountsFromContent(content, file.path);
-            if (Object.keys(resolvedCounts).length > 0) {
-              nextSyntheticResolvedLinks[file.path] = resolvedCounts;
-            }
-          }
+          const nextSyntheticResolvedLinks = await this.buildResolvedLinksSnapshot(markdownFiles);
           this.commitSyntheticResolvedLinks(nextSyntheticResolvedLinks);
           if (shouldShowNotice) {
             new obsidian2.Notice(`关系图谱 HTML 链接已刷新，共注入 ${this.stats.edgeCount} 条关系边`);
@@ -922,6 +1156,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 在单个 Markdown 文件重新索引后，仅刷新当前源文件对应的合成关系边。
       async refreshSourceFile(file, content) {
+        if (!this.ensureCompatibleRuntime(false)) return;
         if (!(file instanceof obsidian2.TFile) || file.extension !== "md") return;
         if (this.isRefreshing) {
           this.pendingFullRefresh = true;
@@ -940,6 +1175,35 @@ var require_anchor_graph_links = __commonJS({
             this.scheduleFullRefresh(0, this.pendingNotice);
           }
         }
+      }
+      // 从磁盘缓存中读取指定文件内容，再走单文件刷新流程，避免结构变化后立刻全库扫描。
+      async refreshSourceFileFromVault(file) {
+        if (!this.ensureCompatibleRuntime(false)) return;
+        if (!(file instanceof obsidian2.TFile) || file.extension !== "md") return;
+        try {
+          const content = await this.plugin.app.vault.cachedRead(file);
+          await this.refreshSourceFile(file, content);
+        } catch (error) {
+          console.error(`读取文件 ${file.path} 以刷新关系图谱 HTML 链接失败`, error);
+        }
+      }
+      // 在文件重命名后先迁移当前源文件的合成关系边，再按需安排后台全量刷新。
+      async handleSourceFileRename(file, oldPath) {
+        if (!this.ensureCompatibleRuntime(false)) return;
+        if (typeof oldPath === "string" && oldPath && oldPath !== file.path) {
+          this.replaceSyntheticResolvedLinksForSource(oldPath, null);
+        }
+        await this.refreshSourceFileFromVault(file);
+      }
+      // 在文件删除后先移除对应源文件的合成关系边，降低后续全量重建前的错误残留。
+      removeSourceFileLinks(filePath) {
+        if (!this.ensureCompatibleRuntime(false)) return false;
+        if (typeof filePath !== "string" || !filePath) return false;
+        if (!this.syntheticResolvedLinks[filePath]) {
+          return false;
+        }
+        this.replaceSyntheticResolvedLinksForSource(filePath, null);
+        return true;
       }
       // 基于文件内容提取并解析 a.internal-link，返回当前源文件的目标计数字典。
       buildResolvedCountsFromContent(content, sourcePath) {
@@ -1001,6 +1265,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 用新的全量结果替换旧的合成关系边，并同步更新统计信息。
       commitSyntheticResolvedLinks(nextSyntheticResolvedLinks) {
+        if (!this.ensureCompatibleRuntime(false)) return;
         this.removeResolvedLinkCounts(this.syntheticResolvedLinks);
         this.addResolvedLinkCounts(nextSyntheticResolvedLinks);
         this.syntheticResolvedLinks = nextSyntheticResolvedLinks;
@@ -1009,6 +1274,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 仅替换单个源文件对应的合成关系边，避免单文件编辑时全量重建。
       replaceSyntheticResolvedLinksForSource(sourcePath, nextResolvedCounts) {
+        if (!this.ensureCompatibleRuntime(false)) return;
         const previousResolvedCounts = this.syntheticResolvedLinks[sourcePath];
         if (previousResolvedCounts) {
           this.removeResolvedLinkCounts({
@@ -1028,6 +1294,11 @@ var require_anchor_graph_links = __commonJS({
       }
       // 从 metadataCache.resolvedLinks 中移除当前插件此前注入的关系边。
       clearSyntheticResolvedLinks() {
+        if (!this.hasResolvedLinksStore()) {
+          this.syntheticResolvedLinks = {};
+          this.recalculateStats();
+          return;
+        }
         this.removeResolvedLinkCounts(this.syntheticResolvedLinks);
         this.syntheticResolvedLinks = {};
         this.recalculateStats();
@@ -1036,6 +1307,7 @@ var require_anchor_graph_links = __commonJS({
       // 将一批合成关系边累加到 Obsidian 原生 resolvedLinks 中。
       addResolvedLinkCounts(resolvedLinkMap) {
         const resolvedLinks = this.getResolvedLinksStore();
+        if (!resolvedLinks) return;
         Object.entries(resolvedLinkMap).forEach(([sourcePath, destinations]) => {
           if (!resolvedLinks[sourcePath]) {
             resolvedLinks[sourcePath] = {};
@@ -1048,6 +1320,7 @@ var require_anchor_graph_links = __commonJS({
       // 从 Obsidian 原生 resolvedLinks 中扣除插件注入的计数，保留其他来源的原始链接。
       removeResolvedLinkCounts(resolvedLinkMap) {
         const resolvedLinks = this.getResolvedLinksStore();
+        if (!resolvedLinks) return;
         Object.entries(resolvedLinkMap).forEach(([sourcePath, destinations]) => {
           if (!resolvedLinks[sourcePath]) return;
           Object.entries(destinations).forEach(([destinationPath, count]) => {
@@ -1067,8 +1340,8 @@ var require_anchor_graph_links = __commonJS({
       }
       // 返回 Obsidian 的 resolvedLinks 存储对象，必要时按需初始化。
       getResolvedLinksStore() {
-        if (!this.plugin.app.metadataCache.resolvedLinks) {
-          this.plugin.app.metadataCache.resolvedLinks = {};
+        if (!this.hasResolvedLinksStore()) {
+          return null;
         }
         return this.plugin.app.metadataCache.resolvedLinks;
       }
@@ -1088,7 +1361,6 @@ var require_anchor_graph_links = __commonJS({
         if (typeof this.plugin.app.metadataCache.trigger === "function") {
           this.plugin.app.metadataCache.trigger("resolved");
         }
-        this.refreshOpenGraphViews();
         this.processGraphRefreshButtons();
       }
       // 返回当前所有已打开的全局图谱与局部图谱叶子，便于统一补按钮与尝试重绘。
@@ -1101,27 +1373,6 @@ var require_anchor_graph_links = __commonJS({
           });
         });
         return leaves;
-      }
-      // 尝试通知已打开的关系图谱视图立即重绘，降低“数据已更新但界面未同步”的概率。
-      refreshOpenGraphViews() {
-        this.getOpenGraphLeaves().forEach((leaf) => {
-          this.refreshGraphLeaf(leaf);
-        });
-      }
-      // 对单个图谱叶子执行最温和的重绘尝试，优先调用现成方法，失败时只记录警告。
-      refreshGraphLeaf(leaf) {
-        const view = leaf && leaf.view;
-        if (!view) return;
-        const refreshMethodNames = ["onMetadataCacheChanged", "updateView", "render", "onResize"];
-        for (const methodName of refreshMethodNames) {
-          if (typeof view[methodName] !== "function") continue;
-          try {
-            view[methodName]();
-            return;
-          } catch (error) {
-            console.warn(`调用关系图谱视图方法 ${methodName} 刷新失败`, error);
-          }
-        }
       }
       // 监听文档中的视图切换与图谱 DOM 挂载，按需在图谱中补充刷新按钮。
       setupGraphRefreshButtonObserver() {
@@ -1149,6 +1400,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 为已打开的关系图谱补充刷新按钮，避免用户必须回到设置页手动刷新。
       processGraphRefreshButtons() {
+        if (!this.isFeatureEnabled()) return;
         this.getOpenGraphLeaves().forEach((leaf) => {
           this.ensureGraphRefreshButton(leaf);
         });
@@ -1194,6 +1446,7 @@ var require_anchor_graph_links = __commonJS({
       }
       // 注入少量样式，让刷新按钮固定显示在图谱视图右上角且兼容桌面端与移动端。
       addGraphRefreshButtonStyles() {
+        if (this.styleEl) return;
         this.styleEl = document.createElement("style");
         this.styleEl.id = "obsidian-nene-plugin-graph-refresh-styles";
         this.styleEl.textContent = `
@@ -1226,6 +1479,79 @@ var require_anchor_graph_links = __commonJS({
     `;
         document.head.appendChild(this.styleEl);
       }
+      // 检查当前运行环境是否满足图谱增强的最低要求，不满足时直接降级为关闭状态。
+      ensureCompatibleRuntime(showNotice) {
+        if (!this.isFeatureEnabled()) {
+          this.isCompatibleRuntime = false;
+          return false;
+        }
+        if (!obsidian2.requireApiVersion(MIN_GRAPH_COMPATIBLE_API_VERSION)) {
+          this.isCompatibleRuntime = false;
+          this.warnCompatibility(
+            `关系图谱 HTML 链接增强仅在 Obsidian ${MIN_GRAPH_COMPATIBLE_API_VERSION}+ 上启用，当前版本将自动跳过。`,
+            showNotice
+          );
+          return false;
+        }
+        if (!this.hasResolvedLinksStore()) {
+          this.isCompatibleRuntime = false;
+          this.warnCompatibility(
+            "当前 Obsidian 运行环境未暴露可写的关系图谱链接索引，已跳过 HTML 链接增强。",
+            showNotice
+          );
+          return false;
+        }
+        this.isCompatibleRuntime = true;
+        this.lastCompatibilityMessage = "";
+        return true;
+      }
+      // 返回关系图谱增强是否被用户在设置中启用。
+      isFeatureEnabled() {
+        if (typeof this.plugin.isAnchorGraphEnabled === "function") {
+          return this.plugin.isAnchorGraphEnabled();
+        }
+        return this.plugin.settings?.features?.anchorGraph?.enabled !== false;
+      }
+      // 判断当前是否存在可安全写入的 resolvedLinks 存储。
+      hasResolvedLinksStore() {
+        const metadataCache = this.plugin.app && this.plugin.app.metadataCache;
+        if (!metadataCache) return false;
+        const resolvedLinks = metadataCache.resolvedLinks;
+        return Boolean(
+          resolvedLinks && typeof resolvedLinks === "object" && !Array.isArray(resolvedLinks) && typeof metadataCache.getFirstLinkpathDest === "function"
+        );
+      }
+      // 在不兼容环境下给出一次性提示，避免用户误以为功能静默损坏。
+      warnCompatibility(message, showNotice) {
+        this.lastCompatibilityMessage = message;
+        if (this.compatibilityWarningShown) return;
+        this.compatibilityWarningShown = true;
+        console.warn(message);
+        if (!showNotice) return;
+        new obsidian2.Notice(message, 6e3);
+      }
+      // 分批读取全库 Markdown，避免长时间占用主线程导致界面卡顿。
+      async buildResolvedLinksSnapshot(markdownFiles) {
+        const nextSyntheticResolvedLinks = {};
+        for (let index = 0; index < markdownFiles.length; index += 1) {
+          const file = markdownFiles[index];
+          const content = await this.plugin.app.vault.cachedRead(file);
+          const resolvedCounts = this.buildResolvedCountsFromContent(content, file.path);
+          if (Object.keys(resolvedCounts).length > 0) {
+            nextSyntheticResolvedLinks[file.path] = resolvedCounts;
+          }
+          if ((index + 1) % FULL_REFRESH_BATCH_SIZE === 0) {
+            await this.yieldToMainThread();
+          }
+        }
+        return nextSyntheticResolvedLinks;
+      }
+      // 在大库扫描过程中主动让出一次事件循环，降低启动和结构变更时的阻塞感。
+      async yieldToMainThread() {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 0);
+        });
+      }
     };
     module2.exports = {
       AnchorGraphLinkEnhancer
@@ -1248,12 +1574,31 @@ var require_settings_tab = __commonJS({
         const { containerEl } = this;
         const summary = this.plugin.getSettingsSummary();
         containerEl.empty();
+        const anchorGraphStatusLabelMap = {
+          active: "已启用",
+          degraded: "已降级",
+          disabled: "已关闭",
+          idle: "待初始化"
+        };
         containerEl.createEl("h2", { text: "ねね 设置" });
         containerEl.createEl("p", {
           text: "当前设置页以快捷操作和状态展示为主，默认行为保持与原有插件逻辑一致。"
         });
         containerEl.createEl("p", {
-          text: `关系图谱 HTML 链接增强默认始终开启，当前已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边，可直接在关系图谱视图右上角点击刷新按钮手动重建。`
+          text: `关系图谱 HTML 链接增强当前状态为 ${anchorGraphStatusLabelMap[summary.anchorGraphRuntimeState] || "未知"}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`
+        });
+        new obsidian2.Setting(containerEl).setName("关系图谱 HTML 链接增强").setDesc("为关系图谱补充 a.internal-link 形式的正向链接识别。该模块可单独关闭，在不兼容环境下会自动降级停用。").addToggle((toggle) => {
+          toggle.setValue(summary.anchorGraphEnabled).onChange(async (value) => {
+            await this.plugin.updateAnchorGraphEnabled(value);
+            new obsidian2.Notice(value ? "已启用关系图谱 HTML 链接增强" : "已关闭关系图谱 HTML 链接增强");
+            this.display();
+          });
+        });
+        new obsidian2.Setting(containerEl).setName("关系图谱运行状态").setDesc(summary.anchorGraphRuntimeMessage).addButton((button) => {
+          button.setButtonText("立即刷新").setDisabled(!summary.anchorGraphEnabled).onClick(async () => {
+            await this.plugin.refreshAnchorGraphLinks(true);
+            this.display();
+          });
         });
         new obsidian2.Setting(containerEl).setName("文件标记面板").setDesc(`当前共有 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组，可直接打开右侧文件标记面板。`).addButton((button) => {
           button.setButtonText("打开面板").setCta().onClick(async () => {
@@ -1289,25 +1634,31 @@ var require_settings_tab = __commonJS({
 // src/main.js
 var obsidian = require("obsidian");
 var fileMarker = require_file_marker();
+var pluginData = require_plugin_data();
+var pluginSettings = require_plugin_settings();
 var pluginListEnhancerModule = require_plugin_list_enhancer();
 var anchorGraphLinksModule = require_anchor_graph_links();
 var settingsTabModule = require_settings_tab();
 var ObsidianNenePlugin = class extends obsidian.Plugin {
   constructor() {
     super(...arguments);
-    this.store = new fileMarker.FileMarkerStore(this);
+    this.dataStore = new pluginData.PluginDataStore(this);
+    this.pluginSettingsStore = new pluginSettings.PluginSettingsStore(this);
+    this.fileMarkerStore = new fileMarker.FileMarkerStore(this);
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this);
     this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this);
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
-    return this.store.getSettings();
+    return this.dataStore.getData();
   }
   // 插件加载时执行初始化逻辑。
   async onload() {
     console.log("Loading obsidian-nene-plugin");
-    await this.store.load();
-    await this.store.pruneMissingMarks();
+    await this.dataStore.load();
+    this.pluginSettingsStore.load(this.dataStore.getFeatures());
+    this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
+    await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
     this.setupFileMenu();
     this.setupVaultEvents();
@@ -1316,7 +1667,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.setupAnchorGraphEvents();
     this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
     this.pluginListEnhancer.start();
-    this.anchorGraphLinkEnhancer.start();
+    this.syncAnchorGraphEnhancerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
@@ -1356,7 +1707,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.registerEvent(
       this.app.vault.on("rename", async (file, oldPath) => {
         if (!(file instanceof obsidian.TFile)) return;
-        const hasChanged = await this.store.renameMark(file, oldPath);
+        const hasChanged = await this.fileMarkerStore.renameMark(file, oldPath);
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
@@ -1365,7 +1716,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.registerEvent(
       this.app.vault.on("delete", async (file) => {
         if (!(file instanceof obsidian.TFile)) return;
-        const hasChanged = await this.store.removeMarkByFile(file);
+        const hasChanged = await this.fileMarkerStore.removeMarkByFile(file);
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
@@ -1402,6 +1753,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   setupAnchorGraphEvents() {
     this.registerEvent(
       this.app.workspace.on("editor-change", (editor, view) => {
+        if (!this.isAnchorGraphEnabled()) return;
         const file = view && view.file instanceof obsidian.TFile ? view.file : this.app.workspace.getActiveFile();
         if (!(file instanceof obsidian.TFile) || file.extension !== "md") return;
         this.anchorGraphLinkEnhancer.scheduleSourceRefresh(file, editor.getValue(), 240);
@@ -1409,25 +1761,32 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     );
     this.registerEvent(
       this.app.metadataCache.on("changed", async (file, data) => {
+        if (!this.isAnchorGraphEnabled()) return;
         await this.anchorGraphLinkEnhancer.refreshSourceFile(file, data);
       })
     );
     this.registerEvent(
-      this.app.vault.on("create", (file) => {
+      this.app.vault.on("create", async (file) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        await this.anchorGraphLinkEnhancer.refreshSourceFileFromVault(file);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
     this.registerEvent(
-      this.app.vault.on("rename", (file) => {
+      this.app.vault.on("rename", async (file, oldPath) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        await this.anchorGraphLinkEnhancer.handleSourceFileRename(file, oldPath);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
+        if (!this.isAnchorGraphEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
-        this.anchorGraphLinkEnhancer.scheduleFullRefresh(400);
+        this.anchorGraphLinkEnhancer.removeSourceFileLinks(file.path);
+        this.anchorGraphLinkEnhancer.scheduleFullRefresh(this.anchorGraphLinkEnhancer.getStructureRefreshDelay());
       })
     );
   }
@@ -1436,36 +1795,48 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   /* ------------------------------ */
   // 返回指定路径的标记记录，未命中时返回空值。
   getMarkRecord(filePath) {
-    return this.settings.marks[filePath] || null;
+    return this.fileMarkerStore.getSettings().marks[filePath] || null;
   }
   // 返回当前全部分组信息。
   getGroups() {
-    return this.store.getGroups();
+    return this.fileMarkerStore.getGroups();
   }
   // 根据状态值获取显示名称。
   getStatusLabel(statusValue) {
-    return this.store.getStatusLabel(statusValue);
+    return this.fileMarkerStore.getStatusLabel(statusValue);
   }
   // 根据文件类型返回图标名称。
   getFileIcon(file) {
-    return this.store.getFileIcon(file);
+    return this.fileMarkerStore.getFileIcon(file);
   }
   // 返回格式化后的更新时间文本。
   formatTime(timestamp) {
-    return this.store.formatTime(timestamp);
+    return this.fileMarkerStore.formatTime(timestamp);
   }
   // 返回按分组整理后的文件标记数据。
   getGroupedMarkedFiles() {
-    return this.store.getGroupedMarkedFiles();
+    return this.fileMarkerStore.getGroupedMarkedFiles();
+  }
+  // 返回关系图谱增强当前是否被用户启用。
+  isAnchorGraphEnabled() {
+    return this.pluginSettingsStore.isAnchorGraphEnabled();
+  }
+  // 返回当前文件标记数量，供设置页与后续状态摘要复用。
+  getMarkCount() {
+    return Object.keys(this.fileMarkerStore.getSettings().marks).length;
   }
   // 返回设置页所需的数据摘要，统一管理展示字段。
   getSettingsSummary() {
     const anchorGraphStats = this.anchorGraphLinkEnhancer.getStats();
+    const anchorGraphRuntime = this.anchorGraphLinkEnhancer.getRuntimeStatus();
     return {
-      markCount: Object.keys(this.settings.marks).length,
+      markCount: this.getMarkCount(),
       groupCount: this.getGroups().length,
       anchorGraphSourceFileCount: anchorGraphStats.sourceFileCount,
-      anchorGraphEdgeCount: anchorGraphStats.edgeCount
+      anchorGraphEdgeCount: anchorGraphStats.edgeCount,
+      anchorGraphEnabled: this.isAnchorGraphEnabled(),
+      anchorGraphRuntimeState: anchorGraphRuntime.state,
+      anchorGraphRuntimeMessage: anchorGraphRuntime.message
     };
   }
   /* ------------------------------ */
@@ -1477,12 +1848,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   }
   // 保存单个文件的标记记录，并刷新视图。
   async saveMarkRecord(file, payload) {
-    await this.store.saveMark(file, payload);
+    await this.fileMarkerStore.saveMark(file, payload);
     this.refreshAllFileMarkerViews();
   }
   // 删除单个文件的标记记录，并刷新视图。
   async removeMarkRecord(filePath) {
-    const hasChanged = await this.store.removeMark(filePath);
+    const hasChanged = await this.fileMarkerStore.removeMark(filePath);
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
@@ -1490,13 +1861,13 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   }
   // 新增分组，并在保存后刷新视图。
   async createMarkGroup(groupName) {
-    const result = await this.store.addGroup(groupName);
+    const result = await this.fileMarkerStore.addGroup(groupName);
     this.refreshAllFileMarkerViews();
     return result;
   }
   // 切换指定分组的展开或折叠状态。
   async updateGroupCollapsedState(groupId, collapsed) {
-    const hasChanged = await this.store.setGroupCollapsed(groupId, collapsed);
+    const hasChanged = await this.fileMarkerStore.setGroupCollapsed(groupId, collapsed);
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
@@ -1504,12 +1875,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   }
   // 一键展开或折叠全部分组。
   async updateAllGroupsCollapsedState(collapsed) {
-    await this.store.setAllGroupsCollapsed(collapsed);
+    await this.fileMarkerStore.setAllGroupsCollapsed(collapsed);
     this.refreshAllFileMarkerViews();
   }
   // 打开指定路径对应的文件，不存在时提示用户。
   async openMarkedFileByPath(filePath) {
-    const result = await this.store.openMarkedFile(filePath);
+    const result = await this.fileMarkerStore.openMarkedFile(filePath);
     if (!result.success && result.message) {
       new obsidian.Notice(result.message);
     }
@@ -1517,14 +1888,26 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   }
   // 清理已经不存在的文件标记，并在有变更时刷新文件标记视图。
   async pruneMissingMarkRecords() {
-    const hasChanged = await this.store.pruneMissingMarks();
+    const hasChanged = await this.fileMarkerStore.pruneMissingMarks();
     if (hasChanged) {
       this.refreshAllFileMarkerViews();
     }
     return hasChanged;
   }
+  // 更新关系图谱增强开关，并根据当前设置立即同步启停状态。
+  async updateAnchorGraphEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setAnchorGraphEnabled(enabled);
+    this.syncAnchorGraphEnhancerState();
+    return nextEnabled;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
+    if (!this.isAnchorGraphEnabled()) {
+      if (showNotice) {
+        new obsidian.Notice("关系图谱 HTML 链接增强当前已关闭，请先在设置页中启用。");
+      }
+      return;
+    }
     await this.anchorGraphLinkEnhancer.refreshAll(Boolean(showNotice));
   }
   /* ------------------------------ */
@@ -1552,6 +1935,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
         leaf.view.render();
       }
     });
+  }
+  // 根据当前设置同步关系图谱增强模块的启停状态，供启动和设置切换共用。
+  syncAnchorGraphEnhancerState() {
+    if (this.isAnchorGraphEnabled()) {
+      this.anchorGraphLinkEnhancer.start();
+      return;
+    }
+    this.anchorGraphLinkEnhancer.stop();
   }
 };
 module.exports = ObsidianNenePlugin;

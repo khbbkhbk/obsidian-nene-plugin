@@ -14,14 +14,46 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     const { containerEl } = this;
     const summary = this.plugin.getSettingsSummary();
     containerEl.empty();
+    const anchorGraphStatusLabelMap = {
+      active: '已启用',
+      degraded: '已降级',
+      disabled: '已关闭',
+      idle: '待初始化'
+    };
 
     containerEl.createEl('h2', { text: 'ねね 设置' });
     containerEl.createEl('p', {
       text: '当前设置页以快捷操作和状态展示为主，默认行为保持与原有插件逻辑一致。'
     });
     containerEl.createEl('p', {
-      text: `关系图谱 HTML 链接增强默认始终开启，当前已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边，可直接在关系图谱视图右上角点击刷新按钮手动重建。`
+      text: `关系图谱 HTML 链接增强当前状态为 ${anchorGraphStatusLabelMap[summary.anchorGraphRuntimeState] || '未知'}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`
     });
+
+    new obsidian.Setting(containerEl)
+      .setName('关系图谱 HTML 链接增强')
+      .setDesc('为关系图谱补充 a.internal-link 形式的正向链接识别。该模块可单独关闭，在不兼容环境下会自动降级停用。')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.anchorGraphEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateAnchorGraphEnabled(value);
+            new obsidian.Notice(value ? '已启用关系图谱 HTML 链接增强' : '已关闭关系图谱 HTML 链接增强');
+            this.display();
+          });
+      });
+
+    new obsidian.Setting(containerEl)
+      .setName('关系图谱运行状态')
+      .setDesc(summary.anchorGraphRuntimeMessage)
+      .addButton((button) => {
+        button
+          .setButtonText('立即刷新')
+          .setDisabled(!summary.anchorGraphEnabled)
+          .onClick(async () => {
+            await this.plugin.refreshAnchorGraphLinks(true);
+            this.display();
+          });
+      });
 
     new obsidian.Setting(containerEl)
       .setName('文件标记面板')
