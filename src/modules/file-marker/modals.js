@@ -81,7 +81,7 @@ class FileMarkerModal extends obsidian.Modal {
 
   // 打开弹窗时构建表单结构。
   onOpen() {
-    const existingMark = this.plugin.getMark(this.file.path);
+    const existingMark = this.plugin.getMarkRecord(this.file.path);
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass('file-marker-modal');
@@ -123,7 +123,7 @@ class FileMarkerModal extends obsidian.Modal {
     });
     addGroupButton.addEventListener('click', () => {
       new GroupNameModal(this.app, async (groupName) => {
-        const result = await this.plugin.addGroup(groupName);
+        const result = await this.plugin.createMarkGroup(groupName);
         this.buildGroupOptions(groupSelectEl);
         if (result.group) {
           groupSelectEl.value = result.group.id;
@@ -152,7 +152,7 @@ class FileMarkerModal extends obsidian.Modal {
       });
 
       removeButton.addEventListener('click', async () => {
-        await this.plugin.removeMark(this.file.path);
+        await this.plugin.removeMarkRecord(this.file.path);
         new obsidian.Notice('已移除文件标记');
         this.close();
       });
@@ -172,13 +172,13 @@ class FileMarkerModal extends obsidian.Modal {
     });
 
     saveButton.addEventListener('click', async () => {
-      await this.plugin.saveMark(this.file, {
+      await this.plugin.saveMarkRecord(this.file, {
         status: statusSelectEl.value,
         note: noteTextareaEl.value,
         groupId: groupSelectEl.value
       });
 
-      await this.plugin.activateFileMarkerView();
+      await this.plugin.ensureFileMarkerViewOpen();
       new obsidian.Notice('文件标记已保存');
       this.close();
     });

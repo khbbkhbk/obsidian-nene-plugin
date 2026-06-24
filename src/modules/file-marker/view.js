@@ -51,14 +51,14 @@ class FileMarkerView extends obsidian.ItemView {
     const actionEl = headerEl.createDiv({ cls: 'file-marker-view-actions' });
     this.createHeaderButton(actionEl, 'plus', '新增分组', () => {
       new modals.GroupNameModal(this.app, async (groupName) => {
-        return this.plugin.addGroup(groupName);
+        return this.plugin.createMarkGroup(groupName);
       }).open();
     });
     this.createHeaderButton(actionEl, 'fold-vertical', '全部折叠', async () => {
-      await this.plugin.setAllGroupsCollapsed(true);
+      await this.plugin.updateAllGroupsCollapsedState(true);
     });
     this.createHeaderButton(actionEl, 'unfold-vertical', '全部展开', async () => {
-      await this.plugin.setAllGroupsCollapsed(false);
+      await this.plugin.updateAllGroupsCollapsedState(false);
     });
 
     const groupedMarks = this.plugin.getGroupedMarkedFiles();
@@ -87,7 +87,7 @@ class FileMarkerView extends obsidian.ItemView {
       });
 
       groupHeaderEl.addEventListener('click', async () => {
-        await this.plugin.setGroupCollapsed(section.group.id, !section.group.collapsed);
+        await this.plugin.updateGroupCollapsedState(section.group.id, !section.group.collapsed);
       });
 
       if (section.group.collapsed) return;
@@ -144,23 +144,23 @@ class FileMarkerView extends obsidian.ItemView {
         const itemActionEl = rowEl.createDiv({ cls: 'file-marker-item-actions' });
         this.createItemButton(itemActionEl, 'pencil', '编辑', async (event) => {
           event.stopPropagation();
-          this.plugin.openFileMarkerModal(file);
+          this.plugin.openMarkEditor(file);
         });
         this.createItemButton(itemActionEl, 'trash-2', '删除', async (event) => {
           event.stopPropagation();
-          await this.plugin.removeMark(file.path);
+          await this.plugin.removeMarkRecord(file.path);
           new obsidian.Notice('已删除文件标记');
         });
 
         rowEl.addEventListener('click', async () => {
-          await this.plugin.openMarkedFile(file.path);
+          await this.plugin.openMarkedFileByPath(file.path);
         });
 
         rowEl.addEventListener('keydown', async (event) => {
           if (event.key !== 'Enter') return;
 
           event.preventDefault();
-          await this.plugin.openMarkedFile(file.path);
+          await this.plugin.openMarkedFileByPath(file.path);
         });
       });
     });
