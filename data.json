@@ -7,6 +7,16 @@
       "enabled": true
     }
   },
+  "anchorGraph": {
+    "defaultSettings": {
+      "htmlEnhancementEnabled": true
+    },
+    "noteOverrides": {
+      "未命名.md": {
+        "mode": "enabled"
+      }
+    }
+  },
   "fileMarker": {
     "marks": {},
     "groups": [

@@ -42,7 +42,13 @@
 npm run build
 ```
 
-- 监听开发命令：
+- 监听开发命令（推荐直接使用 `watch`，`dev` 仍可继续使用）：
+
+```bash
+npm run watch
+```
+
+- 兼容旧命名方式：
 
 ```bash
 npm run dev

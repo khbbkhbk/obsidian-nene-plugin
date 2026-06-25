@@ -5,6 +5,7 @@
   "description": "obsidian-nene-plugin development tooling",
   "scripts": {
     "build": "node ./scripts/build.mjs",
+    "watch": "node ./scripts/build.mjs --watch",
     "dev": "node ./scripts/build.mjs --watch",
     "test": "node --test tests/anchor-graph-links.test.js"
   },
