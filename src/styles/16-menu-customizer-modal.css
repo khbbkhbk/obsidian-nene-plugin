@@ -1,0 +1,627 @@
+/* ------------------------------ */
+/* 右键菜单自定义管理弹窗 */
+/* ------------------------------ */
+
+/* 直接覆盖 Obsidian 侧栏布局弹窗的最大宽度限制，避免被 1000px 左右卡死。 */
+.modal.mod-sidebar-layout.nene-menu-customizer-panel-modal {
+  width: min(96vw, 1960px) !important;
+  max-width: min(96vw, 1960px) !important;
+  height: min(90vh, 860px);
+}
+
+/* 管理窗口内部改为紧凑纵向布局。 */
+.modal.mod-sidebar-layout .nene-menu-customizer-modal,
+.nene-menu-customizer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 顶部摘要区域不再横向撑爆，允许自适应换列。 */
+.nene-menu-customizer-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 说明文本使用弱色提醒，不影响主线阅读。 */
+.nene-menu-customizer-note,
+.nene-menu-customizer-empty {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* 主体采用左右双栏，左侧配置，右侧预览。 */
+.nene-menu-customizer-shell {
+  display: grid;
+  grid-template-columns: minmax(680px, 1.1fr) minmax(480px, 0.9fr);
+  gap: 16px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* 左侧设置区与右侧预览区统一使用卡片包裹并各自滚动。 */
+.nene-menu-customizer-settings-pane,
+.nene-menu-customizer-preview-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  background: var(--background-primary-alt);
+}
+
+.nene-menu-customizer-settings-pane {
+  overflow: auto;
+}
+
+.nene-menu-customizer-preview-pane {
+  overflow: auto;
+  position: sticky;
+  top: 0;
+}
+
+/* 四个菜单类型改为顶部分页切换。 */
+.nene-menu-customizer-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nene-menu-customizer-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nene-menu-customizer-tab.is-active {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 12%, var(--background-primary));
+}
+
+.nene-menu-customizer-tab-badge {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 当前激活分页的内容保持紧凑节奏。 */
+.nene-menu-customizer-active-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 各功能卡片统一外观，减少大片空白。 */
+.nene-menu-customizer-panel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-primary);
+}
+
+/* 次级标题用于分组管理和命令覆盖区域。 */
+.nene-menu-customizer-subtitle {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* 分区标题保持清晰层级。 */
+.nene-menu-customizer-section-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-large);
+  font-weight: 700;
+}
+
+/* 卡片头部支持标题与操作按钮并排。 */
+.nene-menu-customizer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nene-menu-customizer-card-header::-webkit-details-marker,
+.nene-menu-customizer-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 控件行使用固定网格，避免换行错位。 */
+.nene-menu-customizer-control-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: start;
+}
+
+.nene-menu-customizer-control-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nene-menu-customizer-control-title {
+  color: var(--text-normal);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.nene-menu-customizer-control-desc {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.nene-menu-customizer-control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 基础输入控件统一风格。 */
+.nene-menu-customizer-text-input,
+.nene-menu-customizer-select {
+  min-width: 160px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-sizing: border-box;
+}
+
+.nene-menu-customizer-text-input {
+  flex: 1 1 220px;
+}
+
+.nene-menu-customizer-select {
+  flex: 0 1 200px;
+}
+
+/* 开关与文本组合成紧凑胶囊，减少视觉破碎。 */
+.nene-menu-customizer-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-switch-label {
+  color: var(--text-normal);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.nene-menu-customizer-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nene-menu-customizer-inline-switch {
+  margin-left: auto;
+}
+
+/* 分组使用 details 折叠，避免长列表一口气摊开。 */
+.nene-menu-customizer-group-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+
+.nene-menu-customizer-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-group-summary:hover,
+.nene-menu-customizer-card-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+.nene-menu-customizer-group-summary-title {
+  color: var(--text-normal);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.nene-menu-customizer-group-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.nene-menu-customizer-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nene-menu-customizer-meta-pill.is-muted {
+  opacity: 0.72;
+}
+
+.nene-menu-customizer-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+/* 命令列表保持紧凑，便于快速调整顺序。 */
+.nene-menu-customizer-command-list,
+.nene-menu-customizer-overrides,
+.nene-menu-customizer-mappings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 小标题用于分组卡片内部说明。 */
+.nene-menu-customizer-mini-title {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 单条命令使用两段式紧凑布局。 */
+.nene-menu-customizer-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-command-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* 命令显示名称优先展示。 */
+.nene-menu-customizer-command-label {
+  color: var(--text-normal);
+  line-height: 1.4;
+}
+
+/* 命令 ID 使用等宽字体，并允许换行。 */
+.nene-menu-customizer-command-id {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 操作按钮右对齐并保持紧凑间距。 */
+.nene-menu-customizer-command-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* 手动映射使用双栏紧凑布局，便于连续录入 title / section / commandId。 */
+.nene-menu-customizer-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-mapping-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nene-menu-customizer-mapping-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nene-menu-customizer-mapping-footer {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* 命令覆盖区改成三段式结构，避免原来的大段纵向堆叠。 */
+.nene-menu-customizer-override-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-override-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nene-menu-customizer-override-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 右侧预览顶部状态。 */
+.nene-menu-customizer-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nene-menu-customizer-preview-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nene-menu-customizer-preview-status.is-active {
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--interactive-accent) 14%, var(--background-primary));
+}
+
+/* 预览画布模拟菜单表面。 */
+.nene-menu-customizer-preview-surface {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--background-secondary) 65%, transparent), transparent),
+    var(--background-secondary);
+}
+
+.nene-menu-customizer-preview-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 420px);
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+}
+
+.nene-menu-customizer-preview-empty {
+  padding: 20px 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.nene-menu-customizer-preview-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-preview-item.is-parent {
+  background: color-mix(in srgb, var(--background-modifier-hover) 75%, var(--background-primary));
+}
+
+.nene-menu-customizer-preview-title {
+  color: var(--text-normal);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nene-menu-customizer-preview-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.nene-menu-customizer-preview-arrow {
+  color: var(--text-faint);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nene-menu-customizer-preview-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--background-modifier-border);
+}
+
+.nene-menu-customizer-preview-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nene-menu-customizer-preview-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nene-menu-customizer-preview-icon-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nene-menu-customizer-preview-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.nene-menu-customizer-preview-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 82px;
+  padding: 10px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-primary);
+  text-align: center;
+}
+
+.nene-menu-customizer-preview-grid-title {
+  color: var(--text-normal);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nene-menu-customizer-preview-submenu {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 210px);
+  gap: 10px;
+  align-items: start;
+}
+
+.nene-menu-customizer-preview-submenu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-secondary);
+}
+
+/* 小屏下回退为单列，保证仍可操作。 */
+@media (max-width: 1280px) {
+  .nene-menu-customizer-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .nene-menu-customizer-preview-pane {
+    position: static;
+  }
+
+  .nene-menu-customizer-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 840px) {
+
+  .nene-menu-customizer-control-row,
+  .nene-menu-customizer-override-row,
+  .nene-menu-customizer-mapping-row {
+    grid-template-columns: 1fr;
+  }
+
+  .nene-menu-customizer-preview-submenu {
+    grid-template-columns: 1fr;
+  }
+
+  .nene-menu-customizer-tabs {
+    grid-template-columns: 1fr;
+  }
+}

@@ -94,8 +94,7 @@ var require_store = __commonJS({
       // 将最新 file-marker 切片同步到插件级数据仓库并持久化到本地。
       async save() {
         this.settings = this.normalizeSettings(this.settings);
-        this.plugin.dataStore.setFileMarkerData(this.settings);
-        await this.plugin.dataStore.save();
+        await this.plugin.dataStore.saveFileMarkerData(this.settings);
       }
       // 返回完整配置对象，便于上层做只读使用。
       getSettings() {
@@ -134,6 +133,7 @@ var require_store = __commonJS({
         Object.entries(marks).forEach(([path, mark]) => {
           if (!path || !mark || typeof mark !== "object") return;
           normalizedMarks[path] = {
+            ...mark,
             path,
             status: this.isValidStatus(mark.status) ? mark.status : constants.STATUS_OPTIONS[0].value,
             note: typeof mark.note === "string" ? mark.note : "",
@@ -150,6 +150,7 @@ var require_store = __commonJS({
           if (typeof group.name !== "string" || !group.name.trim()) return;
           if (addedGroupIds.has(group.id)) return;
           normalizedGroups.push({
+            ...group,
             id: group.id,
             name: group.name.trim(),
             collapsed: Boolean(group.collapsed)
@@ -673,10 +674,202 @@ var require_file_marker = __commonJS({
   }
 });
 
-// src/modules/plugin-data/constants.js
+// src/modules/anchor-graph-links/constants.js
 var require_constants2 = __commonJS({
+  "src/modules/anchor-graph-links/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_ANCHOR_GRAPH_SETTINGS = {
+      defaultSettings: {
+        htmlEnhancementEnabled: true
+      },
+      noteOverrides: {}
+    };
+    module2.exports = {
+      DEFAULT_ANCHOR_GRAPH_SETTINGS
+    };
+  }
+});
+
+// src/modules/menu-customizer/constants.js
+var require_constants3 = __commonJS({
+  "src/modules/menu-customizer/constants.js"(exports2, module2) {
+    "use strict";
+    var MENU_TYPE_OPTIONS = [
+      { id: "editor", name: "编辑区右键菜单" },
+      { id: "moreOptions", name: "编辑区“更多选项”菜单" },
+      { id: "file", name: "文件右键菜单" },
+      { id: "folder", name: "文件夹右键菜单" }
+    ];
+    var GROUP_LAYOUT_OPTIONS = [
+      { value: "list", label: "列表" },
+      { value: "icon-bar", label: "图标栏" },
+      { value: "grid", label: "网格" }
+    ];
+    var DEFAULT_MENU_GROUPS = {
+      editor: [
+        {
+          id: "editor-quick-actions",
+          name: "编辑",
+          icon: "mouse-pointer-click",
+          layout: "icon-bar",
+          hidden: false,
+          forceSubmenu: false,
+          commands: [
+            "editor:cut",
+            "editor:copy",
+            "editor:paste",
+            "editor:paste-as-plain-text",
+            "editor:select-all"
+          ]
+        },
+        {
+          id: "editor-format",
+          name: "格式",
+          icon: "bold",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "editor:toggle-bold",
+            "editor:toggle-italics",
+            "editor:toggle-highlight",
+            "editor:toggle-strikethrough",
+            "editor:toggle-code"
+          ]
+        },
+        {
+          id: "editor-insert",
+          name: "插入",
+          icon: "plus",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "editor:insert-link",
+            "editor:insert-embed",
+            "editor:insert-table",
+            "editor:insert-codeblock",
+            "editor:insert-horizontal-rule"
+          ]
+        }
+      ],
+      moreOptions: [
+        {
+          id: "more-options-links",
+          name: "链接与路径",
+          icon: "link",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "file-explorer:open-link-view",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path"
+          ]
+        }
+      ],
+      file: [
+        {
+          id: "file-open-actions",
+          name: "打开",
+          icon: "file-text",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "file-explorer:open",
+            "file-explorer:open-in-new-tab",
+            "file-explorer:open-to-the-right",
+            "file-explorer:open-in-new-window"
+          ]
+        },
+        {
+          id: "file-management",
+          name: "管理",
+          icon: "settings",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "file-explorer:rename-file",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path",
+            "file-explorer:delete-file"
+          ]
+        }
+      ],
+      folder: [
+        {
+          id: "folder-create",
+          name: "新建",
+          icon: "folder-plus",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "file-explorer:new-file",
+            "file-explorer:new-folder"
+          ]
+        },
+        {
+          id: "folder-management",
+          name: "管理",
+          icon: "settings",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: true,
+          commands: [
+            "file-explorer:rename-file",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path",
+            "file-explorer:delete-file"
+          ]
+        }
+      ]
+    };
+    function cloneDefaultGroups(menuType) {
+      return JSON.parse(JSON.stringify(DEFAULT_MENU_GROUPS[menuType] || []));
+    }
+    function buildDefaultMenuCustomizerSettings() {
+      const menus = {};
+      MENU_TYPE_OPTIONS.forEach((menuType) => {
+        menus[menuType.id] = {
+          enabled: false,
+          groups: cloneDefaultGroups(menuType.id),
+          commandOverrides: {},
+          commandMappings: []
+        };
+      });
+      return { menus };
+    }
+    var DEFAULT_MENU_CUSTOMIZER_SETTINGS = buildDefaultMenuCustomizerSettings();
+    function createDefaultMenuCustomizerSettings() {
+      return JSON.parse(JSON.stringify(DEFAULT_MENU_CUSTOMIZER_SETTINGS));
+    }
+    module2.exports = {
+      DEFAULT_MENU_CUSTOMIZER_SETTINGS,
+      DEFAULT_MENU_GROUPS,
+      GROUP_LAYOUT_OPTIONS,
+      MENU_TYPE_OPTIONS,
+      createDefaultMenuCustomizerSettings
+    };
+  }
+});
+
+// src/modules/plugin-data/constants.js
+var require_constants4 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
+    var anchorGraphConstants = require_constants2();
+    var fileMarkerConstants = require_constants();
+    var menuCustomizerConstants = require_constants3();
+    var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
+    var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
+    var FEATURE_CONFIG_FILE_NAMES = {
+      fileMarker: "file-marker",
+      anchorGraph: "anchor-graph",
+      menuCustomizer: "menu-customizer"
+    };
     var DEFAULT_PLUGIN_DATA = {
       features: {
         fileMarker: {
@@ -684,21 +877,126 @@ var require_constants2 = __commonJS({
         },
         anchorGraph: {
           enabled: false
+        },
+        menuCustomizer: {
+          enabled: false
         }
-      },
-      fileMarker: {
-        marks: {},
-        groups: [
-          {
-            id: "ungrouped",
-            name: "未分组",
-            collapsed: false
+      }
+    };
+    var DEFAULT_FEATURE_DATA = {
+      fileMarker: fileMarkerConstants.DEFAULT_FILE_MARKER_SETTINGS,
+      anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
+      menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS
+    };
+    module2.exports = {
+      DEFAULT_FEATURE_DATA,
+      DEFAULT_PLUGIN_DATA,
+      FEATURE_CONFIG_DIRECTORY_NAME,
+      FEATURE_EXPORT_DIRECTORY_NAME,
+      FEATURE_CONFIG_FILE_NAMES
+    };
+  }
+});
+
+// src/modules/plugin-data/feature-config-manager.js
+var require_feature_config_manager = __commonJS({
+  "src/modules/plugin-data/feature-config-manager.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var constants = require_constants4();
+    var FeatureConfigManager = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.writeQueue = /* @__PURE__ */ new Map();
+        this.configDirectoryPath = obsidian2.normalizePath(
+          `${plugin.app.vault.configDir}/plugins/${plugin.manifest.id}/${constants.FEATURE_CONFIG_DIRECTORY_NAME}`
+        );
+        this.exportDirectoryPath = obsidian2.normalizePath(
+          `${plugin.app.vault.configDir}/plugins/${plugin.manifest.id}/${constants.FEATURE_EXPORT_DIRECTORY_NAME}`
+        );
+      }
+      // 初始化配置目录，首次加载时确保 configs 目录存在。
+      async initialize() {
+        await this.ensureDirectory(this.configDirectoryPath);
+      }
+      // 读取指定功能的独立配置文件，返回是否存在以及解析后的内容。
+      async load(featureKey) {
+        const adapter = this.plugin.app.vault.adapter;
+        const filePath = this.getFeatureConfigPath(featureKey);
+        if (!await adapter.exists(filePath)) {
+          return {
+            found: false,
+            data: null
+          };
+        }
+        try {
+          const content = await adapter.read(filePath);
+          return {
+            found: true,
+            data: JSON.parse(content)
+          };
+        } catch (error) {
+          console.error(`[${this.plugin.manifest.name}] 读取功能配置失败 (${featureKey})`, error);
+          return {
+            found: true,
+            data: null
+          };
+        }
+      }
+      // 保存指定功能的配置，并通过写入队列避免并发覆盖。
+      async save(featureKey, data) {
+        return this.enqueueWrite(featureKey, async () => {
+          const adapter = this.plugin.app.vault.adapter;
+          const filePath = this.getFeatureConfigPath(featureKey);
+          const jsonContent = JSON.stringify(data, null, 2);
+          await adapter.write(filePath, jsonContent);
+        });
+      }
+      // 返回指定功能的配置文件当前是否已存在。
+      async exists(featureKey) {
+        return this.plugin.app.vault.adapter.exists(this.getFeatureConfigPath(featureKey));
+      }
+      // 返回配置目录路径，供设置页展示状态与定位文件。
+      getConfigDirectoryPath() {
+        return this.configDirectoryPath;
+      }
+      // 返回配置导出目录路径，供设置页展示导出文件位置。
+      getExportDirectoryPath() {
+        return this.exportDirectoryPath;
+      }
+      // 将导出内容写入独立备份文件，并返回实际写入路径。
+      async writeExportFile(fileName, content) {
+        await this.ensureDirectory(this.exportDirectoryPath);
+        const filePath = obsidian2.normalizePath(`${this.exportDirectoryPath}/${fileName}`);
+        await this.plugin.app.vault.adapter.write(filePath, content);
+        return filePath;
+      }
+      // 返回某个功能配置文件的完整路径。
+      getFeatureConfigPath(featureKey) {
+        const fileName = constants.FEATURE_CONFIG_FILE_NAMES[featureKey] || featureKey;
+        return obsidian2.normalizePath(`${this.configDirectoryPath}/${fileName}.json`);
+      }
+      // 将同一功能的写入串行化，保证最后一次保存不会被前一次异步回写覆盖。
+      async enqueueWrite(queueKey, writeOperation) {
+        const previousTask = this.writeQueue.get(queueKey) || Promise.resolve();
+        const nextTask = previousTask.catch(() => {
+        }).then(writeOperation).finally(() => {
+          if (this.writeQueue.get(queueKey) === nextTask) {
+            this.writeQueue.delete(queueKey);
           }
-        ]
+        });
+        this.writeQueue.set(queueKey, nextTask);
+        return nextTask;
+      }
+      // 确保指定目录存在，便于首次导出或初始化时统一复用。
+      async ensureDirectory(directoryPath) {
+        const adapter = this.plugin.app.vault.adapter;
+        if (await adapter.exists(directoryPath)) return;
+        await adapter.mkdir(directoryPath);
       }
     };
     module2.exports = {
-      DEFAULT_PLUGIN_DATA
+      FeatureConfigManager
     };
   }
 });
@@ -707,25 +1005,35 @@ var require_constants2 = __commonJS({
 var require_store2 = __commonJS({
   "src/modules/plugin-data/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants2();
+    var featureConfigManagerModule = require_feature_config_manager();
+    var constants = require_constants4();
     var PluginDataStore = class {
       constructor(plugin) {
         this.plugin = plugin;
-        this.data = this.normalizeData();
+        this.featureConfigManager = new featureConfigManagerModule.FeatureConfigManager(plugin);
+        this.data = this.normalizeCoreData();
+        this.featureData = this.normalizeFeatureData();
       }
-      // 加载本地持久化数据，并按当前模块切片结构归一化。
+      // 加载本地持久化数据，并在需要时将旧版模块切片迁移到独立配置文件。
       async load() {
         const rawData = await this.plugin.loadData();
-        this.data = this.normalizeData(rawData);
+        this.data = this.normalizeCoreData(rawData);
+        await this.featureConfigManager.initialize();
+        this.featureData.fileMarker = await this.loadFeatureSlice("fileMarker", rawData?.fileMarker);
+        this.featureData.anchorGraph = await this.loadFeatureSlice("anchorGraph", rawData?.anchorGraph);
+        this.featureData.menuCustomizer = await this.loadFeatureSlice("menuCustomizer", rawData?.menuCustomizer);
+        if (this.hasLegacyFeatureSlices(rawData)) {
+          await this.save();
+        }
       }
-      // 保存当前整份插件数据到本地。
+      // 保存当前核心配置到 data.json，本方法不再负责落盘模块业务数据。
       async save() {
-        this.data = this.normalizeData(this.data);
+        this.data = this.normalizeCoreData(this.data);
         await this.plugin.saveData(this.data);
       }
-      // 返回整份插件数据对象，供主入口按需透传。
+      // 返回整份插件数据快照，兼容上层仍以 settings 读取模块切片的场景。
       getData() {
-        return this.data;
+        return this.normalizeData(Object.assign({}, this.data, this.featureData));
       }
       // 返回插件级功能开关切片。
       getFeatures() {
@@ -737,18 +1045,164 @@ var require_store2 = __commonJS({
       }
       // 返回文件标记数据切片。
       getFileMarkerData() {
-        return this.data.fileMarker;
+        return this.featureData.fileMarker;
       }
-      // 更新文件标记数据切片。
+      // 更新文件标记数据切片缓存。
       setFileMarkerData(fileMarkerData) {
-        this.data.fileMarker = this.normalizeFileMarkerData(fileMarkerData);
+        this.featureData.fileMarker = this.normalizeFileMarkerData(fileMarkerData);
       }
-      // 归一化整份插件数据，只接受当前模块切片结构。
-      normalizeData(data) {
-        const source = data && typeof data === "object" ? data : {};
+      // 返回关系图谱增强的独立配置切片。
+      getAnchorGraphData() {
+        return this.featureData.anchorGraph;
+      }
+      // 更新关系图谱增强的独立配置切片缓存。
+      setAnchorGraphData(anchorGraphData) {
+        this.featureData.anchorGraph = this.normalizeAnchorGraphData(anchorGraphData);
+      }
+      // 返回右键菜单自定义的独立配置切片。
+      getMenuCustomizerData() {
+        return this.featureData.menuCustomizer;
+      }
+      // 更新右键菜单自定义的独立配置切片缓存。
+      setMenuCustomizerData(menuCustomizerData) {
+        this.featureData.menuCustomizer = this.normalizeMenuCustomizerData(menuCustomizerData);
+      }
+      // 保存文件标记功能数据到独立配置文件。
+      async saveFileMarkerData(fileMarkerData) {
+        this.setFileMarkerData(fileMarkerData);
+        await this.featureConfigManager.save("fileMarker", this.featureData.fileMarker);
+      }
+      // 保存关系图谱增强功能数据到独立配置文件。
+      async saveAnchorGraphData(anchorGraphData) {
+        this.setAnchorGraphData(anchorGraphData);
+        await this.featureConfigManager.save("anchorGraph", this.featureData.anchorGraph);
+      }
+      // 保存右键菜单自定义功能数据到独立配置文件。
+      async saveMenuCustomizerData(menuCustomizerData) {
+        this.setMenuCustomizerData(menuCustomizerData);
+        await this.featureConfigManager.save("menuCustomizer", this.featureData.menuCustomizer);
+      }
+      // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
+      async saveAll() {
+        await this.save();
+        await this.featureConfigManager.save("fileMarker", this.featureData.fileMarker);
+        await this.featureConfigManager.save("anchorGraph", this.featureData.anchorGraph);
+        await this.featureConfigManager.save("menuCustomizer", this.featureData.menuCustomizer);
+      }
+      // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
+      async getConfigFileStatuses() {
+        const adapter = this.plugin.app.vault.adapter;
+        const coreConfigPath = this.getCoreConfigPath();
+        const fileMarkerPath = this.featureConfigManager.getFeatureConfigPath("fileMarker");
+        const anchorGraphPath = this.featureConfigManager.getFeatureConfigPath("anchorGraph");
+        const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath("menuCustomizer");
         return {
-          features: this.normalizeFeatures(source.features),
-          fileMarker: this.normalizeFileMarkerData(source.fileMarker)
+          directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
+          exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
+          core: {
+            key: "core",
+            name: "核心配置",
+            path: coreConfigPath,
+            exists: await adapter.exists(coreConfigPath),
+            summary: `保存 ${Object.keys(this.data.features || {}).length} 个功能开关分组`
+          },
+          fileMarker: {
+            key: "fileMarker",
+            name: "文件标记配置",
+            path: fileMarkerPath,
+            exists: await this.featureConfigManager.exists("fileMarker"),
+            summary: `当前含 ${Object.keys(this.featureData.fileMarker.marks || {}).length} 条标记、${(this.featureData.fileMarker.groups || []).length} 个分组`
+          },
+          anchorGraph: {
+            key: "anchorGraph",
+            name: "关系图谱配置",
+            path: anchorGraphPath,
+            exists: await this.featureConfigManager.exists("anchorGraph"),
+            summary: `当前含 ${Object.keys(this.featureData.anchorGraph.noteOverrides || {}).length} 条笔记覆盖规则`
+          },
+          menuCustomizer: {
+            key: "menuCustomizer",
+            name: "右键菜单配置",
+            path: menuCustomizerPath,
+            exists: await this.featureConfigManager.exists("menuCustomizer"),
+            summary: `当前含 ${Object.values(this.featureData.menuCustomizer.menus || {}).reduce((count, menuConfig) => count + (Array.isArray(menuConfig.groups) ? menuConfig.groups.length : 0), 0)} 个分组`
+          }
+        };
+      }
+      // 导出完整配置快照，便于设置页复制、备份和迁移。
+      exportConfigurationBundle() {
+        return {
+          schemaVersion: 1,
+          exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          coreData: this.normalizeCoreData(this.data),
+          featureData: this.normalizeFeatureData(this.featureData)
+        };
+      }
+      // 将当前配置导出为独立备份文件，便于用户保留多个版本快照。
+      async exportConfigurationBundleToFile() {
+        const exportFileName = this.buildExportFileName();
+        const exportText = JSON.stringify(this.exportConfigurationBundle(), null, 2);
+        const filePath = await this.featureConfigManager.writeExportFile(exportFileName, exportText);
+        return {
+          fileName: exportFileName,
+          filePath
+        };
+      }
+      // 导入完整配置快照，兼容当前导出格式与旧版顶层切片结构。
+      async importConfigurationBundle(bundle) {
+        const normalizedBundle = this.normalizeImportedBundle(bundle);
+        this.data = normalizedBundle.coreData;
+        this.featureData = normalizedBundle.featureData;
+        await this.saveAll();
+        return this.getData();
+      }
+      // 将指定功能配置恢复为默认值并立即持久化。
+      async resetFeatureData(featureKey) {
+        const defaultFeatureData = this.normalizeFeatureSlice(featureKey, constants.DEFAULT_FEATURE_DATA[featureKey]);
+        if (featureKey === "fileMarker") {
+          this.featureData.fileMarker = defaultFeatureData;
+        } else if (featureKey === "anchorGraph") {
+          this.featureData.anchorGraph = defaultFeatureData;
+        } else if (featureKey === "menuCustomizer") {
+          this.featureData.menuCustomizer = defaultFeatureData;
+        }
+        await this.featureConfigManager.save(featureKey, defaultFeatureData);
+        return defaultFeatureData;
+      }
+      // 将整个插件配置恢复为默认值，并同步覆盖所有配置文件。
+      async resetAllData() {
+        this.data = this.normalizeCoreData(constants.DEFAULT_PLUGIN_DATA);
+        this.featureData = this.normalizeFeatureData(constants.DEFAULT_FEATURE_DATA);
+        await this.saveAll();
+        return this.getData();
+      }
+      // 归一化整份插件数据快照，便于统一输出当前内存中的完整状态。
+      normalizeData(data) {
+        const source = this.isPlainObject(data) ? data : {};
+        const normalizedCoreData = this.normalizeCoreData(source);
+        return Object.assign({}, normalizedCoreData, {
+          fileMarker: this.normalizeFileMarkerData(source.fileMarker),
+          anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
+          menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
+        });
+      }
+      // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
+      normalizeCoreData(data) {
+        const source = this.isPlainObject(data) ? data : {};
+        const normalizedCoreData = Object.assign({}, source);
+        delete normalizedCoreData.fileMarker;
+        delete normalizedCoreData.anchorGraph;
+        delete normalizedCoreData.menuCustomizer;
+        normalizedCoreData.features = this.normalizeFeatures(source.features);
+        return normalizedCoreData;
+      }
+      // 归一化功能配置缓存，避免首次读取时报空。
+      normalizeFeatureData(featureData) {
+        const source = this.isPlainObject(featureData) ? featureData : {};
+        return {
+          fileMarker: this.normalizeFileMarkerData(source.fileMarker),
+          anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
+          menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
         };
       }
       // 归一化插件级功能开关结构。
@@ -759,17 +1213,134 @@ var require_store2 = __commonJS({
           },
           anchorGraph: {
             enabled: features?.anchorGraph?.enabled === true
+          },
+          menuCustomizer: {
+            enabled: features?.menuCustomizer?.enabled === true
           }
         };
       }
       // 归一化文件标记切片的顶层结构，具体业务字段由 file-marker 模块进一步收敛。
       normalizeFileMarkerData(fileMarkerData) {
-        const source = fileMarkerData && typeof fileMarkerData === "object" ? fileMarkerData : {};
-        const defaultFileMarker = constants.DEFAULT_PLUGIN_DATA.fileMarker;
-        return {
+        const source = this.isPlainObject(fileMarkerData) ? fileMarkerData : {};
+        const defaultFileMarker = constants.DEFAULT_FEATURE_DATA.fileMarker;
+        return Object.assign({}, source, {
           marks: source.marks && typeof source.marks === "object" ? source.marks : defaultFileMarker.marks,
           groups: Array.isArray(source.groups) ? source.groups : defaultFileMarker.groups
+        });
+      }
+      // 归一化关系图谱增强配置结构，保证旧数据迁移后能维持稳定形状。
+      normalizeAnchorGraphData(anchorGraphData) {
+        const source = this.isPlainObject(anchorGraphData) ? anchorGraphData : {};
+        const defaultAnchorGraph = constants.DEFAULT_FEATURE_DATA.anchorGraph;
+        const defaultSettings = this.isPlainObject(source.defaultSettings) ? source.defaultSettings : {};
+        const noteOverrides = {};
+        if (this.isPlainObject(source.noteOverrides)) {
+          Object.entries(source.noteOverrides).forEach(([notePath, override]) => {
+            if (!notePath || !this.isPlainObject(override)) return;
+            noteOverrides[notePath] = Object.assign({}, override, {
+              mode: typeof override.mode === "string" && override.mode.trim() ? override.mode.trim() : "inherit"
+            });
+          });
+        }
+        return Object.assign({}, source, {
+          defaultSettings: Object.assign({}, defaultAnchorGraph.defaultSettings, defaultSettings, {
+            htmlEnhancementEnabled: defaultSettings.htmlEnhancementEnabled !== false
+          }),
+          noteOverrides
+        });
+      }
+      // 归一化右键菜单自定义配置结构，保证首次安装与旧数据迁移后形状稳定。
+      normalizeMenuCustomizerData(menuCustomizerData) {
+        const source = this.isPlainObject(menuCustomizerData) ? menuCustomizerData : {};
+        const defaultMenuCustomizer = constants.DEFAULT_FEATURE_DATA.menuCustomizer;
+        const normalizedMenus = {};
+        Object.keys(defaultMenuCustomizer.menus || {}).forEach((menuType) => {
+          const menuSource = this.isPlainObject(source.menus?.[menuType]) ? source.menus[menuType] : {};
+          const defaultMenuConfig = defaultMenuCustomizer.menus[menuType];
+          normalizedMenus[menuType] = {
+            enabled: menuSource.enabled === true,
+            groups: Array.isArray(menuSource.groups) ? menuSource.groups : defaultMenuConfig.groups,
+            commandOverrides: this.isPlainObject(menuSource.commandOverrides) ? menuSource.commandOverrides : defaultMenuConfig.commandOverrides,
+            commandMappings: Array.isArray(menuSource.commandMappings) ? menuSource.commandMappings : defaultMenuConfig.commandMappings
+          };
+        });
+        return {
+          menus: normalizedMenus
         };
+      }
+      // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
+      async loadFeatureSlice(featureKey, legacyData) {
+        const loadResult = await this.featureConfigManager.load(featureKey);
+        if (loadResult.found && this.isPlainObject(loadResult.data)) {
+          return this.normalizeFeatureSlice(featureKey, loadResult.data);
+        }
+        if (this.isPlainObject(legacyData)) {
+          const normalizedLegacyData = this.normalizeFeatureSlice(featureKey, legacyData);
+          await this.featureConfigManager.save(featureKey, normalizedLegacyData);
+          return normalizedLegacyData;
+        }
+        const defaultFeatureData = this.normalizeFeatureSlice(featureKey, constants.DEFAULT_FEATURE_DATA[featureKey]);
+        await this.featureConfigManager.save(featureKey, defaultFeatureData);
+        return defaultFeatureData;
+      }
+      // 根据功能标识归一化对应模块的数据切片。
+      normalizeFeatureSlice(featureKey, featureData) {
+        if (featureKey === "fileMarker") {
+          return this.normalizeFileMarkerData(featureData);
+        }
+        if (featureKey === "anchorGraph") {
+          return this.normalizeAnchorGraphData(featureData);
+        }
+        if (featureKey === "menuCustomizer") {
+          return this.normalizeMenuCustomizerData(featureData);
+        }
+        return this.isPlainObject(featureData) ? featureData : {};
+      }
+      // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
+      hasLegacyFeatureSlices(data) {
+        const source = this.isPlainObject(data) ? data : {};
+        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer);
+      }
+      // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
+      getCoreConfigPath() {
+        return `${this.plugin.app.vault.configDir}/plugins/${this.plugin.manifest.id}/data.json`;
+      }
+      // 将导入数据统一归一化为当前插件使用的核心配置与模块配置结构。
+      normalizeImportedBundle(bundle) {
+        if (!this.isPlainObject(bundle)) {
+          throw new Error("导入内容必须是 JSON 对象");
+        }
+        const hasSeparatedPayload = this.isPlainObject(bundle.coreData) || this.isPlainObject(bundle.featureData);
+        const featureSource = hasSeparatedPayload ? Object.assign({}, bundle.featureData, {
+          fileMarker: bundle.featureData?.fileMarker || bundle.fileMarker,
+          anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
+          menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer
+        }) : bundle;
+        const coreSource = hasSeparatedPayload ? Object.assign({}, bundle.coreData, {
+          features: bundle.coreData?.features || bundle.features
+        }) : bundle;
+        return {
+          coreData: this.normalizeCoreData(coreSource),
+          featureData: this.normalizeFeatureData(featureSource)
+        };
+      }
+      // 判断当前值是否为普通对象，避免数组、空值等被误当成配置对象。
+      isPlainObject(value) {
+        return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+      }
+      // 生成包含时间戳的导出文件名，避免连续导出时相互覆盖。
+      buildExportFileName() {
+        const now = /* @__PURE__ */ new Date();
+        const timestamp = [
+          now.getFullYear(),
+          String(now.getMonth() + 1).padStart(2, "0"),
+          String(now.getDate()).padStart(2, "0"),
+          "-",
+          String(now.getHours()).padStart(2, "0"),
+          String(now.getMinutes()).padStart(2, "0"),
+          String(now.getSeconds()).padStart(2, "0")
+        ].join("");
+        return `${this.plugin.manifest.id}-config-export-${timestamp}.json`;
       }
     };
     module2.exports = {
@@ -782,14 +1353,15 @@ var require_store2 = __commonJS({
 var require_plugin_data = __commonJS({
   "src/modules/plugin-data/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants2();
+    var constants = require_constants4();
+    var featureConfigManager = require_feature_config_manager();
     var store = require_store2();
-    module2.exports = Object.assign({}, constants, store);
+    module2.exports = Object.assign({}, constants, featureConfigManager, store);
   }
 });
 
 // src/modules/plugin-settings/constants.js
-var require_constants3 = __commonJS({
+var require_constants5 = __commonJS({
   "src/modules/plugin-settings/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FEATURE_SETTINGS = {
@@ -797,6 +1369,9 @@ var require_constants3 = __commonJS({
         enabled: false
       },
       anchorGraph: {
+        enabled: false
+      },
+      menuCustomizer: {
         enabled: false
       }
     };
@@ -810,7 +1385,7 @@ var require_constants3 = __commonJS({
 var require_store3 = __commonJS({
   "src/modules/plugin-settings/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants3();
+    var constants = require_constants5();
     var PluginSettingsStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -846,6 +1421,16 @@ var require_store3 = __commonJS({
         await this.save();
         return this.isAnchorGraphEnabled();
       }
+      // 返回右键菜单自定义是否启用，供主入口和设置页统一读取。
+      isMenuCustomizerEnabled() {
+        return Boolean(this.settings.menuCustomizer.enabled);
+      }
+      // 切换右键菜单自定义的启用状态，并立即持久化到本地。
+      async setMenuCustomizerEnabled(enabled) {
+        this.settings.menuCustomizer.enabled = Boolean(enabled);
+        await this.save();
+        return this.isMenuCustomizerEnabled();
+      }
       // 返回功能设置对象，供主入口与设置页读取当前切片。
       getSettings() {
         return this.settings;
@@ -859,6 +1444,9 @@ var require_store3 = __commonJS({
           },
           anchorGraph: {
             enabled: source.anchorGraph?.enabled === true
+          },
+          menuCustomizer: {
+            enabled: source.menuCustomizer?.enabled === true
           }
         };
       }
@@ -873,7 +1461,7 @@ var require_store3 = __commonJS({
 var require_plugin_settings = __commonJS({
   "src/modules/plugin-settings/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants3();
+    var constants = require_constants5();
     var store = require_store3();
     module2.exports = Object.assign({}, constants, store);
   }
@@ -1647,96 +2235,2206 @@ var require_anchor_graph_links = __commonJS({
   }
 });
 
+// src/modules/menu-customizer/runtime.js
+var require_runtime = __commonJS({
+  "src/modules/menu-customizer/runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var constants = require_constants3();
+    var MenuCustomizerRuntime = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = constants.createDefaultMenuCustomizerSettings();
+        this.originalShowAtMouseEvent = null;
+        this.originalShowAtPosition = null;
+        this.isPatched = false;
+      }
+      // 挂载最新配置，供显示菜单前即时读取。
+      load(settings) {
+        this.settings = settings || constants.createDefaultMenuCustomizerSettings();
+      }
+      // 启动菜单拦截。
+      start() {
+        if (this.isPatched) {
+          return;
+        }
+        this.patchMenuMethods();
+      }
+      // 停止菜单拦截并恢复原始方法。
+      stop() {
+        if (this.originalShowAtMouseEvent) {
+          obsidian2.Menu.prototype.showAtMouseEvent = this.originalShowAtMouseEvent;
+        }
+        if (this.originalShowAtPosition) {
+          obsidian2.Menu.prototype.showAtPosition = this.originalShowAtPosition;
+        }
+        this.originalShowAtMouseEvent = null;
+        this.originalShowAtPosition = null;
+        this.isPatched = false;
+      }
+      // 为文件或文件夹菜单打上上下文标记，提升识别稳定性。
+      annotateFileMenu(menu, file) {
+        if (!menu) return;
+        menu.__neneMenuContext = {
+          source: "file-menu",
+          fileKind: file instanceof obsidian2.TFolder ? "folder" : file instanceof obsidian2.TFile ? "file" : "abstract"
+        };
+      }
+      // 为编辑区菜单打上上下文标记，便于区分右键菜单与更多选项菜单。
+      annotateEditorMenu(menu) {
+        if (!menu) return;
+        menu.__neneMenuContext = {
+          source: "editor-menu"
+        };
+      }
+      // 拦截菜单显示方法，在真正显示前先重构 DOM。
+      patchMenuMethods() {
+        const runtime = this;
+        this.originalShowAtMouseEvent = obsidian2.Menu.prototype.showAtMouseEvent;
+        this.originalShowAtPosition = obsidian2.Menu.prototype.showAtPosition;
+        if (typeof this.originalShowAtMouseEvent === "function") {
+          obsidian2.Menu.prototype.showAtMouseEvent = function wrappedShowAtMouseEvent(event) {
+            runtime.onBeforeMenuShow(this);
+            return runtime.originalShowAtMouseEvent.call(this, event);
+          };
+        }
+        if (typeof this.originalShowAtPosition === "function") {
+          obsidian2.Menu.prototype.showAtPosition = function wrappedShowAtPosition(position) {
+            runtime.onBeforeMenuShow(this);
+            return runtime.originalShowAtPosition.call(this, position);
+          };
+        }
+        this.isPatched = true;
+      }
+      // 在菜单显示前应用当前配置，失败时自动回退到原始菜单。
+      onBeforeMenuShow(menu) {
+        if (!menu || menu.__neneSkipCustomize || menu.__neneMenuCustomized) {
+          return;
+        }
+        const menuType = this.detectMenuType(menu);
+        if (!menuType) {
+          return;
+        }
+        const menuConfig = this.settings.menus?.[menuType];
+        if (!menuConfig || menuConfig.enabled !== true) {
+          return;
+        }
+        try {
+          this.rebuildMenu(menu, menuType, menuConfig);
+          menu.__neneMenuCustomized = true;
+        } catch (error) {
+          console.error("[ねね] 右键菜单重构失败", error);
+        }
+      }
+      // 根据上下文和标题特征识别当前菜单类型。
+      detectMenuType(menu) {
+        const context = menu.__neneMenuContext || {};
+        if (context.fileKind === "folder") return "folder";
+        if (context.fileKind === "file") return "file";
+        const entries = this.collectMenuEntries(menu, null);
+        const titles = entries.map((entry) => entry.title);
+        const normalizedTitleSet = new Set(titles.map((title) => this.normalizeText(title)));
+        const hasEditSection = entries.some((entry) => entry.section === "edit");
+        if (hasEditSection && (normalizedTitleSet.has(this.normalizeText("剪切")) || normalizedTitleSet.has(this.normalizeText("Cut")) || normalizedTitleSet.has(this.normalizeText("复制")) || normalizedTitleSet.has(this.normalizeText("Copy")))) {
+          return "editor";
+        }
+        if (context.source === "editor-menu") {
+          return "moreOptions";
+        }
+        if (normalizedTitleSet.has(this.normalizeText("新建笔记")) || normalizedTitleSet.has(this.normalizeText("New note")) || normalizedTitleSet.has(this.normalizeText("新建文件夹")) || normalizedTitleSet.has(this.normalizeText("New folder"))) {
+          return "folder";
+        }
+        if (normalizedTitleSet.has(this.normalizeText("打开")) || normalizedTitleSet.has(this.normalizeText("Open")) || normalizedTitleSet.has(this.normalizeText("打开链接")) || normalizedTitleSet.has(this.normalizeText("Open link")) || normalizedTitleSet.has(this.normalizeText("重命名")) || normalizedTitleSet.has(this.normalizeText("Rename"))) {
+          return "file";
+        }
+        return null;
+      }
+      // 按配置重排菜单内容，保留原始回调与插件命令节点。
+      rebuildMenu(menu, menuType, menuConfig) {
+        if (!menu.dom || !Array.isArray(menu.items)) {
+          return;
+        }
+        const collectedEntries = this.collectMenuEntries(menu, menuType);
+        const visibleRecognizedEntries = [];
+        const unknownEntries = [];
+        collectedEntries.forEach((entry) => {
+          if (!entry.commandId) {
+            unknownEntries.push(entry);
+            return;
+          }
+          const override = menuConfig.commandOverrides?.[entry.commandId];
+          this.applyItemOverride(entry.item, override);
+          if (override?.hidden === true) {
+            return;
+          }
+          visibleRecognizedEntries.push(entry);
+        });
+        const recognizedByCommandId = /* @__PURE__ */ new Map();
+        visibleRecognizedEntries.forEach((entry) => {
+          if (!recognizedByCommandId.has(entry.commandId)) {
+            recognizedByCommandId.set(entry.commandId, entry);
+          }
+        });
+        const renderedCommandIds = /* @__PURE__ */ new Set();
+        const nextRootItems = [];
+        const menuEl = menu.dom;
+        menuEl.empty();
+        menuConfig.groups.forEach((group) => {
+          if (group.hidden) return;
+          const groupEntries = [];
+          group.commands.forEach((commandId) => {
+            if (renderedCommandIds.has(commandId)) {
+              return;
+            }
+            const override = menuConfig.commandOverrides?.[commandId];
+            if (override?.hidden === true) {
+              return;
+            }
+            const entry = recognizedByCommandId.get(commandId) || this.createSyntheticCommandEntry(menu, menuType, commandId, override);
+            if (!entry) {
+              return;
+            }
+            groupEntries.push(entry);
+          });
+          if (groupEntries.length === 0) {
+            return;
+          }
+          this.appendSeparator(menuEl);
+          if (this.shouldRenderAsSubmenu(group, groupEntries)) {
+            const parentItem = this.createSubmenuParent(menu, group, groupEntries, menuType);
+            if (parentItem) {
+              nextRootItems.push(parentItem);
+              groupEntries.forEach((entry) => renderedCommandIds.add(entry.commandId));
+              return;
+            }
+          }
+          groupEntries.forEach((entry) => {
+            this.prepareRenderedItem(entry.item, entry.commandId, group.layout);
+            menuEl.appendChild(entry.item.dom);
+            nextRootItems.push(entry.item);
+            renderedCommandIds.add(entry.commandId);
+          });
+        });
+        visibleRecognizedEntries.sort((left, right) => left.order - right.order).forEach((entry) => {
+          if (renderedCommandIds.has(entry.commandId)) {
+            return;
+          }
+          this.appendSeparator(menuEl);
+          this.prepareRenderedItem(entry.item, entry.commandId, "list");
+          menuEl.appendChild(entry.item.dom);
+          nextRootItems.push(entry.item);
+          renderedCommandIds.add(entry.commandId);
+        });
+        unknownEntries.sort((left, right) => left.order - right.order).forEach((entry) => {
+          this.appendSeparator(menuEl);
+          this.prepareRenderedItem(entry.item, null, "list");
+          menuEl.appendChild(entry.item.dom);
+          nextRootItems.push(entry.item);
+        });
+        this.cleanupSeparators(menuEl);
+        this.applyMenuClasses(menuEl, menuType);
+        menu.items = nextRootItems;
+      }
+      // 收集菜单项并尽量解析出稳定命令标识，未知命令保留原始节点顺序。
+      collectMenuEntries(menu, menuType) {
+        const items = Array.isArray(menu.items) ? menu.items : [];
+        return items.map((item, order) => {
+          if (!item || !item.dom) {
+            return null;
+          }
+          const title = this.getItemTitle(item);
+          const section = this.getItemSection(item);
+          const explicitCommandId = this.getExplicitCommandId(item);
+          const commandId = explicitCommandId || this.resolveCommandId(title, section, menuType);
+          return {
+            item,
+            title,
+            section,
+            order,
+            commandId
+          };
+        }).filter(Boolean);
+      }
+      // 返回菜单项当前标题文本。
+      getItemTitle(item) {
+        if (item.titleEl && typeof item.titleEl.textContent === "string") {
+          return item.titleEl.textContent.trim();
+        }
+        const titleEl = item.dom?.querySelector(".menu-item-title");
+        return typeof titleEl?.textContent === "string" ? titleEl.textContent.trim() : "";
+      }
+      // 返回菜单项的分区标识。
+      getItemSection(item) {
+        if (typeof item.section === "string" && item.section.trim()) {
+          return item.section.trim();
+        }
+        const domSection = item.dom?.getAttribute("data-section");
+        return typeof domSection === "string" ? domSection.trim() : "";
+      }
+      // 读取菜单项内部可能已存在的命令 ID，兼容第三方插件命令。
+      getExplicitCommandId(item) {
+        const candidates = [
+          item.commandId,
+          item.id,
+          item.command?.id,
+          item.command?.commandId,
+          item.dom?.dataset?.commandId,
+          typeof item.dom?.getAttribute === "function" ? item.dom.getAttribute("data-command-id") : ""
+        ];
+        for (const candidate of candidates) {
+          if (typeof candidate === "string" && candidate.trim()) {
+            return candidate.trim();
+          }
+        }
+        return "";
+      }
+      // 根据用户提供的手动映射，严格识别无显式 commandId 的菜单项。
+      resolveCommandId(title, section, menuType) {
+        if (!menuType) {
+          return "";
+        }
+        return this.plugin.menuCustomizerStore?.resolveMappedCommandId(menuType, title, section) || "";
+      }
+      // 判断当前菜单分组是否应该渲染为子菜单。
+      shouldRenderAsSubmenu(group, groupEntries) {
+        if (group.layout === "icon-bar" || group.layout === "grid") {
+          return false;
+        }
+        return group.forceSubmenu === true || groupEntries.length > 1;
+      }
+      // 应用标题与图标覆盖配置。
+      applyItemOverride(item, override) {
+        if (!override) {
+          return;
+        }
+        if (override.title) {
+          if (typeof item.setTitle === "function") {
+            item.setTitle(override.title);
+          }
+          if (item.titleEl) {
+            item.titleEl.setText?.(override.title);
+            if (typeof item.titleEl.textContent === "string") {
+              item.titleEl.textContent = override.title;
+            }
+          }
+        }
+        if (override.icon) {
+          const iconEl = item.dom?.querySelector(".menu-item-icon");
+          if (iconEl) {
+            iconEl.empty?.();
+            obsidian2.setIcon(iconEl, override.icon);
+          } else if (typeof item.setIcon === "function") {
+            item.setIcon(override.icon);
+          }
+        }
+      }
+      // 创建子菜单父项，并将命令节点直接移动到子菜单 DOM 中。
+      createSubmenuParent(menu, group, groupEntries, menuType) {
+        let parentItem = null;
+        menu.addItem((item) => {
+          parentItem = item;
+          item.setTitle(group.name || "未命名分组");
+          if (group.icon && typeof item.setIcon === "function") {
+            item.setIcon(group.icon);
+          }
+          if (typeof item.setSubmenu !== "function") {
+            return;
+          }
+          const submenu = item.setSubmenu();
+          submenu.__neneSkipCustomize = true;
+          submenu.__neneMenuContext = {
+            source: "nene-submenu",
+            menuType
+          };
+          submenu.items = [];
+          submenu.dom.empty();
+          groupEntries.forEach((entry) => {
+            this.prepareRenderedItem(entry.item, entry.commandId, "list");
+            submenu.items.push(entry.item);
+            submenu.dom.appendChild(entry.item.dom);
+          });
+        });
+        if (!parentItem || typeof parentItem.setSubmenu !== "function") {
+          parentItem?.dom?.remove();
+          return null;
+        }
+        parentItem.dom.classList.add("nene-menu-submenu-parent");
+        return parentItem;
+      }
+      // 为不存在于原始右键菜单中的命令创建可执行的菜单项。
+      createSyntheticCommandEntry(menu, menuType, commandId, override) {
+        const metadata = this.plugin.menuCustomizerStore?.getCommandMetadata(menuType, commandId);
+        if (!metadata || metadata.canExecute !== true) {
+          return null;
+        }
+        let syntheticItem = null;
+        menu.addItem((item) => {
+          syntheticItem = item;
+          item.setTitle(override?.title || metadata.label || commandId);
+          if (override?.icon) {
+            item.setIcon(override.icon);
+          } else if (metadata.icon) {
+            item.setIcon(metadata.icon);
+          }
+          item.onClick(() => {
+            this.executeRegisteredCommand(commandId);
+          });
+        });
+        if (!syntheticItem || !syntheticItem.dom) {
+          return null;
+        }
+        if (Array.isArray(metadata.sections) && metadata.sections.length > 0) {
+          syntheticItem.dom.setAttribute("data-section", metadata.sections[0]);
+        }
+        syntheticItem.commandId = commandId;
+        return {
+          item: syntheticItem,
+          title: override?.title || metadata.label || commandId,
+          section: Array.isArray(metadata.sections) ? metadata.sections[0] || "" : "",
+          order: Number.MAX_SAFE_INTEGER,
+          commandId
+        };
+      }
+      // 执行命令注册表中的命令，失败时提示用户。
+      executeRegisteredCommand(commandId) {
+        const executor = this.plugin.app?.commands?.executeCommandById;
+        if (typeof executor !== "function") {
+          new obsidian2.Notice(`当前环境无法执行命令：${commandId}`);
+          return;
+        }
+        try {
+          const executed = executor.call(this.plugin.app.commands, commandId);
+          if (executed === false) {
+            new obsidian2.Notice(`命令未执行：${commandId}`);
+          }
+        } catch (error) {
+          console.error("[ねね] 执行右键菜单命令失败", commandId, error);
+          new obsidian2.Notice(`命令执行失败：${commandId}`);
+        }
+      }
+      // 给已渲染的菜单项打上布局类与命令标识类，供样式层复用。
+      prepareRenderedItem(item, commandId, layout) {
+        if (!item?.dom) {
+          return;
+        }
+        const layoutClassNames = [
+          "nene-menu-item--icon-bar",
+          "nene-menu-item--grid"
+        ];
+        layoutClassNames.forEach((className) => item.dom.classList.remove(className));
+        item.dom.classList.add("nene-menu-item");
+        if (layout === "icon-bar") {
+          item.dom.classList.add("nene-menu-item--icon-bar");
+        } else if (layout === "grid") {
+          item.dom.classList.add("nene-menu-item--grid");
+        }
+        if (typeof item.dom.setAttribute === "function") {
+          item.dom.setAttribute("data-nene-command-id", commandId || "");
+        }
+      }
+      // 为菜单根节点添加类型与布局类，替代原有复杂的 :has CSS。
+      applyMenuClasses(menuEl, menuType) {
+        const rootClassNames = [
+          "nene-menu-customizer-menu",
+          "nene-menu-type--editor",
+          "nene-menu-type--moreOptions",
+          "nene-menu-type--file",
+          "nene-menu-type--folder",
+          "nene-menu-layout--icon-bar",
+          "nene-menu-layout--grid"
+        ];
+        rootClassNames.forEach((className) => menuEl.classList.remove(className));
+        menuEl.classList.add("nene-menu-customizer-menu", `nene-menu-type--${menuType}`);
+        const iconBarItems = menuEl.querySelectorAll(".nene-menu-item--icon-bar");
+        const gridItems = menuEl.querySelectorAll(".nene-menu-item--grid");
+        if (iconBarItems.length > 0) {
+          menuEl.classList.add("nene-menu-layout--icon-bar");
+          menuEl.setAttribute("data-nene-icon-bar-count", String(iconBarItems.length));
+        } else {
+          menuEl.removeAttribute("data-nene-icon-bar-count");
+        }
+        if (gridItems.length > 0) {
+          menuEl.classList.add("nene-menu-layout--grid");
+        }
+      }
+      // 仅在需要时补一个分隔符，避免连续空分隔。
+      appendSeparator(menuEl) {
+        const lastChild = menuEl.lastElementChild;
+        if (!lastChild) {
+          return;
+        }
+        if (lastChild.classList.contains("menu-separator")) {
+          return;
+        }
+        const separatorEl = document.createElement("div");
+        separatorEl.className = "menu-separator";
+        menuEl.appendChild(separatorEl);
+      }
+      // 清理首尾与连续分隔符，确保最终菜单结构干净。
+      cleanupSeparators(menuEl) {
+        const children = Array.from(menuEl.children);
+        let previousWasSeparator = true;
+        children.forEach((childEl) => {
+          const currentIsSeparator = childEl.classList.contains("menu-separator");
+          if (currentIsSeparator && previousWasSeparator) {
+            childEl.remove();
+            return;
+          }
+          previousWasSeparator = currentIsSeparator;
+        });
+        const lastChild = menuEl.lastElementChild;
+        if (lastChild?.classList.contains("menu-separator")) {
+          lastChild.remove();
+        }
+      }
+      // 统一做标题归一化，降低中英文与空白差异带来的识别误差。
+      normalizeText(value) {
+        return typeof value === "string" ? value.trim().toLowerCase().replace(/\s+/g, " ") : "";
+      }
+    };
+    module2.exports = {
+      MenuCustomizerRuntime
+    };
+  }
+});
+
+// src/modules/menu-customizer/store.js
+var require_store4 = __commonJS({
+  "src/modules/menu-customizer/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants3();
+    var MenuCustomizerStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = this.normalizeSettings();
+      }
+      // 挂载从独立配置文件读出的设置切片。
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+      }
+      // 持久化当前右键菜单配置到独立 JSON 文件。
+      async save() {
+        this.settings = this.normalizeSettings(this.settings);
+        this.plugin.dataStore.setMenuCustomizerData(this.settings);
+        await this.plugin.dataStore.saveMenuCustomizerData(this.settings);
+        if (this.plugin.menuCustomizerRuntime && typeof this.plugin.menuCustomizerRuntime.load === "function") {
+          this.plugin.menuCustomizerRuntime.load(this.settings);
+        }
+      }
+      // 返回当前完整的右键菜单配置。
+      getSettings() {
+        return this.settings;
+      }
+      // 返回指定菜单类型的配置，不存在时回退到默认值。
+      getMenuConfig(menuType) {
+        return this.settings.menus[menuType] || this.normalizeMenuConfig(menuType);
+      }
+      // 返回设置页可展示的菜单类型列表。
+      getMenuTypeOptions() {
+        return constants.MENU_TYPE_OPTIONS.slice();
+      }
+      // 返回设置页可选的布局类型列表。
+      getLayoutOptions() {
+        return constants.GROUP_LAYOUT_OPTIONS.slice();
+      }
+      // 返回指定菜单类型下的手动映射列表。
+      getMenuCommandMappings(menuType) {
+        return this.getMenuConfig(menuType).commandMappings.slice();
+      }
+      // 返回当前 Obsidian 已注册的全部命令，供新增菜单命令时校验和选择。
+      getRegisteredCommands() {
+        const commandRegistry = this.plugin.app?.commands?.commands;
+        if (!commandRegistry || typeof commandRegistry !== "object") {
+          return [];
+        }
+        return Object.values(commandRegistry).filter((command) => command && typeof command.id === "string" && command.id.trim()).map((command) => ({
+          id: command.id.trim(),
+          label: typeof command.name === "string" && command.name.trim() ? command.name.trim() : command.id.trim(),
+          icon: typeof command.icon === "string" ? command.icon.trim() : "",
+          aliases: [],
+          sections: [],
+          source: "registered",
+          canExecute: true
+        })).sort((left, right) => left.label.localeCompare(right.label, "zh-CN"));
+      }
+      // 判断某个命令是否存在于当前命令注册表。
+      isRegisteredCommand(commandId) {
+        const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+        if (!normalizedCommandId) {
+          return false;
+        }
+        return this.getRegisteredCommands().some((command) => command.id === normalizedCommandId);
+      }
+      // 返回某个命令在指定菜单类型下的元信息，优先采用手动映射中的真实菜单标题。
+      getCommandMetadata(menuType, commandId) {
+        const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+        if (!normalizedCommandId) {
+          return null;
+        }
+        const mappings = this.getCommandMappingsForCommand(menuType, normalizedCommandId);
+        const preferredMapping = mappings.find((mapping) => mapping.title) || null;
+        const registeredCommand = this.getRegisteredCommands().find((item) => item.id === normalizedCommandId) || null;
+        if (!preferredMapping && !registeredCommand) {
+          return null;
+        }
+        return {
+          id: normalizedCommandId,
+          label: preferredMapping?.title || registeredCommand?.label || normalizedCommandId,
+          icon: registeredCommand?.icon || "",
+          aliases: Array.from(new Set(mappings.map((mapping) => mapping.title).filter(Boolean))),
+          sections: Array.from(new Set(mappings.map((mapping) => mapping.section).filter(Boolean))),
+          source: preferredMapping ? registeredCommand ? "mapped-registered" : "mapped" : "registered",
+          canExecute: Boolean(registeredCommand)
+        };
+      }
+      // 返回当前菜单类型可供新增的具体命令列表，完全来自 Obsidian 命令注册表。
+      getAddableCommands() {
+        return this.getRegisteredCommands();
+      }
+      // 返回指定菜单类型当前“可配置”的命令集合，仅包含已配置或已映射的命令。
+      getAvailableCommands(menuType) {
+        const commandIds = /* @__PURE__ */ new Set();
+        const menuConfig = this.getMenuConfig(menuType);
+        menuConfig.groups.forEach((group) => {
+          group.commands.forEach((commandId) => commandIds.add(commandId));
+        });
+        Object.keys(menuConfig.commandOverrides).forEach((commandId) => commandIds.add(commandId));
+        menuConfig.commandMappings.forEach((mapping) => {
+          if (mapping.commandId) {
+            commandIds.add(mapping.commandId);
+          }
+        });
+        return Array.from(commandIds).map((commandId) => {
+          const metadata = this.getCommandMetadata(menuType, commandId);
+          return {
+            id: commandId,
+            label: metadata?.label || commandId,
+            icon: metadata?.icon || "",
+            aliases: metadata?.aliases || [],
+            sections: metadata?.sections || [],
+            source: metadata?.source || "configured",
+            canExecute: metadata?.canExecute === true
+          };
+        }).sort((left, right) => left.label.localeCompare(right.label, "zh-CN"));
+      }
+      // 返回指定命令在设置页中应展示的名称。
+      getCommandLabel(menuType, commandId) {
+        const metadata = this.getCommandMetadata(menuType, commandId);
+        return metadata?.label || commandId;
+      }
+      // 返回模块中已启用的菜单数量，供设置页摘要显示。
+      getEnabledMenuCount() {
+        return constants.MENU_TYPE_OPTIONS.filter((menuType) => {
+          return this.getMenuConfig(menuType.id).enabled;
+        }).length;
+      }
+      // 返回全部分组数量，供设置页摘要显示。
+      getGroupCount() {
+        return constants.MENU_TYPE_OPTIONS.reduce((count, menuType) => {
+          return count + this.getMenuConfig(menuType.id).groups.length;
+        }, 0);
+      }
+      // 切换某个菜单类型的启用状态。
+      async setMenuEnabled(menuType, enabled) {
+        this.ensureMenuConfig(menuType);
+        this.settings.menus[menuType].enabled = Boolean(enabled);
+        await this.save();
+        return this.getMenuConfig(menuType).enabled;
+      }
+      // 新增一个空分组，供用户后续配置名称、布局与命令。
+      async addGroup(menuType) {
+        this.ensureMenuConfig(menuType);
+        this.settings.menus[menuType].groups.push(this.createGroup(menuType));
+        await this.save();
+      }
+      // 删除指定索引的分组。
+      async removeGroup(menuType, groupIndex) {
+        this.ensureMenuConfig(menuType);
+        this.settings.menus[menuType].groups.splice(groupIndex, 1);
+        await this.save();
+      }
+      // 更新分组属性，统一经过归一化，保证结构稳定。
+      async updateGroup(menuType, groupIndex, patch) {
+        this.ensureMenuConfig(menuType);
+        const currentGroup = this.settings.menus[menuType].groups[groupIndex];
+        if (!currentGroup) return;
+        this.settings.menus[menuType].groups[groupIndex] = this.normalizeGroup(
+          menuType,
+          Object.assign({}, currentGroup, patch)
+        );
+        await this.save();
+      }
+      // 调整分组顺序，便于控制菜单中的最终呈现顺序。
+      async moveGroup(menuType, groupIndex, offset) {
+        this.ensureMenuConfig(menuType);
+        const groups = this.settings.menus[menuType].groups;
+        const targetIndex = groupIndex + offset;
+        if (targetIndex < 0 || targetIndex >= groups.length) return;
+        const [group] = groups.splice(groupIndex, 1);
+        groups.splice(targetIndex, 0, group);
+        await this.save();
+      }
+      // 往指定分组中追加命令，自动去重，避免重复渲染。
+      async addCommandToGroup(menuType, groupIndex, commandId) {
+        this.ensureMenuConfig(menuType);
+        const targetGroup = this.settings.menus[menuType].groups[groupIndex];
+        const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+        if (!targetGroup || !normalizedCommandId) {
+          return {
+            success: false,
+            reason: "empty"
+          };
+        }
+        if (!this.getCommandMetadata(menuType, normalizedCommandId)) {
+          return {
+            success: false,
+            reason: "missing"
+          };
+        }
+        if (targetGroup.commands.includes(normalizedCommandId)) {
+          return {
+            success: false,
+            reason: "duplicate"
+          };
+        }
+        targetGroup.commands.push(normalizedCommandId);
+        await this.save();
+        return {
+          success: true,
+          reason: "added"
+        };
+      }
+      // 从分组中移除某个命令。
+      async removeCommandFromGroup(menuType, groupIndex, commandIndex) {
+        this.ensureMenuConfig(menuType);
+        const targetGroup = this.settings.menus[menuType].groups[groupIndex];
+        if (!targetGroup) return;
+        targetGroup.commands.splice(commandIndex, 1);
+        await this.save();
+      }
+      // 调整分组内命令顺序。
+      async moveCommandInGroup(menuType, groupIndex, commandIndex, offset) {
+        this.ensureMenuConfig(menuType);
+        const targetGroup = this.settings.menus[menuType].groups[groupIndex];
+        if (!targetGroup) return;
+        const targetIndex = commandIndex + offset;
+        if (targetIndex < 0 || targetIndex >= targetGroup.commands.length) return;
+        const [commandId] = targetGroup.commands.splice(commandIndex, 1);
+        targetGroup.commands.splice(targetIndex, 0, commandId);
+        await this.save();
+      }
+      // 新增一条手动命令映射，用于补齐无 commandId 的原始菜单项识别。
+      async addCommandMapping(menuType) {
+        this.ensureMenuConfig(menuType);
+        this.settings.menus[menuType].commandMappings.push(this.createCommandMapping());
+        await this.save();
+      }
+      // 更新手动命令映射。
+      async updateCommandMapping(menuType, mappingIndex, patch) {
+        this.ensureMenuConfig(menuType);
+        const currentMapping = this.settings.menus[menuType].commandMappings[mappingIndex];
+        if (!currentMapping) {
+          return;
+        }
+        this.settings.menus[menuType].commandMappings[mappingIndex] = this.normalizeCommandMapping(
+          Object.assign({}, currentMapping, patch)
+        );
+        await this.save();
+      }
+      // 删除手动命令映射。
+      async removeCommandMapping(menuType, mappingIndex) {
+        this.ensureMenuConfig(menuType);
+        this.settings.menus[menuType].commandMappings.splice(mappingIndex, 1);
+        await this.save();
+      }
+      // 根据用户提供的 title + section + commandId 映射，严格识别无显式 commandId 的菜单项。
+      resolveMappedCommandId(menuType, title, section) {
+        const normalizedTitle = this.normalizeText(title);
+        const normalizedSection = this.normalizeText(section);
+        if (!menuType || !normalizedTitle) {
+          return "";
+        }
+        for (const mapping of this.getMenuCommandMappings(menuType)) {
+          if (!mapping.title || !mapping.commandId) {
+            continue;
+          }
+          if (this.normalizeText(mapping.title) !== normalizedTitle) {
+            continue;
+          }
+          const mappingSection = this.normalizeText(mapping.section);
+          if (mappingSection && mappingSection !== normalizedSection) {
+            continue;
+          }
+          return mapping.commandId;
+        }
+        return "";
+      }
+      // 更新某个命令的显示名称、图标或隐藏状态。
+      async updateCommandOverride(menuType, commandId, patch) {
+        this.ensureMenuConfig(menuType);
+        const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+        if (!normalizedCommandId) return;
+        const currentOverride = this.settings.menus[menuType].commandOverrides[normalizedCommandId] || {};
+        const nextOverride = this.normalizeCommandOverride(Object.assign({}, currentOverride, patch));
+        if (!nextOverride.title && !nextOverride.icon && nextOverride.hidden !== true) {
+          delete this.settings.menus[menuType].commandOverrides[normalizedCommandId];
+        } else {
+          this.settings.menus[menuType].commandOverrides[normalizedCommandId] = nextOverride;
+        }
+        await this.save();
+      }
+      // 生成默认分组对象。
+      createGroup(menuType) {
+        return {
+          id: `${menuType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: "新分组",
+          icon: "",
+          layout: "list",
+          hidden: false,
+          forceSubmenu: false,
+          commands: []
+        };
+      }
+      // 生成默认手动映射对象。
+      createCommandMapping() {
+        return {
+          title: "",
+          section: "",
+          commandId: ""
+        };
+      }
+      // 归一化整个菜单自定义配置结构。
+      normalizeSettings(settings) {
+        const defaultSettings = constants.createDefaultMenuCustomizerSettings();
+        const source = this.isPlainObject(settings) ? settings : {};
+        const normalizedMenus = {};
+        constants.MENU_TYPE_OPTIONS.forEach((menuType) => {
+          normalizedMenus[menuType.id] = this.normalizeMenuConfig(menuType.id, source.menus?.[menuType.id]);
+        });
+        return Object.assign({}, defaultSettings, {
+          menus: normalizedMenus
+        });
+      }
+      // 归一化单个菜单类型的配置。
+      normalizeMenuConfig(menuType, menuConfig) {
+        const defaultSettings = constants.createDefaultMenuCustomizerSettings();
+        const defaultMenuConfig = defaultSettings.menus[menuType] || {
+          enabled: false,
+          groups: [],
+          commandOverrides: {},
+          commandMappings: []
+        };
+        const source = this.isPlainObject(menuConfig) ? menuConfig : {};
+        const commandOverrides = {};
+        if (this.isPlainObject(source.commandOverrides)) {
+          Object.entries(source.commandOverrides).forEach(([commandId, override]) => {
+            const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+            if (!normalizedCommandId) return;
+            commandOverrides[normalizedCommandId] = this.normalizeCommandOverride(override);
+          });
+        }
+        return {
+          enabled: source.enabled === true,
+          groups: Array.isArray(source.groups) ? source.groups.map((group) => this.normalizeGroup(menuType, group)) : defaultMenuConfig.groups.map((group) => this.normalizeGroup(menuType, group)),
+          commandOverrides,
+          commandMappings: Array.isArray(source.commandMappings) ? source.commandMappings.map((mapping) => this.normalizeCommandMapping(mapping)) : defaultMenuConfig.commandMappings.map((mapping) => this.normalizeCommandMapping(mapping))
+        };
+      }
+      // 归一化分组配置，清理非法布局值与空命令。
+      normalizeGroup(menuType, group) {
+        const source = this.isPlainObject(group) ? group : {};
+        const normalizedLayout = constants.GROUP_LAYOUT_OPTIONS.some((layout) => layout.value === source.layout) ? source.layout : "list";
+        return {
+          id: typeof source.id === "string" && source.id.trim() ? source.id.trim() : `${menuType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: typeof source.name === "string" && source.name.trim() ? source.name.trim() : "未命名分组",
+          icon: typeof source.icon === "string" ? source.icon.trim() : "",
+          layout: normalizedLayout,
+          hidden: source.hidden === true,
+          forceSubmenu: source.forceSubmenu === true,
+          commands: this.normalizeCommandList(source.commands)
+        };
+      }
+      // 归一化单条手动命令映射。
+      normalizeCommandMapping(mapping) {
+        const source = this.isPlainObject(mapping) ? mapping : {};
+        return {
+          title: typeof source.title === "string" ? source.title.trim() : "",
+          section: typeof source.section === "string" ? source.section.trim() : "",
+          commandId: typeof source.commandId === "string" ? source.commandId.trim() : ""
+        };
+      }
+      // 归一化命令覆盖结构，避免空字符串污染存储。
+      normalizeCommandOverride(override) {
+        const source = this.isPlainObject(override) ? override : {};
+        return {
+          title: typeof source.title === "string" ? source.title.trim() : "",
+          icon: typeof source.icon === "string" ? source.icon.trim() : "",
+          hidden: source.hidden === true
+        };
+      }
+      // 清理命令列表，去掉空值并自动去重。
+      normalizeCommandList(commands) {
+        if (!Array.isArray(commands)) {
+          return [];
+        }
+        const dedupedCommands = [];
+        const seen = /* @__PURE__ */ new Set();
+        commands.forEach((commandId) => {
+          if (typeof commandId !== "string") return;
+          const normalizedCommandId = commandId.trim();
+          if (!normalizedCommandId || seen.has(normalizedCommandId)) return;
+          seen.add(normalizedCommandId);
+          dedupedCommands.push(normalizedCommandId);
+        });
+        return dedupedCommands;
+      }
+      // 返回指定菜单类型下对应该命令的全部映射。
+      getCommandMappingsForCommand(menuType, commandId) {
+        const normalizedCommandId = typeof commandId === "string" ? commandId.trim() : "";
+        if (!normalizedCommandId) {
+          return [];
+        }
+        return this.getMenuCommandMappings(menuType).filter((mapping) => mapping.commandId === normalizedCommandId);
+      }
+      // 确保指定菜单类型的配置对象存在。
+      ensureMenuConfig(menuType) {
+        if (this.settings.menus[menuType]) {
+          return;
+        }
+        this.settings.menus[menuType] = this.normalizeMenuConfig(menuType);
+      }
+      // 统一做标题归一化，降低空白与大小写差异带来的识别误差。
+      normalizeText(value) {
+        return typeof value === "string" ? value.trim().toLowerCase().replace(/\s+/g, " ") : "";
+      }
+      // 判断当前值是否为普通对象，避免数组或空值被误当成配置对象。
+      isPlainObject(value) {
+        return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+      }
+    };
+    module2.exports = {
+      MenuCustomizerStore
+    };
+  }
+});
+
+// src/modules/menu-customizer/view.js
+var require_view2 = __commonJS({
+  "src/modules/menu-customizer/view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    function renderMenuCustomizerHeader(containerEl, title, description) {
+      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    function renderSummaryItem(containerEl, label, value, codeStyle) {
+      const itemEl = containerEl.createDiv({ cls: "nene-settings-detail-item" });
+      itemEl.createDiv({ cls: "nene-settings-detail-label", text: label });
+      itemEl.createEl(codeStyle ? "code" : "div", {
+        cls: "nene-settings-detail-value",
+        text: value
+      });
+    }
+    function getMenuTypeName(store, menuType) {
+      return store.getMenuTypeOptions().find((item) => item.id === menuType)?.name || menuType;
+    }
+    var MenuCustomizerConfirmModal = class extends obsidian2.Modal {
+      constructor(app, title, description, onConfirm) {
+        super(app);
+        this.title = title;
+        this.description = description;
+        this.onConfirm = onConfirm;
+      }
+      // 打开弹窗时渲染说明与确认按钮。
+      onOpen() {
+        const { contentEl } = this;
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        contentEl.empty();
+        contentEl.addClass("nene-settings-modal");
+        renderMenuCustomizerHeader(contentEl, this.title, this.description);
+        const actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
+        const cancelButtonEl = actionEl.createEl("button", { text: "取消" });
+        const confirmButtonEl = actionEl.createEl("button", {
+          cls: "mod-warning",
+          text: "确认"
+        });
+        cancelButtonEl.addEventListener("click", () => this.close());
+        confirmButtonEl.addEventListener("click", async () => {
+          confirmButtonEl.disabled = true;
+          try {
+            await this.onConfirm();
+            this.close();
+          } finally {
+            confirmButtonEl.disabled = false;
+          }
+        });
+      }
+      // 关闭弹窗时清空内容，避免重复挂载旧 DOM。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var MenuCustomizerManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+        this.activeMenuType = plugin.menuCustomizerStore.getMenuTypeOptions()[0]?.id || "editor";
+        this.previewPaneEl = null;
+        this.summaryPaneEl = null;
+      }
+      // 打开弹窗时渲染最新配置。
+      onOpen() {
+        this.modalEl.addClass(
+          "mod-sidebar-layout",
+          "nene-settings-panel-modal",
+          "nene-menu-customizer-panel-modal"
+        );
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal", "nene-menu-customizer-modal");
+        void this.render();
+      }
+      // 根据当前状态重绘整个右键菜单管理界面。
+      async render() {
+        const { contentEl } = this;
+        const store = this.plugin.menuCustomizerStore;
+        const menuTypeOptions = store.getMenuTypeOptions();
+        if (!menuTypeOptions.some((item) => item.id === this.activeMenuType)) {
+          this.activeMenuType = menuTypeOptions[0]?.id || "editor";
+        }
+        contentEl.empty();
+        renderMenuCustomizerHeader(
+          contentEl,
+          "右键菜单自定义",
+          ""
+        );
+        this.summaryPaneEl = contentEl.createDiv({ cls: "nene-menu-customizer-summary" });
+        await this.renderSummaryPanel();
+        const shellEl = contentEl.createDiv({ cls: "nene-menu-customizer-shell" });
+        const settingsPaneEl = shellEl.createDiv({ cls: "nene-menu-customizer-settings-pane" });
+        this.previewPaneEl = shellEl.createDiv({ cls: "nene-menu-customizer-preview-pane" });
+        this.renderMenuTypeTabs(settingsPaneEl, menuTypeOptions);
+        this.renderActiveMenuSettings(settingsPaneEl);
+        this.renderPreviewPanel();
+      }
+      // 渲染顶部摘要，集中展示模块状态与配置文件路径。
+      async renderSummaryPanel() {
+        const summary = this.plugin.getSettingsSummary();
+        const configSummary = await this.plugin.getConfigManagementSummary();
+        if (!this.summaryPaneEl) {
+          return;
+        }
+        this.summaryPaneEl.empty();
+        const detailListEl = this.summaryPaneEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderSummaryItem(detailListEl, "模块状态", summary.menuCustomizerEnabled ? "已启用" : "已关闭");
+        renderSummaryItem(detailListEl, "已启用菜单", `${summary.menuCustomizerMenuCount} 个`);
+        renderSummaryItem(detailListEl, "分组数量", `${summary.menuCustomizerGroupCount} 个`);
+        renderSummaryItem(detailListEl, "配置文件", configSummary.menuCustomizer.path, true);
+        const noteEl = this.summaryPaneEl.createDiv({ cls: "nene-menu-customizer-note" });
+        noteEl.createEl("strong", { text: "说明：" });
+        noteEl.createSpan({
+          text: "新增命令完全来自 Obsidian 命令注册表；无显式 commandId 的原始菜单项，请在下方“手动映射”中补齐 title、section 与 commandId。"
+        });
+      }
+      // 渲染四个菜单类型的分页切换标签。
+      renderMenuTypeTabs(containerEl, menuTypeOptions) {
+        const tabsEl = containerEl.createDiv({ cls: "nene-menu-customizer-tabs" });
+        menuTypeOptions.forEach((menuType) => {
+          const menuConfig = this.plugin.menuCustomizerStore.getMenuConfig(menuType.id);
+          const tabButtonEl = tabsEl.createEl("button", {
+            cls: `nene-menu-customizer-tab${menuType.id === this.activeMenuType ? " is-active" : ""}`,
+            text: menuType.name
+          });
+          if (menuConfig.enabled) {
+            tabButtonEl.createSpan({
+              cls: "nene-menu-customizer-tab-badge",
+              text: "启用中"
+            });
+          }
+          tabButtonEl.addEventListener("click", () => {
+            if (this.activeMenuType === menuType.id) {
+              return;
+            }
+            this.activeMenuType = menuType.id;
+            void this.render();
+          });
+        });
+      }
+      // 渲染当前选中菜单类型的设置区。
+      renderActiveMenuSettings(containerEl) {
+        const store = this.plugin.menuCustomizerStore;
+        const menuType = this.activeMenuType;
+        const menuConfig = store.getMenuConfig(menuType);
+        const sectionEl = containerEl.createDiv({ cls: "nene-menu-customizer-active-section" });
+        const sectionHeaderEl = sectionEl.createDiv({ cls: "nene-menu-customizer-panel-card" });
+        sectionHeaderEl.createDiv({
+          cls: "nene-menu-customizer-section-title",
+          text: getMenuTypeName(store, menuType)
+        });
+        this.renderControlRow(
+          sectionHeaderEl,
+          "启用当前菜单",
+          `仅对 ${getMenuTypeName(store, menuType)} 生效，未开启时保留 Obsidian 原始行为。`,
+          (controlsEl) => {
+            const toggleEl = this.createSwitchControl(controlsEl, menuConfig.enabled, async (checked) => {
+              await store.setMenuEnabled(menuType, checked);
+              new obsidian2.Notice(checked ? `已启用 ${getMenuTypeName(store, menuType)}` : `已关闭 ${getMenuTypeName(store, menuType)}`);
+              await this.onSettingsChanged();
+              await this.renderSummaryPanel();
+              this.renderPreviewPanel();
+            });
+            toggleEl.classList.add("nene-menu-customizer-inline-switch");
+          }
+        );
+        const groupsCardEl = sectionEl.createDiv({ cls: "nene-menu-customizer-panel-card" });
+        const groupsHeaderEl = groupsCardEl.createDiv({ cls: "nene-menu-customizer-card-header" });
+        groupsHeaderEl.createDiv({ cls: "nene-menu-customizer-subtitle", text: "分组管理" });
+        const addGroupButtonEl = groupsHeaderEl.createEl("button", {
+          cls: "mod-cta",
+          text: "添加分组"
+        });
+        addGroupButtonEl.addEventListener("click", async () => {
+          await store.addGroup(menuType);
+          await this.onSettingsChanged();
+          await this.renderSummaryPanel();
+          await this.render();
+        });
+        if (menuConfig.groups.length === 0) {
+          groupsCardEl.createDiv({
+            cls: "nene-menu-customizer-empty",
+            text: "当前还没有分组，未命中的命令会按原顺序保留在菜单底部。"
+          });
+        }
+        menuConfig.groups.forEach((group, groupIndex) => {
+          this.renderGroupEditor(groupsCardEl, menuType, group, groupIndex, menuConfig.groups.length);
+        });
+        this.renderMappingsPanel(sectionEl, menuType, menuConfig);
+        this.renderOverridesPanel(sectionEl, menuType, menuConfig);
+        this.renderResetPanel(sectionEl);
+      }
+      // 渲染单个分组编辑器，使用现代折叠结构避免长列表过长。
+      renderGroupEditor(containerEl, menuType, group, groupIndex, totalGroups) {
+        const store = this.plugin.menuCustomizerStore;
+        const groupDetailsEl = containerEl.createEl("details", {
+          cls: "nene-menu-customizer-group-card"
+        });
+        if (groupIndex === 0) {
+          groupDetailsEl.open = true;
+        }
+        const summaryEl = groupDetailsEl.createEl("summary", {
+          cls: "nene-menu-customizer-group-summary"
+        });
+        summaryEl.createDiv({
+          cls: "nene-menu-customizer-group-summary-title",
+          text: group.name || `分组 ${groupIndex + 1}`
+        });
+        const metaEl = summaryEl.createDiv({ cls: "nene-menu-customizer-group-summary-meta" });
+        metaEl.createSpan({
+          cls: "nene-menu-customizer-meta-pill",
+          text: `${group.commands.length} 个命令`
+        });
+        metaEl.createSpan({
+          cls: "nene-menu-customizer-meta-pill",
+          text: group.layout === "icon-bar" ? "图标栏" : group.layout === "grid" ? "网格" : "列表"
+        });
+        if (group.forceSubmenu) {
+          metaEl.createSpan({
+            cls: "nene-menu-customizer-meta-pill",
+            text: "强制子菜单"
+          });
+        }
+        if (group.hidden) {
+          metaEl.createSpan({
+            cls: "nene-menu-customizer-meta-pill is-muted",
+            text: "已隐藏"
+          });
+        }
+        const bodyEl = groupDetailsEl.createDiv({ cls: "nene-menu-customizer-group-body" });
+        this.renderControlRow(
+          bodyEl,
+          "基础信息",
+          group.id,
+          (controlsEl) => {
+            this.createTextInput(controlsEl, "分组名称", group.name, async (value) => {
+              await store.updateGroup(menuType, groupIndex, { name: value });
+              this.renderPreviewPanel();
+            });
+            this.createTextInput(controlsEl, "图标（可选）", group.icon || "", async (value) => {
+              await store.updateGroup(menuType, groupIndex, { icon: value });
+              this.renderPreviewPanel();
+            });
+            const moveControlsEl = controlsEl.createDiv({ cls: "nene-menu-customizer-inline-actions" });
+            this.createIconButton(moveControlsEl, "arrow-up", "上移分组", groupIndex === 0, async () => {
+              await store.moveGroup(menuType, groupIndex, -1);
+              await this.onSettingsChanged();
+              await this.render();
+            });
+            this.createIconButton(moveControlsEl, "arrow-down", "下移分组", groupIndex === totalGroups - 1, async () => {
+              await store.moveGroup(menuType, groupIndex, 1);
+              await this.onSettingsChanged();
+              await this.render();
+            });
+            this.createIconButton(moveControlsEl, "trash", "删除分组", false, async () => {
+              await store.removeGroup(menuType, groupIndex);
+              await this.onSettingsChanged();
+              await this.renderSummaryPanel();
+              await this.render();
+            }, true);
+          }
+        );
+        this.renderControlRow(
+          bodyEl,
+          "布局与行为",
+          "列表布局中的多命令分组默认折叠为子菜单。",
+          (controlsEl) => {
+            this.createSelectInput(
+              controlsEl,
+              store.getLayoutOptions(),
+              group.layout,
+              async (value) => {
+                await store.updateGroup(menuType, groupIndex, { layout: value });
+                await this.onSettingsChanged();
+                this.renderPreviewPanel();
+              }
+            );
+            this.createSwitchControl(controlsEl, group.hidden === true, async (checked) => {
+              await store.updateGroup(menuType, groupIndex, { hidden: checked });
+              this.renderPreviewPanel();
+            }, "隐藏分组");
+            this.createSwitchControl(controlsEl, group.forceSubmenu === true, async (checked) => {
+              await store.updateGroup(menuType, groupIndex, { forceSubmenu: checked });
+              this.renderPreviewPanel();
+            }, "强制子菜单");
+          }
+        );
+        const commandsSectionEl = bodyEl.createDiv({ cls: "nene-menu-customizer-command-list" });
+        commandsSectionEl.createDiv({ cls: "nene-menu-customizer-mini-title", text: "命令顺序" });
+        if (group.commands.length === 0) {
+          commandsSectionEl.createDiv({
+            cls: "nene-menu-customizer-empty",
+            text: "当前分组还没有命令。"
+          });
+        }
+        group.commands.forEach((commandId, commandIndex) => {
+          const commandRowEl = commandsSectionEl.createDiv({ cls: "nene-menu-customizer-command-row" });
+          const contentEl = commandRowEl.createDiv({ cls: "nene-menu-customizer-command-content" });
+          contentEl.createDiv({
+            cls: "nene-menu-customizer-command-label",
+            text: store.getCommandLabel(menuType, commandId)
+          });
+          contentEl.createEl("code", {
+            cls: "nene-menu-customizer-command-id",
+            text: commandId
+          });
+          const actionEl = commandRowEl.createDiv({ cls: "nene-menu-customizer-command-actions" });
+          this.createIconButton(actionEl, "arrow-up", "上移命令", commandIndex === 0, async () => {
+            await store.moveCommandInGroup(menuType, groupIndex, commandIndex, -1);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+          this.createIconButton(actionEl, "arrow-down", "下移命令", commandIndex === group.commands.length - 1, async () => {
+            await store.moveCommandInGroup(menuType, groupIndex, commandIndex, 1);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+          this.createIconButton(actionEl, "x", "移除命令", false, async () => {
+            await store.removeCommandFromGroup(menuType, groupIndex, commandIndex);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        const addableCommands = store.getAddableCommands(menuType);
+        let selectedCommandId = addableCommands[0]?.id || "";
+        let manualCommandId = "";
+        this.renderControlRow(
+          bodyEl,
+          "添加命令",
+          `下拉列表完全来自当前 Obsidian 命令注册表，共 ${addableCommands.length} 条。手动输入时，已注册命令可新增到菜单；已在“手动映射”中登记的未注册命令，也可加入分组以控制原始菜单项。`,
+          (controlsEl) => {
+            const selectOptions = addableCommands.map((command) => ({
+              value: command.id,
+              label: `${command.label} (${command.id})`
+            }));
+            this.createSelectInput(
+              controlsEl,
+              selectOptions,
+              selectedCommandId,
+              async (value) => {
+                selectedCommandId = value;
+              }
+            );
+            this.createTextInput(controlsEl, "或手动输入命令 ID", "", async (value) => {
+              manualCommandId = value;
+            });
+            const addButtonEl = controlsEl.createEl("button", {
+              cls: "mod-cta",
+              text: "添加"
+            });
+            addButtonEl.addEventListener("click", async () => {
+              const commandId = (manualCommandId || selectedCommandId || "").trim();
+              if (!commandId) {
+                new obsidian2.Notice("请先选择或输入命令 ID");
+                return;
+              }
+              const result = await store.addCommandToGroup(menuType, groupIndex, commandId);
+              if (!result.success) {
+                if (result.reason === "missing") {
+                  new obsidian2.Notice(`命令不存在，无法添加：${commandId}`);
+                } else if (result.reason === "duplicate") {
+                  new obsidian2.Notice("该命令已经在当前分组中");
+                } else {
+                  new obsidian2.Notice("命令为空，无法添加");
+                }
+                return;
+              }
+              const commandLabel = store.getCommandLabel(menuType, commandId);
+              new obsidian2.Notice(`已添加命令：${commandLabel}`);
+              await this.onSettingsChanged();
+              await this.render();
+            });
+          }
+        );
+      }
+      // 渲染手动命令映射面板，用于补齐无显式 commandId 的原始菜单项识别。
+      renderMappingsPanel(containerEl, menuType, menuConfig) {
+        const store = this.plugin.menuCustomizerStore;
+        const mappingsCardEl = containerEl.createEl("details", {
+          cls: "nene-menu-customizer-panel-card nene-menu-customizer-collapsible-card"
+        });
+        const summaryEl = mappingsCardEl.createEl("summary", {
+          cls: "nene-menu-customizer-card-header"
+        });
+        summaryEl.createDiv({ cls: "nene-menu-customizer-subtitle", text: "手动映射" });
+        summaryEl.createSpan({
+          cls: "nene-menu-customizer-meta-pill",
+          text: `${menuConfig.commandMappings.length} 条`
+        });
+        const bodyEl = mappingsCardEl.createDiv({ cls: "nene-menu-customizer-mappings" });
+        bodyEl.createDiv({
+          cls: "nene-menu-customizer-note",
+          text: "当某个原始右键菜单项没有暴露 commandId 时，在这里填写它的标题、section 和你约定的 commandId。运行时会按 title + section 做严格匹配。"
+        });
+        if (menuConfig.commandMappings.length === 0) {
+          bodyEl.createDiv({
+            cls: "nene-menu-customizer-empty",
+            text: "当前菜单还没有手动映射。"
+          });
+        }
+        menuConfig.commandMappings.forEach((mapping, mappingIndex) => {
+          const rowEl = bodyEl.createDiv({ cls: "nene-menu-customizer-mapping-row" });
+          const infoEl = rowEl.createDiv({ cls: "nene-menu-customizer-mapping-info" });
+          infoEl.createDiv({
+            cls: "nene-menu-customizer-command-label",
+            text: mapping.title || "未填写标题"
+          });
+          infoEl.createEl("code", {
+            cls: "nene-menu-customizer-command-id",
+            text: mapping.commandId || "未填写 commandId"
+          });
+          const metaEl = infoEl.createDiv({ cls: "nene-menu-customizer-group-summary-meta" });
+          metaEl.createSpan({
+            cls: "nene-menu-customizer-meta-pill",
+            text: mapping.section ? `section: ${mapping.section}` : "section 未填写"
+          });
+          metaEl.createSpan({
+            cls: `nene-menu-customizer-meta-pill${store.isRegisteredCommand(mapping.commandId) ? "" : " is-muted"}`,
+            text: store.isRegisteredCommand(mapping.commandId) ? "已注册，可新增执行" : "未注册，仅识别原始项"
+          });
+          const controlsEl = rowEl.createDiv({ cls: "nene-menu-customizer-mapping-controls" });
+          this.createTextInput(controlsEl, "菜单标题", mapping.title || "", async (value) => {
+            await store.updateCommandMapping(menuType, mappingIndex, { title: value });
+            await this.onSettingsChanged();
+            await this.render();
+          });
+          this.createTextInput(controlsEl, "section（如 action）", mapping.section || "", async (value) => {
+            await store.updateCommandMapping(menuType, mappingIndex, { section: value });
+            await this.onSettingsChanged();
+            await this.render();
+          });
+          this.createTextInput(controlsEl, "commandId", mapping.commandId || "", async (value) => {
+            await store.updateCommandMapping(menuType, mappingIndex, { commandId: value });
+            await this.onSettingsChanged();
+            await this.render();
+          });
+          const actionEl = controlsEl.createDiv({ cls: "nene-menu-customizer-command-actions" });
+          this.createIconButton(actionEl, "trash", "删除映射", false, async () => {
+            await store.removeCommandMapping(menuType, mappingIndex);
+            await this.onSettingsChanged();
+            await this.render();
+          }, true);
+        });
+        const footerEl = bodyEl.createDiv({ cls: "nene-menu-customizer-mapping-footer" });
+        const addButtonEl = footerEl.createEl("button", {
+          cls: "mod-cta",
+          text: "添加映射"
+        });
+        addButtonEl.addEventListener("click", async () => {
+          await store.addCommandMapping(menuType);
+          await this.onSettingsChanged();
+          await this.render();
+        });
+      }
+      // 渲染命令覆盖面板。
+      renderOverridesPanel(containerEl, menuType, menuConfig) {
+        const store = this.plugin.menuCustomizerStore;
+        const overridesCardEl = containerEl.createEl("details", {
+          cls: "nene-menu-customizer-panel-card nene-menu-customizer-collapsible-card"
+        });
+        const summaryEl = overridesCardEl.createEl("summary", {
+          cls: "nene-menu-customizer-card-header"
+        });
+        summaryEl.createDiv({ cls: "nene-menu-customizer-subtitle", text: "命令覆盖" });
+        const commandIds = new Set(store.getAvailableCommands(menuType).map((command) => command.id));
+        menuConfig.groups.forEach((group) => {
+          group.commands.forEach((commandId) => commandIds.add(commandId));
+        });
+        menuConfig.commandMappings.forEach((mapping) => {
+          if (mapping.commandId) {
+            commandIds.add(mapping.commandId);
+          }
+        });
+        Object.keys(menuConfig.commandOverrides).forEach((commandId) => commandIds.add(commandId));
+        summaryEl.createSpan({
+          cls: "nene-menu-customizer-meta-pill",
+          text: `${commandIds.size} 项`
+        });
+        const bodyEl = overridesCardEl.createDiv({ cls: "nene-menu-customizer-overrides" });
+        Array.from(commandIds).sort((left, right) => store.getCommandLabel(menuType, left).localeCompare(store.getCommandLabel(menuType, right), "zh-CN")).forEach((commandId) => {
+          const override = menuConfig.commandOverrides[commandId] || {};
+          const rowEl = bodyEl.createDiv({ cls: "nene-menu-customizer-override-row" });
+          const titleEl = rowEl.createDiv({ cls: "nene-menu-customizer-override-title" });
+          titleEl.createDiv({
+            cls: "nene-menu-customizer-command-label",
+            text: store.getCommandLabel(menuType, commandId)
+          });
+          titleEl.createEl("code", {
+            cls: "nene-menu-customizer-command-id",
+            text: commandId
+          });
+          const controlsEl = rowEl.createDiv({ cls: "nene-menu-customizer-override-controls" });
+          this.createTextInput(controlsEl, "自定义标题", override.title || "", async (value) => {
+            await store.updateCommandOverride(menuType, commandId, { title: value });
+            this.renderPreviewPanel();
+          });
+          this.createTextInput(controlsEl, "自定义图标", override.icon || "", async (value) => {
+            await store.updateCommandOverride(menuType, commandId, { icon: value });
+            this.renderPreviewPanel();
+          });
+          this.createSwitchControl(controlsEl, override.hidden === true, async (checked) => {
+            await store.updateCommandOverride(menuType, commandId, { hidden: checked });
+            this.renderPreviewPanel();
+          }, "隐藏命令");
+        });
+      }
+      // 渲染底部重置卡片。
+      renderResetPanel(containerEl) {
+        const resetCardEl = containerEl.createDiv({ cls: "nene-menu-customizer-panel-card" });
+        this.renderControlRow(
+          resetCardEl,
+          "重置右键菜单配置",
+          "仅重置右键菜单自定义模块的独立配置文件，不影响其他模块与总开关。",
+          (controlsEl) => {
+            const resetButtonEl = controlsEl.createEl("button", {
+              cls: "mod-warning",
+              text: "重置 menu-customizer"
+            });
+            resetButtonEl.addEventListener("click", () => {
+              new MenuCustomizerConfirmModal(
+                this.app,
+                "重置右键菜单配置",
+                "此操作会将右键菜单模块的分组、排序、重命名、隐藏与子菜单配置全部恢复为默认值。",
+                async () => {
+                  await this.plugin.resetFeatureConfiguration("menuCustomizer");
+                  new obsidian2.Notice("右键菜单配置已重置");
+                  await this.onSettingsChanged();
+                  await this.render();
+                }
+              ).open();
+            });
+          }
+        );
+      }
+      // 渲染右侧预览区，模拟最终菜单结构。
+      renderPreviewPanel() {
+        if (!this.previewPaneEl) {
+          return;
+        }
+        const store = this.plugin.menuCustomizerStore;
+        const menuType = this.activeMenuType;
+        const menuConfig = store.getMenuConfig(menuType);
+        const previewModel = this.buildPreviewModel(menuType, menuConfig);
+        this.previewPaneEl.empty();
+        const previewHeaderEl = this.previewPaneEl.createDiv({ cls: "nene-menu-customizer-preview-header" });
+        previewHeaderEl.createDiv({ cls: "nene-menu-customizer-subtitle", text: "菜单预览" });
+        previewHeaderEl.createDiv({
+          cls: `nene-menu-customizer-preview-status${menuConfig.enabled ? " is-active" : ""}`,
+          text: menuConfig.enabled ? "当前菜单已启用" : "当前菜单未启用"
+        });
+        const infoListEl = this.previewPaneEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderSummaryItem(infoListEl, "当前分页", getMenuTypeName(store, menuType));
+        renderSummaryItem(infoListEl, "可见分组", `${previewModel.groups.length} 个`);
+        renderSummaryItem(infoListEl, "未分组命令", `${previewModel.ungroupedItems.length} 个`);
+        const surfaceEl = this.previewPaneEl.createDiv({ cls: "nene-menu-customizer-preview-surface" });
+        const menuEl = surfaceEl.createDiv({ cls: "nene-menu-customizer-preview-menu" });
+        if (!menuConfig.enabled) {
+          menuEl.createDiv({
+            cls: "nene-menu-customizer-preview-empty",
+            text: "当前分页未启用。启用后右键菜单才会按左侧配置重构。"
+          });
+          return;
+        }
+        if (previewModel.groups.length === 0 && previewModel.ungroupedItems.length === 0) {
+          menuEl.createDiv({
+            cls: "nene-menu-customizer-preview-empty",
+            text: "当前没有可预览的命令。"
+          });
+          return;
+        }
+        previewModel.groups.forEach((group, groupIndex) => {
+          if (groupIndex > 0) {
+            menuEl.createDiv({ cls: "nene-menu-customizer-preview-separator" });
+          }
+          this.renderPreviewGroup(menuEl, group);
+        });
+        if (previewModel.ungroupedItems.length > 0) {
+          if (previewModel.groups.length > 0) {
+            menuEl.createDiv({ cls: "nene-menu-customizer-preview-separator" });
+          }
+          const sectionLabelEl = menuEl.createDiv({ cls: "nene-menu-customizer-preview-section-label" });
+          sectionLabelEl.setText("未分组命令");
+          previewModel.ungroupedItems.forEach((item) => {
+            this.renderPreviewMenuItem(menuEl, item);
+          });
+        }
+      }
+      // 构建预览模型，尽量贴近运行时最终显示结果。
+      buildPreviewModel(menuType, menuConfig) {
+        const store = this.plugin.menuCustomizerStore;
+        const availableCommands = store.getAvailableCommands(menuType);
+        const commandMap = /* @__PURE__ */ new Map();
+        const usedCommandIds = /* @__PURE__ */ new Set();
+        availableCommands.forEach((command) => {
+          const override = menuConfig.commandOverrides[command.id] || {};
+          commandMap.set(command.id, {
+            id: command.id,
+            title: override.title || command.label || command.id,
+            icon: override.icon || command.icon || "",
+            hidden: override.hidden === true
+          });
+        });
+        const groups = menuConfig.groups.filter((group) => group.hidden !== true).map((group) => {
+          const items = group.commands.map((commandId) => commandMap.get(commandId) || {
+            id: commandId,
+            title: menuConfig.commandOverrides[commandId]?.title || commandId,
+            icon: menuConfig.commandOverrides[commandId]?.icon || "",
+            hidden: menuConfig.commandOverrides[commandId]?.hidden === true
+          }).filter((item) => item.hidden !== true);
+          items.forEach((item) => usedCommandIds.add(item.id));
+          return {
+            id: group.id,
+            name: group.name,
+            icon: group.icon || "",
+            layout: group.layout,
+            forceSubmenu: group.forceSubmenu === true,
+            items
+          };
+        }).filter((group) => group.items.length > 0);
+        const ungroupedItems = availableCommands.map((command) => commandMap.get(command.id)).filter((item) => item && item.hidden !== true && !usedCommandIds.has(item.id));
+        return {
+          groups,
+          ungroupedItems
+        };
+      }
+      // 渲染单个预览分组。
+      renderPreviewGroup(containerEl, group) {
+        if (group.layout === "icon-bar") {
+          const blockEl = containerEl.createDiv({ cls: "nene-menu-customizer-preview-block" });
+          this.renderPreviewBlockTitle(blockEl, group);
+          const iconBarEl = blockEl.createDiv({ cls: "nene-menu-customizer-preview-icon-bar" });
+          group.items.forEach((item) => {
+            const chipEl = iconBarEl.createDiv({ cls: "nene-menu-customizer-preview-icon-chip" });
+            if (item.icon) {
+              const iconEl = chipEl.createSpan({ cls: "nene-menu-customizer-preview-icon" });
+              obsidian2.setIcon(iconEl, item.icon);
+            }
+            chipEl.title = item.title;
+          });
+          return;
+        }
+        if (group.layout === "grid") {
+          const blockEl = containerEl.createDiv({ cls: "nene-menu-customizer-preview-block" });
+          this.renderPreviewBlockTitle(blockEl, group);
+          const gridEl = blockEl.createDiv({ cls: "nene-menu-customizer-preview-grid" });
+          group.items.forEach((item) => {
+            const cardEl = gridEl.createDiv({ cls: "nene-menu-customizer-preview-grid-item" });
+            if (item.icon) {
+              const iconEl = cardEl.createSpan({ cls: "nene-menu-customizer-preview-icon" });
+              obsidian2.setIcon(iconEl, item.icon);
+            }
+            cardEl.createDiv({
+              cls: "nene-menu-customizer-preview-grid-title",
+              text: item.title
+            });
+          });
+          return;
+        }
+        if (group.forceSubmenu || group.items.length > 1) {
+          const submenuEl = containerEl.createDiv({ cls: "nene-menu-customizer-preview-submenu" });
+          const parentItemEl = submenuEl.createDiv({ cls: "nene-menu-customizer-preview-item is-parent" });
+          this.appendPreviewItemContent(parentItemEl, {
+            title: group.name,
+            icon: group.icon
+          });
+          parentItemEl.createSpan({
+            cls: "nene-menu-customizer-preview-arrow",
+            text: "›"
+          });
+          const childMenuEl = submenuEl.createDiv({ cls: "nene-menu-customizer-preview-submenu-panel" });
+          group.items.forEach((item) => {
+            this.renderPreviewMenuItem(childMenuEl, item);
+          });
+          return;
+        }
+        group.items.forEach((item) => {
+          this.renderPreviewMenuItem(containerEl, item);
+        });
+      }
+      // 渲染预览块标题。
+      renderPreviewBlockTitle(containerEl, group) {
+        const titleEl = containerEl.createDiv({ cls: "nene-menu-customizer-preview-section-label" });
+        if (group.icon) {
+          const iconEl = titleEl.createSpan({ cls: "nene-menu-customizer-preview-icon" });
+          obsidian2.setIcon(iconEl, group.icon);
+        }
+        titleEl.createSpan({ text: group.name });
+      }
+      // 渲染普通预览菜单项。
+      renderPreviewMenuItem(containerEl, item) {
+        const itemEl = containerEl.createDiv({ cls: "nene-menu-customizer-preview-item" });
+        this.appendPreviewItemContent(itemEl, item);
+      }
+      // 渲染预览菜单项公共内容。
+      appendPreviewItemContent(containerEl, item) {
+        const iconEl = containerEl.createSpan({ cls: "nene-menu-customizer-preview-icon" });
+        if (item.icon) {
+          obsidian2.setIcon(iconEl, item.icon);
+        }
+        containerEl.createSpan({
+          cls: "nene-menu-customizer-preview-title",
+          text: item.title
+        });
+      }
+      // 渲染一行紧凑设置控件。
+      renderControlRow(containerEl, title, description, renderControls) {
+        const rowEl = containerEl.createDiv({ cls: "nene-menu-customizer-control-row" });
+        const infoEl = rowEl.createDiv({ cls: "nene-menu-customizer-control-info" });
+        infoEl.createDiv({ cls: "nene-menu-customizer-control-title", text: title });
+        if (description) {
+          infoEl.createDiv({
+            cls: "nene-menu-customizer-control-desc",
+            text: description
+          });
+        }
+        const controlsEl = rowEl.createDiv({ cls: "nene-menu-customizer-control-actions" });
+        renderControls(controlsEl);
+      }
+      // 创建输入框控件。
+      createTextInput(containerEl, placeholder, value, onInput) {
+        const inputEl = containerEl.createEl("input", {
+          cls: "nene-menu-customizer-text-input",
+          type: "text"
+        });
+        inputEl.placeholder = placeholder;
+        inputEl.value = value || "";
+        inputEl.addEventListener("input", async () => {
+          await onInput(inputEl.value);
+        });
+        return inputEl;
+      }
+      // 创建下拉框控件。
+      createSelectInput(containerEl, options, selectedValue, onChange) {
+        const selectEl = containerEl.createEl("select", {
+          cls: "nene-menu-customizer-select"
+        });
+        options.forEach((option) => {
+          const normalizedOption = typeof option === "string" ? { value: option, label: option } : option;
+          const optionEl = selectEl.createEl("option", {
+            text: normalizedOption.label
+          });
+          optionEl.value = normalizedOption.value;
+        });
+        if (selectedValue) {
+          selectEl.value = selectedValue;
+        }
+        selectEl.addEventListener("change", async () => {
+          await onChange(selectEl.value);
+        });
+        return selectEl;
+      }
+      // 创建开关控件。
+      createSwitchControl(containerEl, checked, onChange, labelText) {
+        const wrapperEl = containerEl.createDiv({ cls: "nene-menu-customizer-switch" });
+        const inputEl = wrapperEl.createEl("input", {
+          type: "checkbox"
+        });
+        inputEl.checked = Boolean(checked);
+        const labelEl = wrapperEl.createSpan({
+          cls: "nene-menu-customizer-switch-label",
+          text: labelText || (checked ? "已开启" : "已关闭")
+        });
+        inputEl.addEventListener("change", async () => {
+          if (!labelText) {
+            labelEl.setText(inputEl.checked ? "已开启" : "已关闭");
+          }
+          await onChange(inputEl.checked);
+        });
+        return wrapperEl;
+      }
+      // 创建统一风格的小图标按钮，减少重复代码。
+      createIconButton(containerEl, iconName, tooltip, disabled, onClick, isDanger) {
+        const buttonEl = containerEl.createEl("button", {
+          cls: `clickable-icon${isDanger ? " mod-warning" : ""}`
+        });
+        obsidian2.setIcon(buttonEl, iconName);
+        buttonEl.ariaLabel = tooltip;
+        buttonEl.disabled = Boolean(disabled);
+        buttonEl.addEventListener("click", async () => {
+          if (buttonEl.disabled) {
+            return;
+          }
+          await onClick();
+        });
+      }
+      // 关闭弹窗时清理 DOM。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    module2.exports = {
+      MenuCustomizerManagementModal
+    };
+  }
+});
+
+// src/modules/menu-customizer/index.js
+var require_menu_customizer = __commonJS({
+  "src/modules/menu-customizer/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants3();
+    var runtime = require_runtime();
+    var store = require_store4();
+    var view = require_view2();
+    module2.exports = Object.assign({}, constants, runtime, store, view);
+  }
+});
+
 // src/modules/settings-tab/index.js
 var require_settings_tab = __commonJS({
   "src/modules/settings-tab/index.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
+    var menuCustomizerModule2 = require_menu_customizer();
+    async function copyTextToClipboard(text) {
+      if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const textareaEl = document.createElement("textarea");
+      textareaEl.value = text;
+      textareaEl.style.position = "fixed";
+      textareaEl.style.opacity = "0";
+      document.body.appendChild(textareaEl);
+      textareaEl.focus();
+      textareaEl.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textareaEl);
+      if (!copied) {
+        throw new Error("Clipboard copy is not supported");
+      }
+    }
+    function renderModalHeader(containerEl, title, description) {
+      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    function renderDetailItem(containerEl, label, value, codeStyle) {
+      const itemEl = containerEl.createDiv({ cls: "nene-settings-detail-item" });
+      itemEl.createDiv({ cls: "nene-settings-detail-label", text: label });
+      itemEl.createEl(codeStyle ? "code" : "div", {
+        cls: "nene-settings-detail-value",
+        text: value
+      });
+    }
+    var ConfigurationExportModal = class extends obsidian2.Modal {
+      constructor(app, exportedText) {
+        super(app);
+        this.exportedText = exportedText;
+      }
+      // 打开弹窗时渲染只读文本与复制按钮。
+      onOpen() {
+        const { contentEl } = this;
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        contentEl.empty();
+        contentEl.addClass("nene-settings-modal");
+        renderModalHeader(
+          contentEl,
+          "导出插件配置",
+          "以下内容包含当前核心配置与模块配置，可直接复制保存，或用于后续导入恢复。"
+        );
+        const textareaEl = contentEl.createEl("textarea", {
+          cls: "nene-settings-json-textarea"
+        });
+        textareaEl.value = this.exportedText;
+        textareaEl.readOnly = true;
+        const actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
+        const copyButtonEl = actionEl.createEl("button", {
+          cls: "mod-cta",
+          text: "复制内容"
+        });
+        const closeButtonEl = actionEl.createEl("button", {
+          text: "关闭"
+        });
+        copyButtonEl.addEventListener("click", async () => {
+          try {
+            await copyTextToClipboard(this.exportedText);
+            new obsidian2.Notice("配置内容已复制到剪贴板");
+          } catch (error) {
+            console.error("复制导出配置失败", error);
+            new obsidian2.Notice("复制失败，请手动全选文本后复制");
+          }
+        });
+        closeButtonEl.addEventListener("click", () => {
+          this.close();
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var ConfigurationImportModal = class extends obsidian2.Modal {
+      constructor(app, onSubmit) {
+        super(app);
+        this.onSubmit = onSubmit;
+      }
+      // 打开弹窗时渲染输入框与确认按钮。
+      onOpen() {
+        const { contentEl } = this;
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        contentEl.empty();
+        contentEl.addClass("nene-settings-modal");
+        renderModalHeader(
+          contentEl,
+          "导入插件配置",
+          "请粘贴此前导出的 JSON 文本。导入后会立即覆盖当前插件配置，请确认内容来源可信。"
+        );
+        const textareaEl = contentEl.createEl("textarea", {
+          cls: "nene-settings-json-textarea"
+        });
+        textareaEl.placeholder = "在此粘贴导出的配置 JSON";
+        const actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
+        const cancelButtonEl = actionEl.createEl("button", {
+          text: "取消"
+        });
+        const submitButtonEl = actionEl.createEl("button", {
+          cls: "mod-warning",
+          text: "导入并覆盖"
+        });
+        cancelButtonEl.addEventListener("click", () => {
+          this.close();
+        });
+        submitButtonEl.addEventListener("click", async () => {
+          const rawText = textareaEl.value.trim();
+          if (!rawText) {
+            new obsidian2.Notice("请先粘贴需要导入的配置 JSON");
+            return;
+          }
+          submitButtonEl.disabled = true;
+          try {
+            await this.onSubmit(rawText);
+            new obsidian2.Notice("插件配置已导入");
+            this.close();
+          } catch (error) {
+            console.error("导入插件配置失败", error);
+            new obsidian2.Notice(`导入失败：${error.message || "请检查 JSON 格式"}`);
+          } finally {
+            submitButtonEl.disabled = false;
+          }
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var ConfirmActionModal = class extends obsidian2.Modal {
+      constructor(app, title, description, confirmText, onConfirm) {
+        super(app);
+        this.title = title;
+        this.description = description;
+        this.confirmText = confirmText;
+        this.onConfirm = onConfirm;
+      }
+      // 打开弹窗时渲染说明文本与确认按钮。
+      onOpen() {
+        const { contentEl } = this;
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        contentEl.empty();
+        contentEl.addClass("nene-settings-modal");
+        renderModalHeader(contentEl, this.title, this.description);
+        const actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
+        const cancelButtonEl = actionEl.createEl("button", {
+          text: "取消"
+        });
+        const confirmButtonEl = actionEl.createEl("button", {
+          cls: "mod-warning",
+          text: this.confirmText
+        });
+        cancelButtonEl.addEventListener("click", () => {
+          this.close();
+        });
+        confirmButtonEl.addEventListener("click", async () => {
+          confirmButtonEl.disabled = true;
+          try {
+            await this.onConfirm();
+            this.close();
+          } finally {
+            confirmButtonEl.disabled = false;
+          }
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var FileMarkerManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      // 打开弹窗时渲染模块详情与维护操作。
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      // 根据当前最新状态渲染文件标记模块管理界面。
+      async render() {
+        const { contentEl } = this;
+        const summary = this.plugin.getSettingsSummary();
+        const configSummary = await this.plugin.getConfigManagementSummary();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "文件标记模块",
+          "这里集中放置文件标记模块的具体管理动作，主设置页只保留启用状态与入口。"
+        );
+        const detailListEl = contentEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderDetailItem(detailListEl, "当前状态", summary.fileMarkerEnabled ? "已启用" : "已关闭");
+        renderDetailItem(detailListEl, "标记数量", `${summary.markCount} 条`);
+        renderDetailItem(detailListEl, "分组数量", `${summary.groupCount} 个`);
+        renderDetailItem(detailListEl, "配置文件", configSummary.fileMarker.path, true);
+        new obsidian2.Setting(contentEl).setName("打开文件标记面板").setDesc(summary.fileMarkerEnabled ? "在右侧侧边栏打开文件标记面板。" : "模块当前未启用，请先回到设置页开启。").addButton((button) => {
+          button.setButtonText("打开面板").setDisabled(!summary.fileMarkerEnabled).onClick(async () => {
+            await this.plugin.startFileMarkerFeature();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("清理失效标记").setDesc("立即移除已不存在文件对应的标记记录，并同步刷新文件标记面板。").addButton((button) => {
+          button.setButtonText("立即清理").onClick(async () => {
+            const hasChanged = await this.plugin.pruneMissingMarkRecords();
+            new obsidian2.Notice(hasChanged ? "失效标记已清理" : "当前没有需要清理的失效标记");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("重置模块配置").setDesc("将文件标记模块的数据文件恢复为默认值，不影响关系图谱设置与核心开关。").addButton((button) => {
+          button.setButtonText("重置 file-marker").setWarning().onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              "重置文件标记配置",
+              "此操作会将文件标记的 marks 与 groups 恢复为默认值，当前已有的标记记录将被覆盖。",
+              "确认重置",
+              async () => {
+                await this.plugin.resetFeatureConfiguration("fileMarker");
+                new obsidian2.Notice("文件标记配置已重置");
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var AnchorGraphManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      // 打开弹窗时渲染模块详情与维护操作。
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      // 根据当前最新状态渲染关系图谱模块管理界面。
+      async render() {
+        const { contentEl } = this;
+        const summary = this.plugin.getSettingsSummary();
+        const configSummary = await this.plugin.getConfigManagementSummary();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "关系图谱模块",
+          "这里集中放置关系图谱增强模块的具体管理动作，主设置页只保留启用状态与入口。"
+        );
+        const detailListEl = contentEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderDetailItem(detailListEl, "当前状态", summary.anchorGraphEnabled ? "已启用" : "已关闭");
+        renderDetailItem(detailListEl, "运行状态", summary.anchorGraphRuntimeMessage);
+        renderDetailItem(detailListEl, "已识别源文件", `${summary.anchorGraphSourceFileCount} 个`);
+        renderDetailItem(detailListEl, "已注入关系边", `${summary.anchorGraphEdgeCount} 条`);
+        renderDetailItem(detailListEl, "配置文件", configSummary.anchorGraph.path, true);
+        new obsidian2.Setting(contentEl).setName("立即刷新关系图谱").setDesc(summary.anchorGraphEnabled ? "重新扫描并注入当前可识别的 HTML 内部链接关系。" : "模块当前未启用，请先回到设置页开启。").addButton((button) => {
+          button.setButtonText("立即刷新").setDisabled(!summary.anchorGraphEnabled).onClick(async () => {
+            await this.plugin.refreshAnchorGraphLinks(true);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("重置模块配置").setDesc("将关系图谱增强模块的数据文件恢复为默认值，不影响文件标记设置与核心开关。").addButton((button) => {
+          button.setButtonText("重置 anchor-graph").setWarning().onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              "重置关系图谱配置",
+              "此操作会将关系图谱增强的默认设置与笔记覆盖规则恢复为默认值。",
+              "确认重置",
+              async () => {
+                await this.plugin.resetFeatureConfiguration("anchorGraph");
+                new obsidian2.Notice("关系图谱配置已重置");
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var MenuCustomizerManagementModal = class extends menuCustomizerModule2.MenuCustomizerManagementModal {
+    };
+    var ConfigManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      // 打开弹窗时渲染配置文件管理界面。
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      // 根据当前最新状态渲染配置文件管理界面。
+      async render() {
+        const { contentEl } = this;
+        const configSummary = await this.plugin.getConfigManagementSummary();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "配置文件管理",
+          ""
+        );
+        const detailListEl = contentEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderDetailItem(detailListEl, "核心配置", `${configSummary.core.exists ? "已存在" : "未发现"}，${configSummary.core.summary}`);
+        renderDetailItem(detailListEl, "文件标记配置", `${configSummary.fileMarker.exists ? "已存在" : "未发现"}，${configSummary.fileMarker.summary}`);
+        renderDetailItem(detailListEl, "关系图谱配置", `${configSummary.anchorGraph.exists ? "已存在" : "未发现"}，${configSummary.anchorGraph.summary}`);
+        renderDetailItem(detailListEl, "右键菜单配置", `${configSummary.menuCustomizer.exists ? "已存在" : "未发现"}，${configSummary.menuCustomizer.summary}`);
+        renderDetailItem(detailListEl, "配置目录", configSummary.directoryPath, true);
+        renderDetailItem(detailListEl, "导出目录", configSummary.exportDirectoryPath, true);
+        new obsidian2.Setting(contentEl).setName("查看导出 JSON").setDesc("").addButton((button) => {
+          button.setButtonText("查看内容").onClick(() => {
+            new ConfigurationExportModal(this.app, this.plugin.exportConfigurationBundle()).open();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("导出到独立文件").setDesc("将当前完整配置导出为独立备份文件，自动写入插件目录下的 exports 子目录。").addButton((button) => {
+          button.setButtonText("导出文件").onClick(async () => {
+            const exportResult = await this.plugin.exportConfigurationBundleToFile();
+            new obsidian2.Notice(`配置已导出到 ${exportResult.fileName}`);
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("复制配置目录路径").setDesc("复制 configs 目录路径").addButton((button) => {
+          button.setButtonText("复制路径").onClick(async () => {
+            try {
+              await copyTextToClipboard(configSummary.directoryPath);
+              new obsidian2.Notice("配置目录路径已复制");
+            } catch (error) {
+              console.error("复制配置目录路径失败", error);
+              new obsidian2.Notice("复制失败，请手动查看上方路径");
+            }
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("导入配置").setDesc("粘贴此前导出的 JSON 文本后，立即覆盖当前插件配置。导入后设置页与运行时状态会自动同步。").addButton((button) => {
+          button.setButtonText("导入 JSON").onClick(() => {
+            new ConfigurationImportModal(this.app, async (rawText) => {
+              await this.plugin.importConfigurationBundle(rawText);
+              await this.onSettingsChanged();
+              await this.render();
+            }).open();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱和右键菜单设置都会恢复为首次安装状态。").addButton((button) => {
+          button.setButtonText("重置全部").setWarning().onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              "重置全部插件配置",
+              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json 和 menu-customizer.json。请仅在确认需要恢复初始状态时执行。",
+              "确认全部重置",
+              async () => {
+                await this.plugin.resetAllConfiguration();
+                new obsidian2.Notice("插件全部配置已重置");
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
     var ObsidianNenePluginSettingTab = class extends obsidian2.PluginSettingTab {
       constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
       }
-      // 渲染设置页内容，展示当前功能说明、数据统计与维护操作。
-      display() {
+      // 渲染设置页内容，主页面只保留模块开启状态与管理入口。
+      async display() {
         const { containerEl } = this;
         const summary = this.plugin.getSettingsSummary();
         containerEl.empty();
-        const anchorGraphStatusLabelMap = {
-          active: "已启用",
+        containerEl.addClass("nene-settings-tab");
+        const headerEl = containerEl.createDiv({ cls: "nene-settings-header" });
+        headerEl.createDiv({ cls: "nene-settings-title", text: "ねね 设置" });
+        headerEl.createEl("p", {
+          cls: "nene-settings-description",
+          text: ""
+        });
+        const featureGroupEl = containerEl.createDiv({ cls: "nene-settings-group" });
+        featureGroupEl.createDiv({ cls: "nene-settings-group-title", text: "功能模块" });
+        this.renderFileMarkerSection(featureGroupEl, summary);
+        this.renderAnchorGraphSection(featureGroupEl, summary);
+        this.renderMenuCustomizerSection(featureGroupEl, summary);
+        const managementGroupEl = containerEl.createDiv({ cls: "nene-settings-group" });
+        managementGroupEl.createDiv({ cls: "nene-settings-group-title", text: "配置管理" });
+        this.renderConfigManagementEntry(managementGroupEl);
+        this.renderRuleSection(managementGroupEl);
+      }
+      // 渲染文件标记模块分区，仅保留状态概览、开关与弹窗入口。
+      renderFileMarkerSection(containerEl, summary) {
+        new obsidian2.Setting(containerEl).setName("文件标记面板").setDesc(
+          summary.fileMarkerEnabled ? summary.fileMarkerViewOpen ? `已启用，面板已打开，当前共有 ${summary.markCount} 条标记、${summary.groupCount} 个分组。` : `已启用，面板未打开，当前已保存 ${summary.markCount} 条标记、${summary.groupCount} 个分组。` : `未启用，当前已保存 ${summary.markCount} 条标记、${summary.groupCount} 个分组。`
+        ).addToggle((toggle) => {
+          toggle.setValue(summary.fileMarkerEnabled).onChange(async (value) => {
+            await this.plugin.updateFileMarkerEnabled(value);
+            new obsidian2.Notice(value ? "已启用文件标记面板" : "已关闭文件标记面板");
+            await this.display();
+          });
+        }).addButton((button) => {
+          button.setButtonText("管理").onClick(() => {
+            new FileMarkerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+        });
+      }
+      // 渲染关系图谱模块分区，仅保留状态概览、开关与弹窗入口。
+      renderAnchorGraphSection(containerEl, summary) {
+        const runtimeStateLabelMap = {
+          active: "运行中",
           degraded: "已降级",
           disabled: "已关闭",
           idle: "待初始化"
         };
-        containerEl.createEl("h2", { text: "ねね 设置" });
-        containerEl.createEl("p", {
-          text: "当前设置页按子功能模块分区展示，便于分别查看状态、执行维护操作与一键启动。"
-        });
-        this.renderFileMarkerSection(containerEl, summary);
-        containerEl.createEl("hr");
-        this.renderAnchorGraphSection(containerEl, summary, anchorGraphStatusLabelMap);
-        containerEl.createEl("hr");
-        this.renderRuleSection(containerEl);
-      }
-      // 渲染文件标记模块分区，集中展示开关、运行状态与维护操作。
-      renderFileMarkerSection(containerEl, summary) {
-        containerEl.createEl("h3", { text: "文件标记面板" });
-        containerEl.createEl("p", {
-          text: summary.fileMarkerEnabled ? summary.fileMarkerViewOpen ? `模块状态：已启用，面板已打开，当前共有 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。` : `模块状态：已启用，面板未打开，当前已保存 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。` : `模块状态：未启用，当前已保存 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。`
-        });
-        new obsidian2.Setting(containerEl).setName("模块开关").setDesc("首次安装默认关闭。启用后会写入配置，后续再次启用插件时将保持当前状态。").addToggle((toggle) => {
-          toggle.setValue(summary.fileMarkerEnabled).onChange(async (value) => {
-            await this.plugin.updateFileMarkerEnabled(value);
-            new obsidian2.Notice(value ? "已启用文件标记面板" : "已关闭文件标记面板");
-            this.display();
-          });
-        });
-        new obsidian2.Setting(containerEl).setName("运行状态").setDesc(summary.fileMarkerEnabled ? summary.fileMarkerViewOpen ? "文件标记面板当前已打开。" : "文件标记面板当前未打开。" : "文件标记面板当前已关闭，请先启用模块。").addButton((button) => {
-          button.setButtonText("打开面板").setDisabled(!summary.fileMarkerEnabled).onClick(async () => {
-            await this.plugin.startFileMarkerFeature();
-            this.display();
-          });
-        });
-        new obsidian2.Setting(containerEl).setName("维护操作").setDesc("立即移除已不存在文件对应的标记记录，并同步刷新文件标记面板。").addButton((button) => {
-          button.setButtonText("立即清理").setDisabled(!summary.fileMarkerEnabled).onClick(async () => {
-            const hasChanged = await this.plugin.pruneMissingMarkRecords();
-            new obsidian2.Notice(hasChanged ? "失效标记已清理" : "当前没有需要清理的失效标记");
-            this.display();
-          });
-        });
-      }
-      // 渲染关系图谱模块分区，集中展示开关、运行状态与刷新操作。
-      renderAnchorGraphSection(containerEl, summary, anchorGraphStatusLabelMap) {
-        containerEl.createEl("h3", { text: "关系图谱 HTML 链接增强" });
-        containerEl.createEl("p", {
-          text: `模块状态：${anchorGraphStatusLabelMap[summary.anchorGraphRuntimeState] || "未知"}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`
-        });
-        new obsidian2.Setting(containerEl).setName("模块开关").setDesc("首次安装默认关闭。启用后会写入配置，后续再次启用插件时将保持当前状态。").addToggle((toggle) => {
+        new obsidian2.Setting(containerEl).setName("关系图谱 HTML 链接增强").setDesc(
+          `${runtimeStateLabelMap[summary.anchorGraphRuntimeState] || "未知"}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条关系边。`
+        ).addToggle((toggle) => {
           toggle.setValue(summary.anchorGraphEnabled).onChange(async (value) => {
             await this.plugin.updateAnchorGraphEnabled(value);
             new obsidian2.Notice(value ? "已启用关系图谱 HTML 链接增强" : "已关闭关系图谱 HTML 链接增强");
-            this.display();
+            await this.display();
           });
-        });
-        new obsidian2.Setting(containerEl).setName("运行状态").setDesc(summary.anchorGraphRuntimeMessage).addButton((button) => {
-          button.setButtonText("立即刷新").setDisabled(!summary.anchorGraphEnabled).onClick(async () => {
-            await this.plugin.refreshAnchorGraphLinks(true);
-            this.display();
+        }).addButton((button) => {
+          button.setButtonText("管理").onClick(() => {
+            new AnchorGraphManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
           });
         });
       }
-      // 渲染识别规则说明，帮助用户理解图谱增强的生效范围。
-      renderRuleSection(containerEl) {
-        containerEl.createEl("h3", { text: "识别规则" });
-        const ruleListEl = containerEl.createEl("ul");
-        ruleListEl.createEl("li", {
-          text: "文件标记面板和关系图谱 HTML 链接增强均默认关闭，需要先在设置页手动启用后才能执行相关操作。"
+      // 渲染右键菜单自定义模块分区，仅保留状态概览、开关与弹窗入口。
+      renderMenuCustomizerSection(containerEl, summary) {
+        new obsidian2.Setting(containerEl).setName("右键菜单自定义").setDesc(
+          summary.menuCustomizerEnabled ? `已启用，当前共有 ${summary.menuCustomizerMenuCount} 个菜单类型开启自定义，配置了 ${summary.menuCustomizerGroupCount} 个分组。` : `未启用，已保存 ${summary.menuCustomizerGroupCount} 个分组配置，启用后会在菜单显示前重构右键菜单。`
+        ).addToggle((toggle) => {
+          toggle.setValue(summary.menuCustomizerEnabled).onChange(async (value) => {
+            await this.plugin.updateMenuCustomizerEnabled(value);
+            new obsidian2.Notice(value ? "已启用右键菜单自定义" : "已关闭右键菜单自定义");
+            await this.display();
+          });
+        }).addButton((button) => {
+          button.setButtonText("管理").onClick(() => {
+            new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
         });
-        ruleListEl.createEl("li", {
+      }
+      // 渲染配置管理入口，仅保留总览描述与弹窗入口。
+      renderConfigManagementEntry(containerEl) {
+        new obsidian2.Setting(containerEl).setName("配置文件管理").setDesc("查看配置文件状态、导出到独立文件、导入 JSON 以及重置全部配置。").addButton((button) => {
+          button.setButtonText("打开管理窗口").onClick(() => {
+            new ConfigManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+        });
+      }
+      // 渲染识别规则说明，帮助用户理解当前模块的生效范围。
+      renderRuleSection(containerEl) {
+        const hintEl = containerEl.createDiv({ cls: "nene-settings-hint" });
+        hintEl.createDiv({ cls: "nene-settings-hint-title", text: "说明" });
+        const listEl = hintEl.createEl("ul");
+        listEl.createEl("li", {
           text: "关系图谱会额外识别 class 包含 internal-link，且带有 data-href 或 href 的 HTML a 标签。"
         });
-        ruleListEl.createEl("li", {
-          text: "图谱增强只向运行时索引注入合成关系边，不会改写任何笔记内容。"
+        listEl.createEl("li", {
+          text: "右键菜单自定义基于 Obsidian v1.4.16 的菜单结构设计，启用后会保留原始命令回调，但会重新组织 DOM 顺序。"
         });
       }
     };
@@ -1753,6 +4451,7 @@ var pluginData = require_plugin_data();
 var pluginSettings = require_plugin_settings();
 var pluginListEnhancerModule = require_plugin_list_enhancer();
 var anchorGraphLinksModule = require_anchor_graph_links();
+var menuCustomizerModule = require_menu_customizer();
 var settingsTabModule = require_settings_tab();
 var ObsidianNenePlugin = class extends obsidian.Plugin {
   constructor() {
@@ -1762,6 +4461,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this);
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this);
     this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this);
+    this.menuCustomizerStore = new menuCustomizerModule.MenuCustomizerStore(this);
+    this.menuCustomizerRuntime = new menuCustomizerModule.MenuCustomizerRuntime(this);
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
@@ -1773,9 +4474,11 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     await this.dataStore.load();
     this.pluginSettingsStore.load(this.dataStore.getFeatures());
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
+    this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
     this.setupFileMenu();
+    this.setupEditorMenu();
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
@@ -1784,12 +4487,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
+    this.syncMenuCustomizerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
     console.log("Unloading obsidian-nene-plugin");
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
+    this.menuCustomizerRuntime.stop();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
     });
@@ -1808,6 +4513,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   setupFileMenu() {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
+        this.menuCustomizerRuntime.annotateFileMenu(menu, file);
         if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
         const hasMark = Boolean(this.getMarkRecord(file.path));
@@ -1816,6 +4522,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
             this.openMarkEditor(file);
           });
         });
+      })
+    );
+  }
+  // 注册编辑区右键菜单上下文标记，便于运行时区分编辑菜单与更多选项菜单。
+  setupEditorMenu() {
+    this.registerEvent(
+      this.app.workspace.on("editor-menu", (menu) => {
+        this.menuCustomizerRuntime.annotateEditorMenu(menu);
       })
     );
   }
@@ -1938,6 +4652,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isAnchorGraphEnabled() {
     return this.pluginSettingsStore.isAnchorGraphEnabled();
   }
+  // 返回右键菜单自定义模块当前是否被用户启用。
+  isMenuCustomizerEnabled() {
+    return this.pluginSettingsStore.isMenuCustomizerEnabled();
+  }
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -1963,8 +4681,15 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       anchorGraphEdgeCount: anchorGraphStats.edgeCount,
       anchorGraphEnabled: this.isAnchorGraphEnabled(),
       anchorGraphRuntimeState: anchorGraphRuntime.state,
-      anchorGraphRuntimeMessage: anchorGraphRuntime.message
+      anchorGraphRuntimeMessage: anchorGraphRuntime.message,
+      menuCustomizerEnabled: this.isMenuCustomizerEnabled(),
+      menuCustomizerMenuCount: this.menuCustomizerStore.getEnabledMenuCount(),
+      menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount()
     };
+  }
+  // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
+  async getConfigManagementSummary() {
+    return this.dataStore.getConfigFileStatuses();
   }
   /* ------------------------------ */
   /* 写操作代理 */
@@ -2041,6 +4766,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncAnchorGraphEnhancerState();
     return nextEnabled;
   }
+  // 更新右键菜单自定义开关，并根据当前设置立即同步运行时状态。
+  async updateMenuCustomizerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setMenuCustomizerEnabled(enabled);
+    this.syncMenuCustomizerState();
+    return nextEnabled;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -2054,6 +4785,30 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   // 一键启动关系图谱 HTML 链接增强，必要时先启用开关后再执行一次刷新。
   async startAnchorGraphFeature() {
     await this.refreshAnchorGraphLinks(true);
+  }
+  // 导出当前全部配置为 JSON 字符串，供设置页复制或备份。
+  exportConfigurationBundle() {
+    return JSON.stringify(this.dataStore.exportConfigurationBundle(), null, 2);
+  }
+  // 导出当前全部配置到独立备份文件，并返回写入结果。
+  async exportConfigurationBundleToFile() {
+    return this.dataStore.exportConfigurationBundleToFile();
+  }
+  // 导入用户提供的配置 JSON，并在完成后同步运行时状态与已打开视图。
+  async importConfigurationBundle(rawText) {
+    const parsedBundle = JSON.parse(rawText);
+    await this.dataStore.importConfigurationBundle(parsedBundle);
+    await this.reloadRuntimeStateFromDataStore();
+  }
+  // 将指定功能配置重置为默认值，并同步当前运行时状态。
+  async resetFeatureConfiguration(featureKey) {
+    await this.dataStore.resetFeatureData(featureKey);
+    await this.reloadRuntimeStateFromDataStore();
+  }
+  // 将整个插件配置重置为默认值，并同步当前运行时状态。
+  async resetAllConfiguration() {
+    await this.dataStore.resetAllData();
+    await this.reloadRuntimeStateFromDataStore();
   }
   /* ------------------------------ */
   /* 视图控制 */
@@ -2101,6 +4856,28 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       return;
     }
     this.anchorGraphLinkEnhancer.stop();
+  }
+  // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
+  syncMenuCustomizerState() {
+    this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
+    if (this.isMenuCustomizerEnabled()) {
+      this.menuCustomizerRuntime.start();
+      return;
+    }
+    this.menuCustomizerRuntime.stop();
+  }
+  // 在导入或重置配置后重载各仓库状态，确保设置页、面板与图谱行为立即同步。
+  async reloadRuntimeStateFromDataStore() {
+    this.pluginSettingsStore.load(this.dataStore.getFeatures());
+    this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
+    this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
+    this.syncFileMarkerFeatureState();
+    this.refreshAllFileMarkerViews();
+    this.syncAnchorGraphEnhancerState();
+    this.syncMenuCustomizerState();
+    if (this.isAnchorGraphEnabled()) {
+      await this.refreshAnchorGraphLinks(false);
+    }
   }
 };
 module.exports = ObsidianNenePlugin;

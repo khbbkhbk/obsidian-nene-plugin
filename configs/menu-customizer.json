@@ -1,0 +1,141 @@
+{
+  "menus": {
+    "editor": {
+      "enabled": true,
+      "groups": [
+        {
+          "id": "editor-quick-actions",
+          "name": "编辑快捷操作",
+          "icon": "mouse-pointer-click",
+          "layout": "icon-bar",
+          "hidden": false,
+          "forceSubmenu": false,
+          "commands": [
+            "editor:edit-link",
+            "editor:cut",
+            "editor:copy",
+            "editor:paste",
+            "editor:paste-as-plain-text",
+            "editor:select-all"
+          ]
+        },
+        {
+          "id": "editor-format",
+          "name": "格式",
+          "icon": "bold",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "editor:toggle-bold",
+            "editor:toggle-italics",
+            "editor:toggle-highlight",
+            "editor:toggle-strikethrough",
+            "editor:toggle-code"
+          ]
+        },
+        {
+          "id": "editor-insert",
+          "name": "插入",
+          "icon": "plus",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "editor:insert-link",
+            "editor:insert-embed",
+            "editor:insert-table",
+            "editor:insert-codeblock",
+            "editor:insert-horizontal-rule"
+          ]
+        }
+      ],
+      "commandOverrides": {}
+    },
+    "moreOptions": {
+      "enabled": false,
+      "groups": [
+        {
+          "id": "more-options-links",
+          "name": "链接与路径",
+          "icon": "link",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "file-explorer:open-link-view",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path"
+          ]
+        }
+      ],
+      "commandOverrides": {}
+    },
+    "file": {
+      "enabled": false,
+      "groups": [
+        {
+          "id": "file-open-actions",
+          "name": "打开",
+          "icon": "file-text",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "file-explorer:open",
+            "file-explorer:open-in-new-tab",
+            "file-explorer:open-to-the-right",
+            "file-explorer:open-in-new-window"
+          ]
+        },
+        {
+          "id": "file-management",
+          "name": "管理",
+          "icon": "settings",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "file-explorer:rename-file",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path",
+            "file-explorer:delete-file"
+          ]
+        }
+      ],
+      "commandOverrides": {}
+    },
+    "folder": {
+      "enabled": false,
+      "groups": [
+        {
+          "id": "folder-create",
+          "name": "新建",
+          "icon": "folder-plus",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "file-explorer:new-file",
+            "file-explorer:new-folder"
+          ]
+        },
+        {
+          "id": "folder-management",
+          "name": "管理",
+          "icon": "settings",
+          "layout": "list",
+          "hidden": false,
+          "forceSubmenu": true,
+          "commands": [
+            "file-explorer:rename-file",
+            "file-explorer:copy-path",
+            "file-explorer:copy-vault-path",
+            "file-explorer:delete-file"
+          ]
+        }
+      ],
+      "commandOverrides": {}
+    }
+  }
+}

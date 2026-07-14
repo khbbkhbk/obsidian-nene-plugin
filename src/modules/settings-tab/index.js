@@ -1,6 +1,522 @@
 'use strict';
 
 var obsidian = require('obsidian');
+var menuCustomizerModule = require('../menu-customizer/index.js');
+
+// 优先使用现代剪贴板 API，失败时回退到传统复制命令。
+async function copyTextToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textareaEl = document.createElement('textarea');
+  textareaEl.value = text;
+  textareaEl.style.position = 'fixed';
+  textareaEl.style.opacity = '0';
+  document.body.appendChild(textareaEl);
+  textareaEl.focus();
+  textareaEl.select();
+
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textareaEl);
+
+  if (!copied) {
+    throw new Error('Clipboard copy is not supported');
+  }
+}
+
+// 渲染弹窗公共头部，统一标题与说明样式。
+function renderModalHeader(containerEl, title, description) {
+  const headerEl = containerEl.createDiv({ cls: 'nene-settings-modal-header' });
+  headerEl.createDiv({ cls: 'nene-settings-modal-title', text: title });
+
+  if (description) {
+    headerEl.createEl('p', {
+      cls: 'nene-settings-modal-description',
+      text: description
+    });
+  }
+}
+
+// 渲染信息行，用于展示状态、路径与摘要。
+function renderDetailItem(containerEl, label, value, codeStyle) {
+  const itemEl = containerEl.createDiv({ cls: 'nene-settings-detail-item' });
+  itemEl.createDiv({ cls: 'nene-settings-detail-label', text: label });
+  itemEl.createEl(codeStyle ? 'code' : 'div', {
+    cls: 'nene-settings-detail-value',
+    text: value
+  });
+}
+
+// 定义导出弹窗，便于用户直接复制完整配置 JSON。
+class ConfigurationExportModal extends obsidian.Modal {
+  constructor(app, exportedText) {
+    super(app);
+    this.exportedText = exportedText; // 保存已生成的导出文本，供复制与展示复用
+  }
+
+  // 打开弹窗时渲染只读文本与复制按钮。
+  onOpen() {
+    const { contentEl } = this;
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    contentEl.empty();
+    contentEl.addClass('nene-settings-modal');
+
+    renderModalHeader(
+      contentEl,
+      '导出插件配置',
+      '以下内容包含当前核心配置与模块配置，可直接复制保存，或用于后续导入恢复。'
+    );
+
+    const textareaEl = contentEl.createEl('textarea', {
+      cls: 'nene-settings-json-textarea'
+    });
+    textareaEl.value = this.exportedText;
+    textareaEl.readOnly = true;
+
+    const actionEl = contentEl.createDiv({ cls: 'nene-settings-modal-actions' });
+    const copyButtonEl = actionEl.createEl('button', {
+      cls: 'mod-cta',
+      text: '复制内容'
+    });
+    const closeButtonEl = actionEl.createEl('button', {
+      text: '关闭'
+    });
+
+    copyButtonEl.addEventListener('click', async () => {
+      try {
+        await copyTextToClipboard(this.exportedText);
+        new obsidian.Notice('配置内容已复制到剪贴板');
+      } catch (error) {
+        console.error('复制导出配置失败', error);
+        new obsidian.Notice('复制失败，请手动全选文本后复制');
+      }
+    });
+
+    closeButtonEl.addEventListener('click', () => {
+      this.close();
+    });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// 定义导入弹窗，允许用户粘贴 JSON 文本并立即恢复配置。
+class ConfigurationImportModal extends obsidian.Modal {
+  constructor(app, onSubmit) {
+    super(app);
+    this.onSubmit = onSubmit; // 保存提交回调，供设置页在导入成功后刷新界面
+  }
+
+  // 打开弹窗时渲染输入框与确认按钮。
+  onOpen() {
+    const { contentEl } = this;
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    contentEl.empty();
+    contentEl.addClass('nene-settings-modal');
+
+    renderModalHeader(
+      contentEl,
+      '导入插件配置',
+      '请粘贴此前导出的 JSON 文本。导入后会立即覆盖当前插件配置，请确认内容来源可信。'
+    );
+
+    const textareaEl = contentEl.createEl('textarea', {
+      cls: 'nene-settings-json-textarea'
+    });
+    textareaEl.placeholder = '在此粘贴导出的配置 JSON';
+
+    const actionEl = contentEl.createDiv({ cls: 'nene-settings-modal-actions' });
+    const cancelButtonEl = actionEl.createEl('button', {
+      text: '取消'
+    });
+    const submitButtonEl = actionEl.createEl('button', {
+      cls: 'mod-warning',
+      text: '导入并覆盖'
+    });
+
+    cancelButtonEl.addEventListener('click', () => {
+      this.close();
+    });
+
+    submitButtonEl.addEventListener('click', async () => {
+      const rawText = textareaEl.value.trim();
+      if (!rawText) {
+        new obsidian.Notice('请先粘贴需要导入的配置 JSON');
+        return;
+      }
+
+      submitButtonEl.disabled = true;
+
+      try {
+        await this.onSubmit(rawText);
+        new obsidian.Notice('插件配置已导入');
+        this.close();
+      } catch (error) {
+        console.error('导入插件配置失败', error);
+        new obsidian.Notice(`导入失败：${error.message || '请检查 JSON 格式'}`);
+      } finally {
+        submitButtonEl.disabled = false;
+      }
+    });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// 定义确认弹窗，避免重置配置时误触造成不可逆覆盖。
+class ConfirmActionModal extends obsidian.Modal {
+  constructor(app, title, description, confirmText, onConfirm) {
+    super(app);
+    this.title = title; // 保存标题，便于同一个确认弹窗复用不同操作
+    this.description = description; // 保存风险说明，帮助用户理解当前操作影响
+    this.confirmText = confirmText; // 保存确认按钮文案，便于针对不同操作定制
+    this.onConfirm = onConfirm; // 保存确认后的执行逻辑
+  }
+
+  // 打开弹窗时渲染说明文本与确认按钮。
+  onOpen() {
+    const { contentEl } = this;
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    contentEl.empty();
+    contentEl.addClass('nene-settings-modal');
+
+    renderModalHeader(contentEl, this.title, this.description);
+
+    const actionEl = contentEl.createDiv({ cls: 'nene-settings-modal-actions' });
+    const cancelButtonEl = actionEl.createEl('button', {
+      text: '取消'
+    });
+    const confirmButtonEl = actionEl.createEl('button', {
+      cls: 'mod-warning',
+      text: this.confirmText
+    });
+
+    cancelButtonEl.addEventListener('click', () => {
+      this.close();
+    });
+
+    confirmButtonEl.addEventListener('click', async () => {
+      confirmButtonEl.disabled = true;
+
+      try {
+        await this.onConfirm();
+        this.close();
+      } finally {
+        confirmButtonEl.disabled = false;
+      }
+    });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// 定义文件标记管理弹窗，将详细维护动作从主设置页中移出。
+class FileMarkerManagementModal extends obsidian.Modal {
+  constructor(app, plugin, onSettingsChanged) {
+    super(app);
+    this.plugin = plugin;
+    this.onSettingsChanged = onSettingsChanged; // 保存回调，便于操作完成后刷新设置页
+  }
+
+  // 打开弹窗时渲染模块详情与维护操作。
+  onOpen() {
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    this.contentEl.empty();
+    this.contentEl.addClass('nene-settings-modal');
+    void this.render();
+  }
+
+  // 根据当前最新状态渲染文件标记模块管理界面。
+  async render() {
+    const { contentEl } = this;
+    const summary = this.plugin.getSettingsSummary();
+    const configSummary = await this.plugin.getConfigManagementSummary();
+
+    contentEl.empty();
+    renderModalHeader(
+      contentEl,
+      '文件标记模块',
+      '这里集中放置文件标记模块的具体管理动作，主设置页只保留启用状态与入口。'
+    );
+
+    const detailListEl = contentEl.createDiv({ cls: 'nene-settings-detail-list' });
+    renderDetailItem(detailListEl, '当前状态', summary.fileMarkerEnabled ? '已启用' : '已关闭');
+    renderDetailItem(detailListEl, '标记数量', `${summary.markCount} 条`);
+    renderDetailItem(detailListEl, '分组数量', `${summary.groupCount} 个`);
+    renderDetailItem(detailListEl, '配置文件', configSummary.fileMarker.path, true);
+
+    new obsidian.Setting(contentEl)
+      .setName('打开文件标记面板')
+      .setDesc(summary.fileMarkerEnabled ? '在右侧侧边栏打开文件标记面板。' : '模块当前未启用，请先回到设置页开启。')
+      .addButton((button) => {
+        button
+          .setButtonText('打开面板')
+          .setDisabled(!summary.fileMarkerEnabled)
+          .onClick(async () => {
+            await this.plugin.startFileMarkerFeature();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('清理失效标记')
+      .setDesc('立即移除已不存在文件对应的标记记录，并同步刷新文件标记面板。')
+      .addButton((button) => {
+        button
+          .setButtonText('立即清理')
+          .onClick(async () => {
+            const hasChanged = await this.plugin.pruneMissingMarkRecords();
+            new obsidian.Notice(hasChanged ? '失效标记已清理' : '当前没有需要清理的失效标记');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('重置模块配置')
+      .setDesc('将文件标记模块的数据文件恢复为默认值，不影响关系图谱设置与核心开关。')
+      .addButton((button) => {
+        button
+          .setButtonText('重置 file-marker')
+          .setWarning()
+          .onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              '重置文件标记配置',
+              '此操作会将文件标记的 marks 与 groups 恢复为默认值，当前已有的标记记录将被覆盖。',
+              '确认重置',
+              async () => {
+                await this.plugin.resetFeatureConfiguration('fileMarker');
+                new obsidian.Notice('文件标记配置已重置');
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+      });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// 定义关系图谱管理弹窗，将模块维护动作从主设置页中移出。
+class AnchorGraphManagementModal extends obsidian.Modal {
+  constructor(app, plugin, onSettingsChanged) {
+    super(app);
+    this.plugin = plugin;
+    this.onSettingsChanged = onSettingsChanged; // 保存回调，便于操作完成后刷新设置页
+  }
+
+  // 打开弹窗时渲染模块详情与维护操作。
+  onOpen() {
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    this.contentEl.empty();
+    this.contentEl.addClass('nene-settings-modal');
+    void this.render();
+  }
+
+  // 根据当前最新状态渲染关系图谱模块管理界面。
+  async render() {
+    const { contentEl } = this;
+    const summary = this.plugin.getSettingsSummary();
+    const configSummary = await this.plugin.getConfigManagementSummary();
+
+    contentEl.empty();
+    renderModalHeader(
+      contentEl,
+      '关系图谱模块',
+      '这里集中放置关系图谱增强模块的具体管理动作，主设置页只保留启用状态与入口。'
+    );
+
+    const detailListEl = contentEl.createDiv({ cls: 'nene-settings-detail-list' });
+    renderDetailItem(detailListEl, '当前状态', summary.anchorGraphEnabled ? '已启用' : '已关闭');
+    renderDetailItem(detailListEl, '运行状态', summary.anchorGraphRuntimeMessage);
+    renderDetailItem(detailListEl, '已识别源文件', `${summary.anchorGraphSourceFileCount} 个`);
+    renderDetailItem(detailListEl, '已注入关系边', `${summary.anchorGraphEdgeCount} 条`);
+    renderDetailItem(detailListEl, '配置文件', configSummary.anchorGraph.path, true);
+
+    new obsidian.Setting(contentEl)
+      .setName('立即刷新关系图谱')
+      .setDesc(summary.anchorGraphEnabled ? '重新扫描并注入当前可识别的 HTML 内部链接关系。' : '模块当前未启用，请先回到设置页开启。')
+      .addButton((button) => {
+        button
+          .setButtonText('立即刷新')
+          .setDisabled(!summary.anchorGraphEnabled)
+          .onClick(async () => {
+            await this.plugin.refreshAnchorGraphLinks(true);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('重置模块配置')
+      .setDesc('将关系图谱增强模块的数据文件恢复为默认值，不影响文件标记设置与核心开关。')
+      .addButton((button) => {
+        button
+          .setButtonText('重置 anchor-graph')
+          .setWarning()
+          .onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              '重置关系图谱配置',
+              '此操作会将关系图谱增强的默认设置与笔记覆盖规则恢复为默认值。',
+              '确认重置',
+              async () => {
+                await this.plugin.resetFeatureConfiguration('anchorGraph');
+                new obsidian.Notice('关系图谱配置已重置');
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+      });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+// 定义右键菜单管理弹窗入口，实际内容由独立模块实现。
+class MenuCustomizerManagementModal extends menuCustomizerModule.MenuCustomizerManagementModal {
+}
+
+// 定义配置文件管理弹窗，集中处理导入、导出与全量重置。
+class ConfigManagementModal extends obsidian.Modal {
+  constructor(app, plugin, onSettingsChanged) {
+    super(app);
+    this.plugin = plugin;
+    this.onSettingsChanged = onSettingsChanged; // 保存回调，便于操作完成后刷新设置页
+  }
+
+  // 打开弹窗时渲染配置文件管理界面。
+  onOpen() {
+    this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
+    this.contentEl.empty();
+    this.contentEl.addClass('nene-settings-modal');
+    void this.render();
+  }
+
+  // 根据当前最新状态渲染配置文件管理界面。
+  async render() {
+    const { contentEl } = this;
+    const configSummary = await this.plugin.getConfigManagementSummary();
+
+    contentEl.empty();
+    renderModalHeader(
+      contentEl,
+      '配置文件管理',
+      ''
+    );
+
+    const detailListEl = contentEl.createDiv({ cls: 'nene-settings-detail-list' });
+    renderDetailItem(detailListEl, '核心配置', `${configSummary.core.exists ? '已存在' : '未发现'}，${configSummary.core.summary}`);
+    renderDetailItem(detailListEl, '文件标记配置', `${configSummary.fileMarker.exists ? '已存在' : '未发现'}，${configSummary.fileMarker.summary}`);
+    renderDetailItem(detailListEl, '关系图谱配置', `${configSummary.anchorGraph.exists ? '已存在' : '未发现'}，${configSummary.anchorGraph.summary}`);
+    renderDetailItem(detailListEl, '右键菜单配置', `${configSummary.menuCustomizer.exists ? '已存在' : '未发现'}，${configSummary.menuCustomizer.summary}`);
+    renderDetailItem(detailListEl, '配置目录', configSummary.directoryPath, true);
+    renderDetailItem(detailListEl, '导出目录', configSummary.exportDirectoryPath, true);
+
+    new obsidian.Setting(contentEl)
+      .setName('查看导出 JSON')
+      .setDesc('')
+      .addButton((button) => {
+        button
+          .setButtonText('查看内容')
+          .onClick(() => {
+            new ConfigurationExportModal(this.app, this.plugin.exportConfigurationBundle()).open();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('导出到独立文件')
+      .setDesc('将当前完整配置导出为独立备份文件，自动写入插件目录下的 exports 子目录。')
+      .addButton((button) => {
+        button
+          .setButtonText('导出文件')
+          .onClick(async () => {
+            const exportResult = await this.plugin.exportConfigurationBundleToFile();
+            new obsidian.Notice(`配置已导出到 ${exportResult.fileName}`);
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('复制配置目录路径')
+      .setDesc('复制 configs 目录路径')
+      .addButton((button) => {
+        button
+          .setButtonText('复制路径')
+          .onClick(async () => {
+            try {
+              await copyTextToClipboard(configSummary.directoryPath);
+              new obsidian.Notice('配置目录路径已复制');
+            } catch (error) {
+              console.error('复制配置目录路径失败', error);
+              new obsidian.Notice('复制失败，请手动查看上方路径');
+            }
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('导入配置')
+      .setDesc('粘贴此前导出的 JSON 文本后，立即覆盖当前插件配置。导入后设置页与运行时状态会自动同步。')
+      .addButton((button) => {
+        button
+          .setButtonText('导入 JSON')
+          .onClick(() => {
+            new ConfigurationImportModal(this.app, async (rawText) => {
+              await this.plugin.importConfigurationBundle(rawText);
+              await this.onSettingsChanged();
+              await this.render();
+            }).open();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('重置全部配置')
+      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱和右键菜单设置都会恢复为首次安装状态。')
+      .addButton((button) => {
+        button
+          .setButtonText('重置全部')
+          .setWarning()
+          .onClick(() => {
+            new ConfirmActionModal(
+              this.app,
+              '重置全部插件配置',
+              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json 和 menu-customizer.json。请仅在确认需要恢复初始状态时执行。',
+              '确认全部重置',
+              async () => {
+                await this.plugin.resetAllConfiguration();
+                new obsidian.Notice('插件全部配置已重置');
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+      });
+  }
+
+  // 关闭弹窗时清理内容，避免重复挂载旧节点。
+  onClose() {
+    this.contentEl.empty();
+  }
+}
 
 // 定义插件设置页，在不改变现有默认逻辑的前提下提供查看与快捷操作入口。
 class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
@@ -9,131 +525,157 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.plugin = plugin; // 保存插件实例，便于读取统计信息和触发快捷操作
   }
 
-  // 渲染设置页内容，展示当前功能说明、数据统计与维护操作。
-  display() {
+  // 渲染设置页内容，主页面只保留模块开启状态与管理入口。
+  async display() {
     const { containerEl } = this;
     const summary = this.plugin.getSettingsSummary();
     containerEl.empty();
-    const anchorGraphStatusLabelMap = {
-      active: '已启用',
-      degraded: '已降级',
-      disabled: '已关闭',
-      idle: '待初始化'
-    };
+    containerEl.addClass('nene-settings-tab');
 
-    containerEl.createEl('h2', { text: 'ねね 设置' });
-    containerEl.createEl('p', {
-      text: '当前设置页按子功能模块分区展示，便于分别查看状态、执行维护操作与一键启动。'
+    const headerEl = containerEl.createDiv({ cls: 'nene-settings-header' });
+    headerEl.createDiv({ cls: 'nene-settings-title', text: 'ねね 设置' });
+    headerEl.createEl('p', {
+      cls: 'nene-settings-description',
+      text: ''
     });
-    this.renderFileMarkerSection(containerEl, summary);
-    containerEl.createEl('hr');
-    this.renderAnchorGraphSection(containerEl, summary, anchorGraphStatusLabelMap);
-    containerEl.createEl('hr');
-    this.renderRuleSection(containerEl);
+
+    const featureGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
+    featureGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '功能模块' });
+
+    this.renderFileMarkerSection(featureGroupEl, summary);
+    this.renderAnchorGraphSection(featureGroupEl, summary);
+    this.renderMenuCustomizerSection(featureGroupEl, summary);
+
+    const managementGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
+    managementGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '配置管理' });
+
+    this.renderConfigManagementEntry(managementGroupEl);
+    this.renderRuleSection(managementGroupEl);
   }
 
-  // 渲染文件标记模块分区，集中展示开关、运行状态与维护操作。
+  // 渲染文件标记模块分区，仅保留状态概览、开关与弹窗入口。
   renderFileMarkerSection(containerEl, summary) {
-    containerEl.createEl('h3', { text: '文件标记面板' });
-    containerEl.createEl('p', {
-      text: summary.fileMarkerEnabled
-        ? (
-          summary.fileMarkerViewOpen
-            ? `模块状态：已启用，面板已打开，当前共有 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。`
-            : `模块状态：已启用，面板未打开，当前已保存 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。`
-        )
-        : `模块状态：未启用，当前已保存 ${summary.markCount} 条文件标记、${summary.groupCount} 个分组。`
-    });
-
     new obsidian.Setting(containerEl)
-      .setName('模块开关')
-      .setDesc('首次安装默认关闭。启用后会写入配置，后续再次启用插件时将保持当前状态。')
+      .setName('文件标记面板')
+      .setDesc(
+        summary.fileMarkerEnabled
+          ? (
+            summary.fileMarkerViewOpen
+              ? `已启用，面板已打开，当前共有 ${summary.markCount} 条标记、${summary.groupCount} 个分组。`
+              : `已启用，面板未打开，当前已保存 ${summary.markCount} 条标记、${summary.groupCount} 个分组。`
+          )
+          : `未启用，当前已保存 ${summary.markCount} 条标记、${summary.groupCount} 个分组。`
+      )
       .addToggle((toggle) => {
         toggle
           .setValue(summary.fileMarkerEnabled)
           .onChange(async (value) => {
             await this.plugin.updateFileMarkerEnabled(value);
             new obsidian.Notice(value ? '已启用文件标记面板' : '已关闭文件标记面板');
-            this.display();
+            await this.display();
           });
-      });
-
-    new obsidian.Setting(containerEl)
-      .setName('运行状态')
-      .setDesc(summary.fileMarkerEnabled
-        ? (summary.fileMarkerViewOpen ? '文件标记面板当前已打开。' : '文件标记面板当前未打开。')
-        : '文件标记面板当前已关闭，请先启用模块。')
+      })
       .addButton((button) => {
         button
-          .setButtonText('打开面板')
-          .setDisabled(!summary.fileMarkerEnabled)
-          .onClick(async () => {
-            await this.plugin.startFileMarkerFeature();
-            this.display();
-          });
-      });
-
-    new obsidian.Setting(containerEl)
-      .setName('维护操作')
-      .setDesc('立即移除已不存在文件对应的标记记录，并同步刷新文件标记面板。')
-      .addButton((button) => {
-        button
-          .setButtonText('立即清理')
-          .setDisabled(!summary.fileMarkerEnabled)
-          .onClick(async () => {
-            const hasChanged = await this.plugin.pruneMissingMarkRecords();
-            new obsidian.Notice(hasChanged ? '失效标记已清理' : '当前没有需要清理的失效标记');
-            this.display();
+          .setButtonText('管理')
+          .onClick(() => {
+            new FileMarkerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
           });
       });
   }
 
-  // 渲染关系图谱模块分区，集中展示开关、运行状态与刷新操作。
-  renderAnchorGraphSection(containerEl, summary, anchorGraphStatusLabelMap) {
-    containerEl.createEl('h3', { text: '关系图谱 HTML 链接增强' });
-    containerEl.createEl('p', {
-      text: `模块状态：${anchorGraphStatusLabelMap[summary.anchorGraphRuntimeState] || '未知'}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条 a.internal-link 正向关系边。`
-    });
+  // 渲染关系图谱模块分区，仅保留状态概览、开关与弹窗入口。
+  renderAnchorGraphSection(containerEl, summary) {
+    const runtimeStateLabelMap = {
+      active: '运行中',
+      degraded: '已降级',
+      disabled: '已关闭',
+      idle: '待初始化'
+    };
 
     new obsidian.Setting(containerEl)
-      .setName('模块开关')
-      .setDesc('首次安装默认关闭。启用后会写入配置，后续再次启用插件时将保持当前状态。')
+      .setName('关系图谱 HTML 链接增强')
+      .setDesc(
+        `${runtimeStateLabelMap[summary.anchorGraphRuntimeState] || '未知'}，已识别 ${summary.anchorGraphSourceFileCount} 个源文件中的 ${summary.anchorGraphEdgeCount} 条关系边。`
+      )
       .addToggle((toggle) => {
         toggle
           .setValue(summary.anchorGraphEnabled)
           .onChange(async (value) => {
             await this.plugin.updateAnchorGraphEnabled(value);
             new obsidian.Notice(value ? '已启用关系图谱 HTML 链接增强' : '已关闭关系图谱 HTML 链接增强');
-            this.display();
+            await this.display();
           });
-      });
-
-    new obsidian.Setting(containerEl)
-      .setName('运行状态')
-      .setDesc(summary.anchorGraphRuntimeMessage)
+      })
       .addButton((button) => {
         button
-          .setButtonText('立即刷新')
-          .setDisabled(!summary.anchorGraphEnabled)
-          .onClick(async () => {
-            await this.plugin.refreshAnchorGraphLinks(true);
-            this.display();
+          .setButtonText('管理')
+          .onClick(() => {
+            new AnchorGraphManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
           });
       });
   }
 
-  // 渲染识别规则说明，帮助用户理解图谱增强的生效范围。
+  // 渲染右键菜单自定义模块分区，仅保留状态概览、开关与弹窗入口。
+  renderMenuCustomizerSection(containerEl, summary) {
+    new obsidian.Setting(containerEl)
+      .setName('右键菜单自定义')
+      .setDesc(
+        summary.menuCustomizerEnabled
+          ? `已启用，当前共有 ${summary.menuCustomizerMenuCount} 个菜单类型开启自定义，配置了 ${summary.menuCustomizerGroupCount} 个分组。`
+          : `未启用，已保存 ${summary.menuCustomizerGroupCount} 个分组配置，启用后会在菜单显示前重构右键菜单。`
+      )
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.menuCustomizerEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateMenuCustomizerEnabled(value);
+            new obsidian.Notice(value ? '已启用右键菜单自定义' : '已关闭右键菜单自定义');
+            await this.display();
+          });
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('管理')
+          .onClick(() => {
+            new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+      });
+  }
+
+  // 渲染配置管理入口，仅保留总览描述与弹窗入口。
+  renderConfigManagementEntry(containerEl) {
+    new obsidian.Setting(containerEl)
+      .setName('配置文件管理')
+      .setDesc('查看配置文件状态、导出到独立文件、导入 JSON 以及重置全部配置。')
+      .addButton((button) => {
+        button
+          .setButtonText('打开管理窗口')
+          .onClick(() => {
+            new ConfigManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+      });
+  }
+
+  // 渲染识别规则说明，帮助用户理解当前模块的生效范围。
   renderRuleSection(containerEl) {
-    containerEl.createEl('h3', { text: '识别规则' });
-    const ruleListEl = containerEl.createEl('ul');
-    ruleListEl.createEl('li', {
-      text: '文件标记面板和关系图谱 HTML 链接增强均默认关闭，需要先在设置页手动启用后才能执行相关操作。'
-    });
-    ruleListEl.createEl('li', {
+    const hintEl = containerEl.createDiv({ cls: 'nene-settings-hint' });
+    hintEl.createDiv({ cls: 'nene-settings-hint-title', text: '说明' });
+    const listEl = hintEl.createEl('ul');
+
+    listEl.createEl('li', {
       text: '关系图谱会额外识别 class 包含 internal-link，且带有 data-href 或 href 的 HTML a 标签。'
     });
-    ruleListEl.createEl('li', {
-      text: '图谱增强只向运行时索引注入合成关系边，不会改写任何笔记内容。'
+    listEl.createEl('li', {
+      text: '右键菜单自定义基于 Obsidian v1.4.16 的菜单结构设计，启用后会保留原始命令回调，但会重新组织 DOM 顺序。'
     });
   }
 }

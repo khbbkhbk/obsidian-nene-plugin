@@ -5,31 +5,9 @@
     },
     "anchorGraph": {
       "enabled": true
-    }
-  },
-  "anchorGraph": {
-    "defaultSettings": {
-      "htmlEnhancementEnabled": true
     },
-    "noteOverrides": {
-      "未命名.md": {
-        "mode": "enabled"
-      }
+    "menuCustomizer": {
+      "enabled": true
     }
-  },
-  "fileMarker": {
-    "marks": {},
-    "groups": [
-      {
-        "id": "ungrouped",
-        "name": "未分组",
-        "collapsed": true
-      },
-      {
-        "id": "group-1778734809796-128ef1",
-        "name": "软件设计",
-        "collapsed": false
-      }
-    ]
   }
 }

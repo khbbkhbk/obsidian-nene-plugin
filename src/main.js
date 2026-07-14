@@ -6,6 +6,7 @@ var pluginData = require('./modules/plugin-data/index.js');
 var pluginSettings = require('./modules/plugin-settings/index.js');
 var pluginListEnhancerModule = require('./modules/plugin-list-enhancer/index.js');
 var anchorGraphLinksModule = require('./modules/anchor-graph-links/index.js');
+var menuCustomizerModule = require('./modules/menu-customizer/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
 
 // 定义插件主类，作为模块装配层，统一协调各功能目录。
@@ -17,6 +18,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this); // 管理旧设置页增强逻辑
     this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
+    this.menuCustomizerStore = new menuCustomizerModule.MenuCustomizerStore(this); // 管理右键菜单自定义配置
+    this.menuCustomizerRuntime = new menuCustomizerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
@@ -31,10 +34,12 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     await this.dataStore.load(); // 先加载整份插件数据并迁移旧结构
     this.pluginSettingsStore.load(this.dataStore.getFeatures()); // 将插件级功能开关注入设置仓库
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData()); // 将文件标记切片挂载到业务仓库
+    this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData()); // 将右键菜单配置切片挂载到业务仓库
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
     this.setupFileMarkerView();
     this.setupFileMenu();
+    this.setupEditorMenu();
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
@@ -44,6 +49,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
+    this.syncMenuCustomizerState();
   }
 
   // 插件卸载时清理动态资源和已打开视图。
@@ -51,6 +57,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     console.log('Unloading obsidian-nene-plugin');
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
+    this.menuCustomizerRuntime.stop();
 
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
@@ -73,6 +80,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   setupFileMenu() {
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
+        this.menuCustomizerRuntime.annotateFileMenu(menu, file);
         if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
@@ -85,6 +93,15 @@ class ObsidianNenePlugin extends obsidian.Plugin {
               this.openMarkEditor(file);
             });
         });
+      })
+    );
+  }
+
+  // 注册编辑区右键菜单上下文标记，便于运行时区分编辑菜单与更多选项菜单。
+  setupEditorMenu() {
+    this.registerEvent(
+      this.app.workspace.on('editor-menu', (menu) => {
+        this.menuCustomizerRuntime.annotateEditorMenu(menu);
       })
     );
   }
@@ -235,6 +252,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isAnchorGraphEnabled();
   }
 
+  // 返回右键菜单自定义模块当前是否被用户启用。
+  isMenuCustomizerEnabled() {
+    return this.pluginSettingsStore.isMenuCustomizerEnabled();
+  }
+
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -264,8 +286,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       anchorGraphEdgeCount: anchorGraphStats.edgeCount,
       anchorGraphEnabled: this.isAnchorGraphEnabled(),
       anchorGraphRuntimeState: anchorGraphRuntime.state,
-      anchorGraphRuntimeMessage: anchorGraphRuntime.message
+      anchorGraphRuntimeMessage: anchorGraphRuntime.message,
+      menuCustomizerEnabled: this.isMenuCustomizerEnabled(),
+      menuCustomizerMenuCount: this.menuCustomizerStore.getEnabledMenuCount(),
+      menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount()
     };
+  }
+
+  // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
+  async getConfigManagementSummary() {
+    return this.dataStore.getConfigFileStatuses();
   }
 
   /* ------------------------------ */
@@ -360,6 +390,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextEnabled;
   }
 
+  // 更新右键菜单自定义开关，并根据当前设置立即同步运行时状态。
+  async updateMenuCustomizerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setMenuCustomizerEnabled(enabled);
+    this.syncMenuCustomizerState();
+    return nextEnabled;
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -375,6 +412,35 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   // 一键启动关系图谱 HTML 链接增强，必要时先启用开关后再执行一次刷新。
   async startAnchorGraphFeature() {
     await this.refreshAnchorGraphLinks(true);
+  }
+
+  // 导出当前全部配置为 JSON 字符串，供设置页复制或备份。
+  exportConfigurationBundle() {
+    return JSON.stringify(this.dataStore.exportConfigurationBundle(), null, 2);
+  }
+
+  // 导出当前全部配置到独立备份文件，并返回写入结果。
+  async exportConfigurationBundleToFile() {
+    return this.dataStore.exportConfigurationBundleToFile();
+  }
+
+  // 导入用户提供的配置 JSON，并在完成后同步运行时状态与已打开视图。
+  async importConfigurationBundle(rawText) {
+    const parsedBundle = JSON.parse(rawText);
+    await this.dataStore.importConfigurationBundle(parsedBundle);
+    await this.reloadRuntimeStateFromDataStore();
+  }
+
+  // 将指定功能配置重置为默认值，并同步当前运行时状态。
+  async resetFeatureConfiguration(featureKey) {
+    await this.dataStore.resetFeatureData(featureKey);
+    await this.reloadRuntimeStateFromDataStore();
+  }
+
+  // 将整个插件配置重置为默认值，并同步当前运行时状态。
+  async resetAllConfiguration() {
+    await this.dataStore.resetAllData();
+    await this.reloadRuntimeStateFromDataStore();
   }
 
   /* ------------------------------ */
@@ -433,6 +499,34 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     }
 
     this.anchorGraphLinkEnhancer.stop();
+  }
+
+  // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
+  syncMenuCustomizerState() {
+    this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
+
+    if (this.isMenuCustomizerEnabled()) {
+      this.menuCustomizerRuntime.start();
+      return;
+    }
+
+    this.menuCustomizerRuntime.stop();
+  }
+
+  // 在导入或重置配置后重载各仓库状态，确保设置页、面板与图谱行为立即同步。
+  async reloadRuntimeStateFromDataStore() {
+    this.pluginSettingsStore.load(this.dataStore.getFeatures());
+    this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
+    this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
+
+    this.syncFileMarkerFeatureState();
+    this.refreshAllFileMarkerViews();
+    this.syncAnchorGraphEnhancerState();
+    this.syncMenuCustomizerState();
+
+    if (this.isAnchorGraphEnabled()) {
+      await this.refreshAnchorGraphLinks(false);
+    }
   }
 }
 

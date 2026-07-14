@@ -19,8 +19,7 @@ class FileMarkerStore {
   // 将最新 file-marker 切片同步到插件级数据仓库并持久化到本地。
   async save() {
     this.settings = this.normalizeSettings(this.settings);
-    this.plugin.dataStore.setFileMarkerData(this.settings);
-    await this.plugin.dataStore.save();
+    await this.plugin.dataStore.saveFileMarkerData(this.settings);
   }
 
   // 返回完整配置对象，便于上层做只读使用。
@@ -69,6 +68,7 @@ class FileMarkerStore {
       if (!path || !mark || typeof mark !== 'object') return;
 
       normalizedMarks[path] = {
+        ...mark,
         path,
         status: this.isValidStatus(mark.status) ? mark.status : constants.STATUS_OPTIONS[0].value,
         note: typeof mark.note === 'string' ? mark.note : '',
@@ -88,6 +88,7 @@ class FileMarkerStore {
       if (addedGroupIds.has(group.id)) return;
 
       normalizedGroups.push({
+        ...group,
         id: group.id,
         name: group.name.trim(),
         collapsed: Boolean(group.collapsed)

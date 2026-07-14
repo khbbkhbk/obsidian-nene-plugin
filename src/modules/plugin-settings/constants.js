@@ -7,6 +7,9 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   anchorGraph: {
     enabled: false
+  },
+  menuCustomizer: {
+    enabled: false
   }
 };
 

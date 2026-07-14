@@ -1,0 +1,184 @@
+/* ------------------------------ */
+/* 设置页与管理弹窗样式 */
+/* ------------------------------ */
+
+/* 设置页整体采用紧凑纵向节奏，避免大段空隙。 */
+.nene-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+
+/* 顶部说明保留轻量层级，不再依赖大量 h 标签。 */
+.nene-settings-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 主标题保持清晰但不过度占位。 */
+.nene-settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-normal);
+  letter-spacing: 0.01em;
+}
+
+/* 顶部描述弱化展示，减少视觉压迫。 */
+.nene-settings-description {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* 功能分组只做轻量分隔，不使用卡片式外框。 */
+.nene-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 分组标题使用小号全大写风格，形成现代感但不喧宾夺主。 */
+.nene-settings-group-title {
+  margin: 2px 0 4px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-medium);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 缩紧设置项上下间距，让主面板更紧凑。 */
+.nene-settings-tab .setting-item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* 首尾边界去掉多余留白。 */
+.nene-settings-tab .setting-item:first-child {
+  border-top: 0;
+}
+
+/* 管理弹窗采用紧凑单列布局。 */
+.nene-settings-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 功能模块管理的二级窗口统一贴近 Obsidian 设置面板的尺寸与滚动方式。 */
+.modal.nene-settings-panel-modal {}
+
+.modal.nene-settings-panel-modal .modal-content {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  padding: 24px 28px;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* 弹窗头部保留标题和描述的轻层级。 */
+.nene-settings-modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 弹窗标题强调主任务。 */
+.nene-settings-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+/* 弹窗描述使用弱化颜色，适合说明操作影响。 */
+.nene-settings-modal-description {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* JSON 文本框统一尺寸与字体系。 */
+.nene-settings-json-textarea {
+  width: 100%;
+  min-height: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  line-height: 1.55;
+  resize: vertical;
+}
+
+/* 弹窗按钮区靠右对齐并保持紧凑间隔。 */
+.nene-settings-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 详情列表使用轻量背景做信息归纳，不做卡片堆叠。 */
+.nene-settings-detail-list {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-secondary);
+}
+
+/* 单条详情采用左右节奏明确的信息布局。 */
+.nene-settings-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 标签使用细小大写风格。 */
+.nene-settings-detail-label {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 详情值保留正常可读性，并允许路径换行。 */
+.nene-settings-detail-value {
+  color: var(--text-normal);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 底部说明模块也保持紧凑排版。 */
+.nene-settings-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+/* 说明标题轻量强调。 */
+.nene-settings-hint-title {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 说明列表缩紧缩进与间距。 */
+.nene-settings-hint ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.nene-settings-hint li+li {
+  margin-top: 4px;
+}

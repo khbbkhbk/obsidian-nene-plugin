@@ -45,6 +45,18 @@ class PluginSettingsStore {
     return this.isAnchorGraphEnabled();
   }
 
+  // 返回右键菜单自定义是否启用，供主入口和设置页统一读取。
+  isMenuCustomizerEnabled() {
+    return Boolean(this.settings.menuCustomizer.enabled);
+  }
+
+  // 切换右键菜单自定义的启用状态，并立即持久化到本地。
+  async setMenuCustomizerEnabled(enabled) {
+    this.settings.menuCustomizer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isMenuCustomizerEnabled();
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -59,6 +71,9 @@ class PluginSettingsStore {
       },
       anchorGraph: {
         enabled: source.anchorGraph?.enabled === true
+      },
+      menuCustomizer: {
+        enabled: source.menuCustomizer?.enabled === true
       }
     };
   }

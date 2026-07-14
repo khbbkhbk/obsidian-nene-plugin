@@ -1,0 +1,28 @@
+{
+  "marks": {
+    "未命名.md": {
+      "path": "未命名.md",
+      "status": "pending",
+      "note": "",
+      "groupId": "group-1784013167324-d91e66",
+      "updatedAt": 1784013174808
+    }
+  },
+  "groups": [
+    {
+      "id": "ungrouped",
+      "name": "未分组",
+      "collapsed": true
+    },
+    {
+      "id": "group-1778734809796-128ef1",
+      "name": "软件设计",
+      "collapsed": true
+    },
+    {
+      "id": "group-1784013167324-d91e66",
+      "name": "adaaa",
+      "collapsed": false
+    }
+  ]
+}

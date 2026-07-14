@@ -1,29 +1,41 @@
 'use strict';
 
+var featureConfigManagerModule = require('./feature-config-manager');
 var constants = require('./constants');
 
 // 定义插件级数据仓库，统一负责整份数据的切片读取、归一化和落盘。
 class PluginDataStore {
   constructor(plugin) {
     this.plugin = plugin; // 保存插件实例，便于访问 loadData 和 saveData
-    this.data = this.normalizeData(); // 初始化默认数据，避免首次读取时报空
+    this.featureConfigManager = new featureConfigManagerModule.FeatureConfigManager(plugin); // 管理独立功能配置文件
+    this.data = this.normalizeCoreData(); // 初始化核心配置，避免首次读取时报空
+    this.featureData = this.normalizeFeatureData(); // 初始化各模块数据缓存，便于统一对外暴露
   }
 
-  // 加载本地持久化数据，并按当前模块切片结构归一化。
+  // 加载本地持久化数据，并在需要时将旧版模块切片迁移到独立配置文件。
   async load() {
     const rawData = await this.plugin.loadData();
-    this.data = this.normalizeData(rawData);
+    this.data = this.normalizeCoreData(rawData);
+    await this.featureConfigManager.initialize();
+
+    this.featureData.fileMarker = await this.loadFeatureSlice('fileMarker', rawData?.fileMarker);
+    this.featureData.anchorGraph = await this.loadFeatureSlice('anchorGraph', rawData?.anchorGraph);
+    this.featureData.menuCustomizer = await this.loadFeatureSlice('menuCustomizer', rawData?.menuCustomizer);
+
+    if (this.hasLegacyFeatureSlices(rawData)) {
+      await this.save();
+    }
   }
 
-  // 保存当前整份插件数据到本地。
+  // 保存当前核心配置到 data.json，本方法不再负责落盘模块业务数据。
   async save() {
-    this.data = this.normalizeData(this.data);
+    this.data = this.normalizeCoreData(this.data);
     await this.plugin.saveData(this.data);
   }
 
-  // 返回整份插件数据对象，供主入口按需透传。
+  // 返回整份插件数据快照，兼容上层仍以 settings 读取模块切片的场景。
   getData() {
-    return this.data;
+    return this.normalizeData(Object.assign({}, this.data, this.featureData));
   }
 
   // 返回插件级功能开关切片。
@@ -38,21 +50,190 @@ class PluginDataStore {
 
   // 返回文件标记数据切片。
   getFileMarkerData() {
-    return this.data.fileMarker;
+    return this.featureData.fileMarker;
   }
 
-  // 更新文件标记数据切片。
+  // 更新文件标记数据切片缓存。
   setFileMarkerData(fileMarkerData) {
-    this.data.fileMarker = this.normalizeFileMarkerData(fileMarkerData);
+    this.featureData.fileMarker = this.normalizeFileMarkerData(fileMarkerData);
   }
 
-  // 归一化整份插件数据，只接受当前模块切片结构。
-  normalizeData(data) {
-    const source = data && typeof data === 'object' ? data : {};
+  // 返回关系图谱增强的独立配置切片。
+  getAnchorGraphData() {
+    return this.featureData.anchorGraph;
+  }
+
+  // 更新关系图谱增强的独立配置切片缓存。
+  setAnchorGraphData(anchorGraphData) {
+    this.featureData.anchorGraph = this.normalizeAnchorGraphData(anchorGraphData);
+  }
+
+  // 返回右键菜单自定义的独立配置切片。
+  getMenuCustomizerData() {
+    return this.featureData.menuCustomizer;
+  }
+
+  // 更新右键菜单自定义的独立配置切片缓存。
+  setMenuCustomizerData(menuCustomizerData) {
+    this.featureData.menuCustomizer = this.normalizeMenuCustomizerData(menuCustomizerData);
+  }
+
+  // 保存文件标记功能数据到独立配置文件。
+  async saveFileMarkerData(fileMarkerData) {
+    this.setFileMarkerData(fileMarkerData);
+    await this.featureConfigManager.save('fileMarker', this.featureData.fileMarker);
+  }
+
+  // 保存关系图谱增强功能数据到独立配置文件。
+  async saveAnchorGraphData(anchorGraphData) {
+    this.setAnchorGraphData(anchorGraphData);
+    await this.featureConfigManager.save('anchorGraph', this.featureData.anchorGraph);
+  }
+
+  // 保存右键菜单自定义功能数据到独立配置文件。
+  async saveMenuCustomizerData(menuCustomizerData) {
+    this.setMenuCustomizerData(menuCustomizerData);
+    await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
+  }
+
+  // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
+  async saveAll() {
+    await this.save();
+    await this.featureConfigManager.save('fileMarker', this.featureData.fileMarker);
+    await this.featureConfigManager.save('anchorGraph', this.featureData.anchorGraph);
+    await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
+  }
+
+  // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
+  async getConfigFileStatuses() {
+    const adapter = this.plugin.app.vault.adapter;
+    const coreConfigPath = this.getCoreConfigPath();
+    const fileMarkerPath = this.featureConfigManager.getFeatureConfigPath('fileMarker');
+    const anchorGraphPath = this.featureConfigManager.getFeatureConfigPath('anchorGraph');
+    const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath('menuCustomizer');
 
     return {
-      features: this.normalizeFeatures(source.features),
-      fileMarker: this.normalizeFileMarkerData(source.fileMarker)
+      directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
+      exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
+      core: {
+        key: 'core',
+        name: '核心配置',
+        path: coreConfigPath,
+        exists: await adapter.exists(coreConfigPath),
+        summary: `保存 ${Object.keys(this.data.features || {}).length} 个功能开关分组`
+      },
+      fileMarker: {
+        key: 'fileMarker',
+        name: '文件标记配置',
+        path: fileMarkerPath,
+        exists: await this.featureConfigManager.exists('fileMarker'),
+        summary: `当前含 ${Object.keys(this.featureData.fileMarker.marks || {}).length} 条标记、${(this.featureData.fileMarker.groups || []).length} 个分组`
+      },
+      anchorGraph: {
+        key: 'anchorGraph',
+        name: '关系图谱配置',
+        path: anchorGraphPath,
+        exists: await this.featureConfigManager.exists('anchorGraph'),
+        summary: `当前含 ${Object.keys(this.featureData.anchorGraph.noteOverrides || {}).length} 条笔记覆盖规则`
+      },
+      menuCustomizer: {
+        key: 'menuCustomizer',
+        name: '右键菜单配置',
+        path: menuCustomizerPath,
+        exists: await this.featureConfigManager.exists('menuCustomizer'),
+        summary: `当前含 ${Object.values(this.featureData.menuCustomizer.menus || {}).reduce((count, menuConfig) => count + (Array.isArray(menuConfig.groups) ? menuConfig.groups.length : 0), 0)} 个分组`
+      }
+    };
+  }
+
+  // 导出完整配置快照，便于设置页复制、备份和迁移。
+  exportConfigurationBundle() {
+    return {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      coreData: this.normalizeCoreData(this.data),
+      featureData: this.normalizeFeatureData(this.featureData)
+    };
+  }
+
+  // 将当前配置导出为独立备份文件，便于用户保留多个版本快照。
+  async exportConfigurationBundleToFile() {
+    const exportFileName = this.buildExportFileName();
+    const exportText = JSON.stringify(this.exportConfigurationBundle(), null, 2);
+    const filePath = await this.featureConfigManager.writeExportFile(exportFileName, exportText);
+
+    return {
+      fileName: exportFileName,
+      filePath
+    };
+  }
+
+  // 导入完整配置快照，兼容当前导出格式与旧版顶层切片结构。
+  async importConfigurationBundle(bundle) {
+    const normalizedBundle = this.normalizeImportedBundle(bundle);
+    this.data = normalizedBundle.coreData;
+    this.featureData = normalizedBundle.featureData;
+    await this.saveAll();
+    return this.getData();
+  }
+
+  // 将指定功能配置恢复为默认值并立即持久化。
+  async resetFeatureData(featureKey) {
+    const defaultFeatureData = this.normalizeFeatureSlice(featureKey, constants.DEFAULT_FEATURE_DATA[featureKey]);
+
+    if (featureKey === 'fileMarker') {
+      this.featureData.fileMarker = defaultFeatureData;
+    } else if (featureKey === 'anchorGraph') {
+      this.featureData.anchorGraph = defaultFeatureData;
+    } else if (featureKey === 'menuCustomizer') {
+      this.featureData.menuCustomizer = defaultFeatureData;
+    }
+
+    await this.featureConfigManager.save(featureKey, defaultFeatureData);
+    return defaultFeatureData;
+  }
+
+  // 将整个插件配置恢复为默认值，并同步覆盖所有配置文件。
+  async resetAllData() {
+    this.data = this.normalizeCoreData(constants.DEFAULT_PLUGIN_DATA);
+    this.featureData = this.normalizeFeatureData(constants.DEFAULT_FEATURE_DATA);
+    await this.saveAll();
+    return this.getData();
+  }
+
+  // 归一化整份插件数据快照，便于统一输出当前内存中的完整状态。
+  normalizeData(data) {
+    const source = this.isPlainObject(data) ? data : {};
+    const normalizedCoreData = this.normalizeCoreData(source);
+
+    return Object.assign({}, normalizedCoreData, {
+      fileMarker: this.normalizeFileMarkerData(source.fileMarker),
+      anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
+      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
+    });
+  }
+
+  // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
+  normalizeCoreData(data) {
+    const source = this.isPlainObject(data) ? data : {};
+    const normalizedCoreData = Object.assign({}, source);
+
+    delete normalizedCoreData.fileMarker;
+    delete normalizedCoreData.anchorGraph;
+    delete normalizedCoreData.menuCustomizer;
+
+    normalizedCoreData.features = this.normalizeFeatures(source.features);
+    return normalizedCoreData;
+  }
+
+  // 归一化功能配置缓存，避免首次读取时报空。
+  normalizeFeatureData(featureData) {
+    const source = this.isPlainObject(featureData) ? featureData : {};
+
+    return {
+      fileMarker: this.normalizeFileMarkerData(source.fileMarker),
+      anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
+      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
     };
   }
 
@@ -64,19 +245,169 @@ class PluginDataStore {
       },
       anchorGraph: {
         enabled: features?.anchorGraph?.enabled === true
+      },
+      menuCustomizer: {
+        enabled: features?.menuCustomizer?.enabled === true
       }
     };
   }
 
   // 归一化文件标记切片的顶层结构，具体业务字段由 file-marker 模块进一步收敛。
   normalizeFileMarkerData(fileMarkerData) {
-    const source = fileMarkerData && typeof fileMarkerData === 'object' ? fileMarkerData : {};
-    const defaultFileMarker = constants.DEFAULT_PLUGIN_DATA.fileMarker;
+    const source = this.isPlainObject(fileMarkerData) ? fileMarkerData : {};
+    const defaultFileMarker = constants.DEFAULT_FEATURE_DATA.fileMarker;
 
-    return {
+    return Object.assign({}, source, {
       marks: source.marks && typeof source.marks === 'object' ? source.marks : defaultFileMarker.marks,
       groups: Array.isArray(source.groups) ? source.groups : defaultFileMarker.groups
+    });
+  }
+
+  // 归一化关系图谱增强配置结构，保证旧数据迁移后能维持稳定形状。
+  normalizeAnchorGraphData(anchorGraphData) {
+    const source = this.isPlainObject(anchorGraphData) ? anchorGraphData : {};
+    const defaultAnchorGraph = constants.DEFAULT_FEATURE_DATA.anchorGraph;
+    const defaultSettings = this.isPlainObject(source.defaultSettings) ? source.defaultSettings : {};
+    const noteOverrides = {};
+
+    if (this.isPlainObject(source.noteOverrides)) {
+      Object.entries(source.noteOverrides).forEach(([notePath, override]) => {
+        if (!notePath || !this.isPlainObject(override)) return;
+
+        noteOverrides[notePath] = Object.assign({}, override, {
+          mode: typeof override.mode === 'string' && override.mode.trim()
+            ? override.mode.trim()
+            : 'inherit'
+        });
+      });
+    }
+
+    return Object.assign({}, source, {
+      defaultSettings: Object.assign({}, defaultAnchorGraph.defaultSettings, defaultSettings, {
+        htmlEnhancementEnabled: defaultSettings.htmlEnhancementEnabled !== false
+      }),
+      noteOverrides
+    });
+  }
+
+  // 归一化右键菜单自定义配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeMenuCustomizerData(menuCustomizerData) {
+    const source = this.isPlainObject(menuCustomizerData) ? menuCustomizerData : {};
+    const defaultMenuCustomizer = constants.DEFAULT_FEATURE_DATA.menuCustomizer;
+    const normalizedMenus = {};
+
+    Object.keys(defaultMenuCustomizer.menus || {}).forEach((menuType) => {
+      const menuSource = this.isPlainObject(source.menus?.[menuType]) ? source.menus[menuType] : {};
+      const defaultMenuConfig = defaultMenuCustomizer.menus[menuType];
+
+      normalizedMenus[menuType] = {
+        enabled: menuSource.enabled === true,
+        groups: Array.isArray(menuSource.groups) ? menuSource.groups : defaultMenuConfig.groups,
+        commandOverrides: this.isPlainObject(menuSource.commandOverrides) ? menuSource.commandOverrides : defaultMenuConfig.commandOverrides,
+        commandMappings: Array.isArray(menuSource.commandMappings) ? menuSource.commandMappings : defaultMenuConfig.commandMappings
+      };
+    });
+
+    return {
+      menus: normalizedMenus
     };
+  }
+
+  // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
+  async loadFeatureSlice(featureKey, legacyData) {
+    const loadResult = await this.featureConfigManager.load(featureKey);
+    if (loadResult.found && this.isPlainObject(loadResult.data)) {
+      return this.normalizeFeatureSlice(featureKey, loadResult.data);
+    }
+
+    if (this.isPlainObject(legacyData)) {
+      const normalizedLegacyData = this.normalizeFeatureSlice(featureKey, legacyData);
+      await this.featureConfigManager.save(featureKey, normalizedLegacyData);
+      return normalizedLegacyData;
+    }
+
+    const defaultFeatureData = this.normalizeFeatureSlice(featureKey, constants.DEFAULT_FEATURE_DATA[featureKey]);
+    await this.featureConfigManager.save(featureKey, defaultFeatureData);
+
+    return defaultFeatureData;
+  }
+
+  // 根据功能标识归一化对应模块的数据切片。
+  normalizeFeatureSlice(featureKey, featureData) {
+    if (featureKey === 'fileMarker') {
+      return this.normalizeFileMarkerData(featureData);
+    }
+
+    if (featureKey === 'anchorGraph') {
+      return this.normalizeAnchorGraphData(featureData);
+    }
+
+    if (featureKey === 'menuCustomizer') {
+      return this.normalizeMenuCustomizerData(featureData);
+    }
+
+    return this.isPlainObject(featureData) ? featureData : {};
+  }
+
+  // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
+  hasLegacyFeatureSlices(data) {
+    const source = this.isPlainObject(data) ? data : {};
+    return this.isPlainObject(source.fileMarker)
+      || this.isPlainObject(source.anchorGraph)
+      || this.isPlainObject(source.menuCustomizer);
+  }
+
+  // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
+  getCoreConfigPath() {
+    return `${this.plugin.app.vault.configDir}/plugins/${this.plugin.manifest.id}/data.json`;
+  }
+
+  // 将导入数据统一归一化为当前插件使用的核心配置与模块配置结构。
+  normalizeImportedBundle(bundle) {
+    if (!this.isPlainObject(bundle)) {
+      throw new Error('导入内容必须是 JSON 对象');
+    }
+
+    const hasSeparatedPayload = this.isPlainObject(bundle.coreData) || this.isPlainObject(bundle.featureData);
+    const featureSource = hasSeparatedPayload
+      ? Object.assign({}, bundle.featureData, {
+        fileMarker: bundle.featureData?.fileMarker || bundle.fileMarker,
+        anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
+        menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer
+      })
+      : bundle;
+
+    const coreSource = hasSeparatedPayload
+      ? Object.assign({}, bundle.coreData, {
+        features: bundle.coreData?.features || bundle.features
+      })
+      : bundle;
+
+    return {
+      coreData: this.normalizeCoreData(coreSource),
+      featureData: this.normalizeFeatureData(featureSource)
+    };
+  }
+
+  // 判断当前值是否为普通对象，避免数组、空值等被误当成配置对象。
+  isPlainObject(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  // 生成包含时间戳的导出文件名，避免连续导出时相互覆盖。
+  buildExportFileName() {
+    const now = new Date();
+    const timestamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+      '-',
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0')
+    ].join('');
+
+    return `${this.plugin.manifest.id}-config-export-${timestamp}.json`;
   }
 }
 
