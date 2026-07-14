@@ -8,3 +8,5 @@ build/
 .dbg/
 .bin/
 desktop.ini
+data.json
+configs/

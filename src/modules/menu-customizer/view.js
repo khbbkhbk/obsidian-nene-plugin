@@ -146,7 +146,7 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
     const noteEl = this.summaryPaneEl.createDiv({ cls: 'nene-menu-customizer-note' });
     noteEl.createEl('strong', { text: '说明：' });
     noteEl.createSpan({
-      text: '新增命令完全来自 Obsidian 命令注册表；无显式 commandId 的原始菜单项，请在下方“手动映射”中补齐 title、section 与 commandId。'
+      text: '新增命令完全来自 Obsidian 命令注册表；无显式 commandId 的原始菜单项会先查“初始内置数据”，你仍可在“手动映射”里补充或覆盖。'
     });
   }
 
@@ -184,18 +184,21 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
     const store = this.plugin.menuCustomizerStore;
     const menuType = this.activeMenuType;
     const menuConfig = store.getMenuConfig(menuType);
+    const orderedGroups = typeof store.getOrderedGroups === 'function'
+      ? store.getOrderedGroups(menuType)
+      : menuConfig.groups;
     const sectionEl = containerEl.createDiv({ cls: 'nene-menu-customizer-active-section' });
 
     const sectionHeaderEl = sectionEl.createDiv({ cls: 'nene-menu-customizer-panel-card' });
     sectionHeaderEl.createDiv({
       cls: 'nene-menu-customizer-section-title',
-      text: getMenuTypeName(store, menuType)
+      text: ''
     });
 
     this.renderControlRow(
       sectionHeaderEl,
       '启用当前菜单',
-      `仅对 ${getMenuTypeName(store, menuType)} 生效，未开启时保留 Obsidian 原始行为。`,
+      ``,
       (controlsEl) => {
         const toggleEl = this.createSwitchControl(controlsEl, menuConfig.enabled, async (checked) => {
           await store.setMenuEnabled(menuType, checked);
@@ -209,9 +212,11 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
       }
     );
 
+    this.renderMenuStructurePanel(sectionEl, menuType, menuConfig);
+
     const groupsCardEl = sectionEl.createDiv({ cls: 'nene-menu-customizer-panel-card' });
     const groupsHeaderEl = groupsCardEl.createDiv({ cls: 'nene-menu-customizer-card-header' });
-    groupsHeaderEl.createDiv({ cls: 'nene-menu-customizer-subtitle', text: '分组管理' });
+    groupsHeaderEl.createDiv({ cls: 'nene-menu-customizer-subtitle', text: '分组编辑' });
 
     const addGroupButtonEl = groupsHeaderEl.createEl('button', {
       cls: 'mod-cta',
@@ -224,20 +229,224 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
       await this.render();
     });
 
-    if (menuConfig.groups.length === 0) {
+    if (orderedGroups.length === 0) {
       groupsCardEl.createDiv({
         cls: 'nene-menu-customizer-empty',
-        text: '当前还没有分组，未命中的命令会按原顺序保留在菜单底部。'
+        text: '当前还没有分组。你可以先创建分组，也可以只在上方配置根级命令和分隔线。'
       });
     }
 
-    menuConfig.groups.forEach((group, groupIndex) => {
-      this.renderGroupEditor(groupsCardEl, menuType, group, groupIndex, menuConfig.groups.length);
+    orderedGroups.forEach((group, groupIndex) => {
+      this.renderGroupEditor(groupsCardEl, menuType, group, groupIndex, orderedGroups.length);
     });
 
     this.renderMappingsPanel(sectionEl, menuType, menuConfig);
     this.renderOverridesPanel(sectionEl, menuType, menuConfig);
     this.renderResetPanel(sectionEl);
+  }
+
+  // 渲染根级菜单结构，支持与分组并列的命令和分隔线。
+  renderMenuStructurePanel(containerEl, menuType, menuConfig) {
+    const store = this.plugin.menuCustomizerStore;
+    const structureCardEl = containerEl.createDiv({ cls: 'nene-menu-customizer-panel-card' });
+    const headerEl = structureCardEl.createDiv({ cls: 'nene-menu-customizer-card-header' });
+    headerEl.createDiv({ cls: 'nene-menu-customizer-subtitle', text: '菜单顺序' });
+    headerEl.createSpan({
+      cls: 'nene-menu-customizer-meta-pill',
+      text: `${Array.isArray(menuConfig.rootItems) ? menuConfig.rootItems.length : 0} 项`
+    });
+
+    structureCardEl.createDiv({
+      cls: 'nene-menu-customizer-note',
+      text: '这里控制菜单第一层的最终顺序。分组、并列命令、分隔线都按这里排列；未在这里配置的原始菜单项会按出现顺序统一后置。'
+    });
+
+    if (!Array.isArray(menuConfig.rootItems) || menuConfig.rootItems.length === 0) {
+      structureCardEl.createDiv({
+        cls: 'nene-menu-customizer-empty',
+        text: '当前还没有根级结构项。'
+      });
+    } else {
+      menuConfig.rootItems.forEach((rootItem, itemIndex) => {
+        this.renderRootItemRow(structureCardEl, menuType, menuConfig, rootItem, itemIndex);
+      });
+    }
+
+    const addableCommands = store.getAddableCommands(menuType);
+    let addType = 'command';
+    let selectedCommandId = addableCommands[0]?.id || '';
+    let manualCommandId = '';
+
+    this.renderControlRow(
+      structureCardEl,
+      '新增根级项',
+      '支持新增与分组并列的命令或分隔线。命令可从注册表选择，也可手动输入已在内置数据或手动映射中可识别的 commandId。',
+      (controlsEl) => {
+        this.createSelectInput(
+          controlsEl,
+          [
+            { value: 'command', label: '命令' },
+            { value: 'separator', label: '分隔线' }
+          ],
+          addType,
+          async (value) => {
+            addType = value;
+          }
+        );
+
+        this.createSelectInput(
+          controlsEl,
+          addableCommands.map((command) => ({
+            value: command.id,
+            label: `${command.label} (${command.id})`
+          })),
+          selectedCommandId,
+          async (value) => {
+            selectedCommandId = value;
+          }
+        );
+
+        this.createTextInput(controlsEl, '或手动输入 commandId', '', async (value) => {
+          manualCommandId = value;
+        });
+
+        const addButtonEl = controlsEl.createEl('button', {
+          cls: 'mod-cta',
+          text: '添加到根级'
+        });
+        addButtonEl.addEventListener('click', async () => {
+          if (addType === 'separator') {
+            await store.addRootSeparator(menuType);
+            new obsidian.Notice('已添加根级分隔线');
+            await this.onSettingsChanged();
+            await this.render();
+            return;
+          }
+
+          const commandId = (manualCommandId || selectedCommandId || '').trim();
+          if (!commandId) {
+            new obsidian.Notice('请先选择或输入命令 ID');
+            return;
+          }
+
+          const result = await store.addRootCommand(menuType, commandId);
+          if (!result.success) {
+            if (result.reason === 'missing') {
+              new obsidian.Notice(`命令不存在，无法添加：${commandId}`);
+            } else if (result.reason === 'duplicate') {
+              new obsidian.Notice('该命令已经在根级结构中');
+            } else {
+              new obsidian.Notice('命令为空，无法添加');
+            }
+            return;
+          }
+
+          new obsidian.Notice(`已添加根级命令：${store.getCommandLabel(menuType, commandId)}`);
+          await this.onSettingsChanged();
+          await this.render();
+        });
+      }
+    );
+  }
+
+  // 渲染单条根级结构项。
+  renderRootItemRow(containerEl, menuType, menuConfig, rootItem, itemIndex) {
+    const store = this.plugin.menuCustomizerStore;
+    const rowEl = containerEl.createDiv({ cls: 'nene-menu-customizer-structure-row' });
+    const infoEl = rowEl.createDiv({ cls: 'nene-menu-customizer-structure-info' });
+
+    if (rootItem.type === 'group') {
+      const group = menuConfig.groups.find((item) => item.id === rootItem.groupId);
+      let labelEl = infoEl.createDiv({
+        cls: 'nene-menu-customizer-command-label',
+        text: group ? `分组：${group.name}` : `分组：${rootItem.groupId}`
+      });
+      infoEl.createEl('span', {
+        cls: 'nene-menu-customizer-command-id',
+        text: rootItem.groupId
+      });
+
+      let metaEl = labelEl.createDiv({ cls: 'nene-menu-customizer-group-summary-meta' });
+      metaEl.createSpan({
+        cls: 'nene-menu-customizer-meta-pill',
+        text: '分组'
+      });
+      if (group?.hidden) {
+        metaEl.createSpan({
+          cls: 'nene-menu-customizer-meta-pill is-muted',
+          text: '已隐藏'
+        });
+      }
+    } else if (rootItem.type === 'command') {
+      let labelEl = infoEl.createDiv({
+        cls: 'nene-menu-customizer-command-label',
+        text: store.getCommandLabel(menuType, rootItem.commandId)
+      });
+      infoEl.createEl('span', {
+        cls: 'nene-menu-customizer-command-id',
+        text: rootItem.commandId
+      });
+      labelEl.createSpan({
+        cls: 'nene-menu-customizer-meta-pill',
+        text: '根级命令'
+      });
+      if (rootItem.hidden) {
+        infoEl.createSpan({
+          cls: 'nene-menu-customizer-meta-pill is-muted',
+          text: '已隐藏'
+        });
+      }
+    } else {
+      let labelEl = infoEl.createDiv({
+        cls: 'nene-menu-customizer-command-label',
+        text: '分隔线'
+      });
+      infoEl.createEl('span', {
+        cls: 'nene-menu-customizer-command-id',
+        text: rootItem.id
+      });
+      labelEl.createSpan({
+        cls: 'nene-menu-customizer-meta-pill',
+        text: '分隔线'
+      });
+      if (rootItem.hidden) {
+        infoEl.createSpan({
+          cls: 'nene-menu-customizer-meta-pill is-muted',
+          text: '已隐藏'
+        });
+      }
+    }
+
+    const actionEl = rowEl.createDiv({ cls: 'nene-menu-customizer-command-actions' });
+    this.createIconButton(actionEl, 'arrow-up', '上移', itemIndex === 0, async () => {
+      await store.moveRootItem(menuType, itemIndex, -1);
+      await this.onSettingsChanged();
+      await this.render();
+    });
+    this.createIconButton(
+      actionEl,
+      'arrow-down',
+      '下移',
+      itemIndex === menuConfig.rootItems.length - 1,
+      async () => {
+        await store.moveRootItem(menuType, itemIndex, 1);
+        await this.onSettingsChanged();
+        await this.render();
+      }
+    );
+
+    if (rootItem.type !== 'group') {
+      this.createSwitchControl(actionEl, rootItem.hidden === true, async (checked) => {
+        await store.updateRootItem(menuType, itemIndex, { hidden: checked });
+        this.renderPreviewPanel();
+      }, '隐藏');
+
+      this.createIconButton(actionEl, 'trash', '删除', false, async () => {
+        await store.removeRootItem(menuType, itemIndex);
+        await this.onSettingsChanged();
+        await this.render();
+      }, true);
+    }
   }
 
   // 渲染单个分组编辑器，使用现代折叠结构避免长列表过长。
@@ -465,7 +674,7 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
     const bodyEl = mappingsCardEl.createDiv({ cls: 'nene-menu-customizer-mappings' });
     bodyEl.createDiv({
       cls: 'nene-menu-customizer-note',
-      text: '当某个原始右键菜单项没有暴露 commandId 时，在这里填写它的标题、section 和你约定的 commandId。运行时会按 title + section 做严格匹配。'
+      text: '当某个原始右键菜单项没有暴露 commandId 时，运行时会先查初始内置数据；这里填写的 title、section 和 commandId 会优先于内置数据生效。'
     });
 
     if (menuConfig.commandMappings.length === 0) {
@@ -652,8 +861,8 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
 
     const infoListEl = this.previewPaneEl.createDiv({ cls: 'nene-settings-detail-list' });
     renderSummaryItem(infoListEl, '当前分页', getMenuTypeName(store, menuType));
-    renderSummaryItem(infoListEl, '可见分组', `${previewModel.groups.length} 个`);
-    renderSummaryItem(infoListEl, '未分组命令', `${previewModel.ungroupedItems.length} 个`);
+    renderSummaryItem(infoListEl, '根级结构', `${previewModel.rootItems.length} 项`);
+    renderSummaryItem(infoListEl, '未配置后置', `${previewModel.ungroupedItems.length} 项`);
 
     const surfaceEl = this.previewPaneEl.createDiv({ cls: 'nene-menu-customizer-preview-surface' });
     const menuEl = surfaceEl.createDiv({ cls: 'nene-menu-customizer-preview-menu' });
@@ -666,7 +875,7 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
       return;
     }
 
-    if (previewModel.groups.length === 0 && previewModel.ungroupedItems.length === 0) {
+    if (previewModel.rootItems.length === 0 && previewModel.ungroupedItems.length === 0) {
       menuEl.createDiv({
         cls: 'nene-menu-customizer-preview-empty',
         text: '当前没有可预览的命令。'
@@ -674,21 +883,27 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
       return;
     }
 
-    previewModel.groups.forEach((group, groupIndex) => {
-      if (groupIndex > 0) {
+    previewModel.rootItems.forEach((item) => {
+      if (item.type === 'separator') {
         menuEl.createDiv({ cls: 'nene-menu-customizer-preview-separator' });
+        return;
       }
 
-      this.renderPreviewGroup(menuEl, group);
+      if (item.type === 'group') {
+        this.renderPreviewGroup(menuEl, item.group);
+        return;
+      }
+
+      this.renderPreviewMenuItem(menuEl, item.command);
     });
 
     if (previewModel.ungroupedItems.length > 0) {
-      if (previewModel.groups.length > 0) {
+      if (previewModel.rootItems.length > 0) {
         menuEl.createDiv({ cls: 'nene-menu-customizer-preview-separator' });
       }
 
       const sectionLabelEl = menuEl.createDiv({ cls: 'nene-menu-customizer-preview-section-label' });
-      sectionLabelEl.setText('未分组命令');
+      sectionLabelEl.setText('未配置命令');
 
       previewModel.ungroupedItems.forEach((item) => {
         this.renderPreviewMenuItem(menuEl, item);
@@ -702,6 +917,8 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
     const availableCommands = store.getAvailableCommands(menuType);
     const commandMap = new Map();
     const usedCommandIds = new Set();
+    const orderedCommandIds = new Set();
+    const groupsById = new Map(menuConfig.groups.map((group) => [group.id, group]));
 
     availableCommands.forEach((command) => {
       const override = menuConfig.commandOverrides[command.id] || {};
@@ -713,39 +930,110 @@ class MenuCustomizerManagementModal extends obsidian.Modal {
       });
     });
 
-    const groups = menuConfig.groups
-      .filter((group) => group.hidden !== true)
-      .map((group) => {
-        const items = group.commands
-          .map((commandId) => commandMap.get(commandId) || {
-            id: commandId,
-            title: menuConfig.commandOverrides[commandId]?.title || commandId,
-            icon: menuConfig.commandOverrides[commandId]?.icon || '',
-            hidden: menuConfig.commandOverrides[commandId]?.hidden === true
-          })
-          .filter((item) => item.hidden !== true);
+    menuConfig.groups.forEach((group) => {
+      group.commands.forEach((commandId) => orderedCommandIds.add(commandId));
+    });
+    menuConfig.rootItems.forEach((item) => {
+      if (item.type === 'command' && item.commandId) {
+        orderedCommandIds.add(item.commandId);
+      }
+    });
 
-        items.forEach((item) => usedCommandIds.add(item.id));
+    const rootItems = this.cleanupPreviewRootItems(menuConfig.rootItems
+      .map((rootItem) => {
+        if (rootItem.type === 'separator') {
+          return rootItem.hidden === true
+            ? null
+            : { type: 'separator' };
+        }
 
-        return {
-          id: group.id,
-          name: group.name,
-          icon: group.icon || '',
-          layout: group.layout,
-          forceSubmenu: group.forceSubmenu === true,
-          items
-        };
+        if (rootItem.type === 'group') {
+          const group = groupsById.get(rootItem.groupId);
+          if (!group || group.hidden === true) {
+            return null;
+          }
+
+          const items = group.commands
+            .map((commandId) => commandMap.get(commandId) || {
+              id: commandId,
+              title: menuConfig.commandOverrides[commandId]?.title || commandId,
+              icon: menuConfig.commandOverrides[commandId]?.icon || '',
+              hidden: menuConfig.commandOverrides[commandId]?.hidden === true
+            })
+            .filter((item) => item.hidden !== true);
+
+          if (items.length === 0) {
+            return null;
+          }
+
+          items.forEach((item) => usedCommandIds.add(item.id));
+
+          return {
+            type: 'group',
+            group: {
+              id: group.id,
+              name: group.name,
+              icon: group.icon || '',
+              layout: group.layout,
+              forceSubmenu: group.forceSubmenu === true,
+              items
+            }
+          };
+        }
+
+        if (rootItem.type === 'command') {
+          const command = commandMap.get(rootItem.commandId) || {
+            id: rootItem.commandId,
+            title: menuConfig.commandOverrides[rootItem.commandId]?.title || rootItem.commandId,
+            icon: menuConfig.commandOverrides[rootItem.commandId]?.icon || '',
+            hidden: menuConfig.commandOverrides[rootItem.commandId]?.hidden === true
+          };
+
+          if (rootItem.hidden === true || command.hidden === true) {
+            return null;
+          }
+
+          usedCommandIds.add(command.id);
+          return {
+            type: 'command',
+            command
+          };
+        }
+
+        return null;
       })
-      .filter((group) => group.items.length > 0);
+      .filter(Boolean));
 
     const ungroupedItems = availableCommands
       .map((command) => commandMap.get(command.id))
-      .filter((item) => item && item.hidden !== true && !usedCommandIds.has(item.id));
+      .filter((item) => item && item.hidden !== true && !usedCommandIds.has(item.id) && !orderedCommandIds.has(item.id));
 
     return {
-      groups,
+      rootItems,
       ungroupedItems
     };
+  }
+
+  // 清理预览中的首尾与连续分隔线，让预览更接近运行时最终结果。
+  cleanupPreviewRootItems(items) {
+    const cleanedItems = [];
+    let previousWasSeparator = true;
+
+    items.forEach((item) => {
+      const currentIsSeparator = item.type === 'separator';
+      if (currentIsSeparator && previousWasSeparator) {
+        return;
+      }
+
+      cleanedItems.push(item);
+      previousWasSeparator = currentIsSeparator;
+    });
+
+    if (cleanedItems[cleanedItems.length - 1]?.type === 'separator') {
+      cleanedItems.pop();
+    }
+
+    return cleanedItems;
   }
 
   // 渲染单个预览分组。

@@ -5,7 +5,7 @@
       "groups": [
         {
           "id": "editor-quick-actions",
-          "name": "编辑快捷操作",
+          "name": "编辑",
           "icon": "mouse-pointer-click",
           "layout": "icon-bar",
           "hidden": false,
@@ -23,7 +23,7 @@
           "id": "editor-format",
           "name": "格式",
           "icon": "bold",
-          "layout": "list",
+          "layout": "icon-bar",
           "hidden": false,
           "forceSubmenu": true,
           "commands": [
@@ -38,19 +38,38 @@
           "id": "editor-insert",
           "name": "插入",
           "icon": "plus",
-          "layout": "list",
+          "layout": "icon-bar",
           "hidden": false,
           "forceSubmenu": true,
           "commands": [
             "editor:insert-link",
             "editor:insert-embed",
-            "editor:insert-table",
-            "editor:insert-codeblock",
-            "editor:insert-horizontal-rule"
+            "editor:insert-codeblock"
           ]
         }
       ],
-      "commandOverrides": {}
+      "rootItems": [
+        {
+          "id": "editor-quick-actions::root",
+          "type": "group",
+          "groupId": "editor-quick-actions",
+          "hidden": false
+        },
+        {
+          "id": "editor-format::root",
+          "type": "group",
+          "groupId": "editor-format",
+          "hidden": false
+        },
+        {
+          "id": "editor-insert::root",
+          "type": "group",
+          "groupId": "editor-insert",
+          "hidden": false
+        }
+      ],
+      "commandOverrides": {},
+      "commandMappings": []
     },
     "moreOptions": {
       "enabled": false,
@@ -69,7 +88,16 @@
           ]
         }
       ],
-      "commandOverrides": {}
+      "rootItems": [
+        {
+          "id": "more-options-links::root",
+          "type": "group",
+          "groupId": "more-options-links",
+          "hidden": false
+        }
+      ],
+      "commandOverrides": {},
+      "commandMappings": []
     },
     "file": {
       "enabled": false,
@@ -103,7 +131,22 @@
           ]
         }
       ],
-      "commandOverrides": {}
+      "rootItems": [
+        {
+          "id": "file-open-actions::root",
+          "type": "group",
+          "groupId": "file-open-actions",
+          "hidden": false
+        },
+        {
+          "id": "file-management::root",
+          "type": "group",
+          "groupId": "file-management",
+          "hidden": false
+        }
+      ],
+      "commandOverrides": {},
+      "commandMappings": []
     },
     "folder": {
       "enabled": false,
@@ -135,7 +178,22 @@
           ]
         }
       ],
-      "commandOverrides": {}
+      "rootItems": [
+        {
+          "id": "folder-create::root",
+          "type": "group",
+          "groupId": "folder-create",
+          "hidden": false
+        },
+        {
+          "id": "folder-management::root",
+          "type": "group",
+          "groupId": "folder-management",
+          "hidden": false
+        }
+      ],
+      "commandOverrides": {},
+      "commandMappings": []
     }
   }
 }

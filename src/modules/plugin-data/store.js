@@ -303,6 +303,7 @@ class PluginDataStore {
       normalizedMenus[menuType] = {
         enabled: menuSource.enabled === true,
         groups: Array.isArray(menuSource.groups) ? menuSource.groups : defaultMenuConfig.groups,
+        rootItems: Array.isArray(menuSource.rootItems) ? menuSource.rootItems : defaultMenuConfig.rootItems,
         commandOverrides: this.isPlainObject(menuSource.commandOverrides) ? menuSource.commandOverrides : defaultMenuConfig.commandOverrides,
         commandMappings: Array.isArray(menuSource.commandMappings) ? menuSource.commandMappings : defaultMenuConfig.commandMappings
       };

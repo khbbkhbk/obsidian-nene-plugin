@@ -44,7 +44,9 @@ class MenuCustomizerRuntime {
 
   // 为文件或文件夹菜单打上上下文标记，提升识别稳定性。
   annotateFileMenu(menu, file) {
-    if (!menu) return;
+    if (!menu) {
+      return;
+    }
 
     menu.__neneMenuContext = {
       source: 'file-menu',
@@ -59,7 +61,9 @@ class MenuCustomizerRuntime {
 
   // 为编辑区菜单打上上下文标记，便于区分右键菜单与更多选项菜单。
   annotateEditorMenu(menu) {
-    if (!menu) return;
+    if (!menu) {
+      return;
+    }
 
     menu.__neneMenuContext = {
       source: 'editor-menu'
@@ -75,14 +79,18 @@ class MenuCustomizerRuntime {
     if (typeof this.originalShowAtMouseEvent === 'function') {
       obsidian.Menu.prototype.showAtMouseEvent = function wrappedShowAtMouseEvent(event) {
         runtime.onBeforeMenuShow(this);
-        return runtime.originalShowAtMouseEvent.call(this, event);
+        const result = runtime.originalShowAtMouseEvent.call(this, event);
+        runtime.onAfterMenuShow(this);
+        return result;
       };
     }
 
     if (typeof this.originalShowAtPosition === 'function') {
       obsidian.Menu.prototype.showAtPosition = function wrappedShowAtPosition(position) {
         runtime.onBeforeMenuShow(this);
-        return runtime.originalShowAtPosition.call(this, position);
+        const result = runtime.originalShowAtPosition.call(this, position);
+        runtime.onAfterMenuShow(this);
+        return result;
       };
     }
 
@@ -113,11 +121,27 @@ class MenuCustomizerRuntime {
     }
   }
 
+  // 在 Obsidian 完成真实菜单渲染后，再包装图标组/网格组，避免被内部重排抹平。
+  onAfterMenuShow(menu) {
+    if (!menu?.dom || menu.__neneSkipCustomize !== true && menu.__neneMenuCustomized !== true) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      this.wrapRenderedGroups(menu);
+    });
+  }
+
   // 根据上下文和标题特征识别当前菜单类型。
   detectMenuType(menu) {
     const context = menu.__neneMenuContext || {};
-    if (context.fileKind === 'folder') return 'folder';
-    if (context.fileKind === 'file') return 'file';
+    if (context.fileKind === 'folder') {
+      return 'folder';
+    }
+
+    if (context.fileKind === 'file') {
+      return 'file';
+    }
 
     const entries = this.collectMenuEntries(menu, null);
     const titles = entries.map((entry) => entry.title);
@@ -163,120 +187,127 @@ class MenuCustomizerRuntime {
     return null;
   }
 
-  // 按配置重排菜单内容，保留原始回调与插件命令节点。
+  // 按配置重排菜单内容；根级结构严格按设置渲染，未配置项统一后置。
   rebuildMenu(menu, menuType, menuConfig) {
     if (!menu.dom || !Array.isArray(menu.items)) {
       return;
     }
 
     const collectedEntries = this.collectMenuEntries(menu, menuType);
-    const visibleRecognizedEntries = [];
-    const unknownEntries = [];
+    const recognizedByCommandId = new Map();
+    const orderedConfiguredCommandIds = this.getOrderedConfiguredCommandIds(menuConfig);
+    const nextRootItems = [];
+    const renderedCommandIds = new Set();
+    const menuEl = menu.dom;
 
     collectedEntries.forEach((entry) => {
       if (!entry.commandId) {
-        unknownEntries.push(entry);
         return;
       }
 
       const override = menuConfig.commandOverrides?.[entry.commandId];
       this.applyItemOverride(entry.item, override);
 
-      if (override?.hidden === true) {
+      if (override?.hidden === true || recognizedByCommandId.has(entry.commandId)) {
         return;
       }
 
-      visibleRecognizedEntries.push(entry);
+      recognizedByCommandId.set(entry.commandId, entry);
     });
 
-    const recognizedByCommandId = new Map();
-    visibleRecognizedEntries.forEach((entry) => {
-      if (!recognizedByCommandId.has(entry.commandId)) {
-        recognizedByCommandId.set(entry.commandId, entry);
-      }
-    });
-
-    const renderedCommandIds = new Set();
-    const nextRootItems = [];
-    const menuEl = menu.dom;
     menuEl.empty();
 
-    menuConfig.groups.forEach((group) => {
-      if (group.hidden) return;
+    let hasConfiguredContent = false;
+    const groupsById = new Map(menuConfig.groups.map((group) => [group.id, group]));
 
-      const groupEntries = [];
-      group.commands.forEach((commandId) => {
-        if (renderedCommandIds.has(commandId)) {
+    menuConfig.rootItems.forEach((rootItem) => {
+      if (rootItem.type === 'separator') {
+        if (rootItem.hidden === true) {
           return;
         }
 
-        const override = menuConfig.commandOverrides?.[commandId];
-        if (override?.hidden === true) {
-          return;
-        }
-
-        const entry = recognizedByCommandId.get(commandId)
-          || this.createSyntheticCommandEntry(menu, menuType, commandId, override);
-
-        if (!entry) {
-          return;
-        }
-
-        groupEntries.push(entry);
-      });
-
-      if (groupEntries.length === 0) {
+        this.appendSeparator(menuEl);
         return;
       }
 
-      this.appendSeparator(menuEl);
-
-      if (this.shouldRenderAsSubmenu(group, groupEntries)) {
-        const parentItem = this.createSubmenuParent(menu, group, groupEntries, menuType);
-        if (parentItem) {
-          nextRootItems.push(parentItem);
-          groupEntries.forEach((entry) => renderedCommandIds.add(entry.commandId));
-          return;
-        }
+      if (rootItem.type === 'group') {
+        const group = groupsById.get(rootItem.groupId);
+        const rendered = this.renderConfiguredGroup(
+          menu,
+          menuEl,
+          group,
+          recognizedByCommandId,
+          renderedCommandIds,
+          nextRootItems,
+          menuType,
+          menuConfig
+        );
+        hasConfiguredContent = hasConfiguredContent || rendered;
+        return;
       }
 
-      groupEntries.forEach((entry) => {
-        this.prepareRenderedItem(entry.item, entry.commandId, group.layout);
-        menuEl.appendChild(entry.item.dom);
-        nextRootItems.push(entry.item);
-        renderedCommandIds.add(entry.commandId);
-      });
-    });
-
-    visibleRecognizedEntries
-      .sort((left, right) => left.order - right.order)
-      .forEach((entry) => {
-        if (renderedCommandIds.has(entry.commandId)) {
+      if (rootItem.type === 'command') {
+        if (rootItem.hidden === true) {
           return;
         }
 
-        this.appendSeparator(menuEl);
-        this.prepareRenderedItem(entry.item, entry.commandId, 'list');
-        menuEl.appendChild(entry.item.dom);
-        nextRootItems.push(entry.item);
-        renderedCommandIds.add(entry.commandId);
-      });
+        const rendered = this.renderConfiguredCommand(
+          menu,
+          menuEl,
+          menuType,
+          rootItem.commandId,
+          recognizedByCommandId,
+          renderedCommandIds,
+          nextRootItems,
+          menuConfig
+        );
+        hasConfiguredContent = hasConfiguredContent || rendered;
+      }
+    });
 
-    unknownEntries
-      .sort((left, right) => left.order - right.order)
-      .forEach((entry) => {
-        this.appendSeparator(menuEl);
-        this.prepareRenderedItem(entry.item, null, 'list');
-        menuEl.appendChild(entry.item.dom);
-        nextRootItems.push(entry.item);
-      });
+    const leftoverEntries = collectedEntries
+      .filter((entry) => {
+        if (!entry.commandId) {
+          return true;
+        }
+
+        const override = menuConfig.commandOverrides?.[entry.commandId];
+        if (override?.hidden === true) {
+          return false;
+        }
+
+        if (renderedCommandIds.has(entry.commandId)) {
+          return false;
+        }
+
+        if (orderedConfiguredCommandIds.has(entry.commandId)) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((left, right) => left.order - right.order);
+
+    if (hasConfiguredContent && leftoverEntries.length > 0) {
+      this.appendSeparator(menuEl);
+    }
+
+    leftoverEntries.forEach((entry) => {
+      this.prepareRenderedItem(entry.item, entry.commandId, 'list', null, null, 'nene-tail');
+      menuEl.appendChild(entry.item.dom);
+      nextRootItems.push(entry.item);
+
+      if (entry.commandId) {
+        renderedCommandIds.add(entry.commandId);
+      }
+    });
 
     this.cleanupSeparators(menuEl);
     this.applyMenuClasses(menuEl, menuType);
     menu.items = nextRootItems;
   }
 
-  // 收集菜单项并尽量解析出稳定命令标识，未知命令保留原始节点顺序。
+  // 收集菜单项并尽量解析出稳定命令标识。
   collectMenuEntries(menu, menuType) {
     const items = Array.isArray(menu.items) ? menu.items : [];
 
@@ -300,6 +331,109 @@ class MenuCustomizerRuntime {
         };
       })
       .filter(Boolean);
+  }
+
+  // 返回已被“排序结构”显式配置过的命令集合。
+  getOrderedConfiguredCommandIds(menuConfig) {
+    const commandIds = new Set();
+
+    menuConfig.groups.forEach((group) => {
+      group.commands.forEach((commandId) => commandIds.add(commandId));
+    });
+
+    menuConfig.rootItems.forEach((item) => {
+      if (item.type === 'command' && item.commandId) {
+        commandIds.add(item.commandId);
+      }
+    });
+
+    return commandIds;
+  }
+
+  // 渲染根级分组。
+  renderConfiguredGroup(menu, menuEl, group, recognizedByCommandId, renderedCommandIds, nextRootItems, menuType, menuConfig) {
+    if (!group || group.hidden === true) {
+      return false;
+    }
+
+    const groupEntries = [];
+    group.commands.forEach((commandId) => {
+      if (renderedCommandIds.has(commandId)) {
+        return;
+      }
+
+      const override = menuConfig.commandOverrides?.[commandId];
+      if (override?.hidden === true) {
+        return;
+      }
+
+      const entry = recognizedByCommandId.get(commandId)
+        || this.createSyntheticCommandEntry(menu, menuType, commandId, override);
+
+      if (!entry) {
+        return;
+      }
+
+      groupEntries.push(entry);
+    });
+
+    if (groupEntries.length === 0) {
+      return false;
+    }
+
+    if (this.shouldRenderAsSubmenu(group, groupEntries)) {
+      const parentItem = this.createSubmenuParent(menu, group, groupEntries, menuType);
+      if (!parentItem) {
+        return false;
+      }
+
+      this.prepareRenderedItem(parentItem, null, 'list', null, null, 'nene-configured');
+      menuEl.appendChild(parentItem.dom);
+      nextRootItems.push(parentItem);
+      groupEntries.forEach((entry) => renderedCommandIds.add(entry.commandId));
+      return true;
+    }
+
+    groupEntries.forEach((entry) => {
+      this.prepareRenderedItem(
+        entry.item,
+        entry.commandId,
+        group.layout,
+        group.id,
+        group.layout,
+        'nene-configured'
+      );
+      menuEl.appendChild(entry.item.dom);
+      nextRootItems.push(entry.item);
+      renderedCommandIds.add(entry.commandId);
+    });
+
+    return true;
+  }
+
+  // 渲染根级单命令。
+  renderConfiguredCommand(menu, menuEl, menuType, commandId, recognizedByCommandId, renderedCommandIds, nextRootItems, menuConfig) {
+    if (!commandId || renderedCommandIds.has(commandId)) {
+      return false;
+    }
+
+    const override = menuConfig.commandOverrides?.[commandId];
+    if (override?.hidden === true) {
+      return false;
+    }
+
+    const entry = recognizedByCommandId.get(commandId)
+      || this.createSyntheticCommandEntry(menu, menuType, commandId, override);
+
+    if (!entry) {
+      return false;
+    }
+
+    this.prepareRenderedItem(entry.item, entry.commandId, 'list', null, null, 'nene-configured');
+    menuEl.appendChild(entry.item.dom);
+    nextRootItems.push(entry.item);
+    renderedCommandIds.add(entry.commandId);
+    return true;
   }
 
   // 返回菜单项当前标题文本。
@@ -342,7 +476,7 @@ class MenuCustomizerRuntime {
     return '';
   }
 
-  // 根据用户提供的手动映射，严格识别无显式 commandId 的菜单项。
+  // 根据“手动映射 + 初始内置数据”严格识别无显式 commandId 的菜单项。
   resolveCommandId(title, section, menuType) {
     if (!menuType) {
       return '';
@@ -416,7 +550,7 @@ class MenuCustomizerRuntime {
       submenu.dom.empty();
 
       groupEntries.forEach((entry) => {
-        this.prepareRenderedItem(entry.item, entry.commandId, 'list');
+        this.prepareRenderedItem(entry.item, entry.commandId, 'list', null, null, 'nene-submenu');
         submenu.items.push(entry.item);
         submenu.dom.appendChild(entry.item.dom);
       });
@@ -493,7 +627,7 @@ class MenuCustomizerRuntime {
   }
 
   // 给已渲染的菜单项打上布局类与命令标识类，供样式层复用。
-  prepareRenderedItem(item, commandId, layout) {
+  prepareRenderedItem(item, commandId, layout, groupId, groupLayout, sectionName) {
     if (!item?.dom) {
       return;
     }
@@ -514,7 +648,110 @@ class MenuCustomizerRuntime {
 
     if (typeof item.dom.setAttribute === 'function') {
       item.dom.setAttribute('data-nene-command-id', commandId || '');
+      if (groupId) {
+        item.dom.setAttribute('data-nene-group-id', groupId);
+      } else {
+        item.dom.removeAttribute('data-nene-group-id');
+      }
+
+      if (groupLayout) {
+        item.dom.setAttribute('data-nene-group-layout', groupLayout);
+      } else {
+        item.dom.removeAttribute('data-nene-group-layout');
+      }
+
+      if (sectionName) {
+        item.dom.setAttribute('data-section', sectionName);
+      }
     }
+
+    if (sectionName) {
+      item.section = sectionName;
+    }
+  }
+
+  // 在真实菜单 DOM 上把连续的图标组/网格组重新包成独立容器。
+  wrapRenderedGroups(menu) {
+    const menuEl = menu?.dom;
+    if (!menuEl) {
+      return;
+    }
+
+    this.unwrapRenderedGroups(menuEl);
+
+    const children = Array.from(menuEl.children);
+    let activeGroupId = '';
+    let activeLayout = '';
+    let activeNodes = [];
+
+    const flushGroup = () => {
+      if (activeNodes.length === 0 || !activeGroupId || !this.shouldWrapGroupLayout(activeLayout)) {
+        activeGroupId = '';
+        activeLayout = '';
+        activeNodes = [];
+        return;
+      }
+
+      const wrapperEl = document.createElement('div');
+      wrapperEl.className = `nene-menu-group-wrapper nene-menu-group-wrapper--${activeLayout}`;
+      wrapperEl.setAttribute('data-nene-group-id', activeGroupId);
+      menuEl.insertBefore(wrapperEl, activeNodes[0]);
+
+      activeNodes.forEach((node) => {
+        wrapperEl.appendChild(node);
+      });
+
+      activeGroupId = '';
+      activeLayout = '';
+      activeNodes = [];
+    };
+
+    children.forEach((childEl) => {
+      if (!childEl.classList.contains('menu-item')) {
+        flushGroup();
+        return;
+      }
+
+      const groupId = childEl.getAttribute('data-nene-group-id') || '';
+      const groupLayout = childEl.getAttribute('data-nene-group-layout') || '';
+
+      if (!groupId || !this.shouldWrapGroupLayout(groupLayout)) {
+        flushGroup();
+        return;
+      }
+
+      if (!activeGroupId || activeGroupId === groupId && activeLayout === groupLayout) {
+        activeGroupId = groupId;
+        activeLayout = groupLayout;
+        activeNodes.push(childEl);
+        return;
+      }
+
+      flushGroup();
+      activeGroupId = groupId;
+      activeLayout = groupLayout;
+      activeNodes.push(childEl);
+    });
+
+    flushGroup();
+  }
+
+  // 清理旧的分组包装层，避免重复包裹。
+  unwrapRenderedGroups(menuEl) {
+    const wrappers = Array.from(menuEl.querySelectorAll(':scope > .nene-menu-group-wrapper'));
+
+    wrappers.forEach((wrapperEl) => {
+      while (wrapperEl.firstChild) {
+        menuEl.insertBefore(wrapperEl.firstChild, wrapperEl);
+      }
+
+      wrapperEl.remove();
+    });
+  }
+
+  // 只有图标组与网格组需要外层容器。
+  shouldWrapGroupLayout(layout) {
+    return layout === 'icon-bar' || layout === 'grid';
   }
 
   // 为菜单根节点添加类型与布局类，替代原有复杂的 :has CSS。

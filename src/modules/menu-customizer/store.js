@@ -35,6 +35,44 @@ class MenuCustomizerStore {
     return this.settings.menus[menuType] || this.normalizeMenuConfig(menuType);
   }
 
+  // 返回按根级结构顺序排序后的分组列表，保证设置页展示顺序与运行时一致。
+  getOrderedGroups(menuType) {
+    const menuConfig = this.getMenuConfig(menuType);
+    const groupsById = new Map(menuConfig.groups.map((group) => [group.id, group]));
+    const orderedGroups = [];
+    const seenGroupIds = new Set();
+
+    menuConfig.rootItems.forEach((item) => {
+      if (item.type !== 'group') {
+        return;
+      }
+
+      const group = groupsById.get(item.groupId);
+      if (!group || seenGroupIds.has(group.id)) {
+        return;
+      }
+
+      seenGroupIds.add(group.id);
+      orderedGroups.push(group);
+    });
+
+    menuConfig.groups.forEach((group) => {
+      if (seenGroupIds.has(group.id)) {
+        return;
+      }
+
+      seenGroupIds.add(group.id);
+      orderedGroups.push(group);
+    });
+
+    return orderedGroups;
+  }
+
+  // 返回指定菜单类型的根级结构项，供设置页与运行时共用。
+  getMenuRootItems(menuType) {
+    return this.getMenuConfig(menuType).rootItems.slice();
+  }
+
   // 返回设置页可展示的菜单类型列表。
   getMenuTypeOptions() {
     return constants.MENU_TYPE_OPTIONS.slice();
@@ -92,21 +130,34 @@ class MenuCustomizerStore {
 
     const mappings = this.getCommandMappingsForCommand(menuType, normalizedCommandId);
     const preferredMapping = mappings.find((mapping) => mapping.title) || null;
+    const builtinMetadata = constants.getBuiltinCommandMetadata(menuType, normalizedCommandId);
     const registeredCommand = this.getRegisteredCommands().find((item) => item.id === normalizedCommandId) || null;
 
-    if (!preferredMapping && !registeredCommand) {
+    if (!preferredMapping && !builtinMetadata && !registeredCommand) {
       return null;
     }
 
     return {
       id: normalizedCommandId,
-      label: preferredMapping?.title || registeredCommand?.label || normalizedCommandId,
-      icon: registeredCommand?.icon || '',
-      aliases: Array.from(new Set(mappings.map((mapping) => mapping.title).filter(Boolean))),
-      sections: Array.from(new Set(mappings.map((mapping) => mapping.section).filter(Boolean))),
+      label: preferredMapping?.title || builtinMetadata?.label || registeredCommand?.label || normalizedCommandId,
+      icon: builtinMetadata?.icon || registeredCommand?.icon || '',
+      aliases: Array.from(new Set([
+        ...mappings.map((mapping) => mapping.title),
+        ...(builtinMetadata?.aliases || [])
+      ].filter(Boolean))),
+      sections: Array.from(new Set([
+        ...mappings.map((mapping) => mapping.section),
+        ...(builtinMetadata?.sections || [])
+      ].filter(Boolean))),
       source: preferredMapping
-        ? registeredCommand ? 'mapped-registered' : 'mapped'
-        : 'registered',
+        ? registeredCommand
+          ? 'mapped-registered'
+          : builtinMetadata
+            ? 'mapped-builtin'
+            : 'mapped'
+        : builtinMetadata
+          ? registeredCommand ? 'builtin-registered' : 'builtin'
+          : 'registered',
       canExecute: Boolean(registeredCommand)
     };
   }
@@ -123,6 +174,12 @@ class MenuCustomizerStore {
 
     menuConfig.groups.forEach((group) => {
       group.commands.forEach((commandId) => commandIds.add(commandId));
+    });
+
+    menuConfig.rootItems.forEach((item) => {
+      if (item.type === 'command' && item.commandId) {
+        commandIds.add(item.commandId);
+      }
     });
 
     Object.keys(menuConfig.commandOverrides).forEach((commandId) => commandIds.add(commandId));
@@ -176,50 +233,79 @@ class MenuCustomizerStore {
     return this.getMenuConfig(menuType).enabled;
   }
 
-  // 新增一个空分组，供用户后续配置名称、布局与命令。
+  // 新增一个空分组，并自动挂到根级结构末尾。
   async addGroup(menuType) {
     this.ensureMenuConfig(menuType);
-    this.settings.menus[menuType].groups.push(this.createGroup(menuType));
+    const menuConfig = this.settings.menus[menuType];
+    const group = this.createGroup(menuType);
+
+    menuConfig.groups.push(group);
+    menuConfig.rootItems.push(this.createRootItem('group', { groupId: group.id }));
+    this.alignGroupOrderWithRootItems(menuConfig);
     await this.save();
   }
 
-  // 删除指定索引的分组。
+  // 删除指定索引的分组，并同步移除对应的根级结构引用。
   async removeGroup(menuType, groupIndex) {
     this.ensureMenuConfig(menuType);
-    this.settings.menus[menuType].groups.splice(groupIndex, 1);
+    const menuConfig = this.settings.menus[menuType];
+    const targetGroup = menuConfig.groups[groupIndex];
+    if (!targetGroup) {
+      return;
+    }
+
+    menuConfig.groups.splice(groupIndex, 1);
+    menuConfig.rootItems = menuConfig.rootItems.filter((item) => {
+      return item.type !== 'group' || item.groupId !== targetGroup.id;
+    });
+    this.alignGroupOrderWithRootItems(menuConfig);
     await this.save();
   }
 
   // 更新分组属性，统一经过归一化，保证结构稳定。
   async updateGroup(menuType, groupIndex, patch) {
     this.ensureMenuConfig(menuType);
-    const currentGroup = this.settings.menus[menuType].groups[groupIndex];
-    if (!currentGroup) return;
+    const menuConfig = this.settings.menus[menuType];
+    const currentGroup = menuConfig.groups[groupIndex];
+    if (!currentGroup) {
+      return;
+    }
 
-    this.settings.menus[menuType].groups[groupIndex] = this.normalizeGroup(
+    menuConfig.groups[groupIndex] = this.normalizeGroup(
       menuType,
       Object.assign({}, currentGroup, patch)
     );
+    this.alignGroupOrderWithRootItems(menuConfig);
     await this.save();
   }
 
-  // 调整分组顺序，便于控制菜单中的最终呈现顺序。
+  // 调整分组在根级结构中的顺序，保证设置页与运行时顺序一致。
   async moveGroup(menuType, groupIndex, offset) {
     this.ensureMenuConfig(menuType);
-    const groups = this.settings.menus[menuType].groups;
-    const targetIndex = groupIndex + offset;
+    const menuConfig = this.settings.menus[menuType];
+    const targetGroup = menuConfig.groups[groupIndex];
+    if (!targetGroup) {
+      return;
+    }
 
-    if (targetIndex < 0 || targetIndex >= groups.length) return;
+    const rootItemIndex = this.getGroupRootItemIndex(menuConfig, targetGroup.id);
+    if (rootItemIndex === -1) {
+      return;
+    }
 
-    const [group] = groups.splice(groupIndex, 1);
-    groups.splice(targetIndex, 0, group);
+    if (!this.moveArrayItem(menuConfig.rootItems, rootItemIndex, offset)) {
+      return;
+    }
+
+    this.alignGroupOrderWithRootItems(menuConfig);
     await this.save();
   }
 
   // 往指定分组中追加命令，自动去重，避免重复渲染。
   async addCommandToGroup(menuType, groupIndex, commandId) {
     this.ensureMenuConfig(menuType);
-    const targetGroup = this.settings.menus[menuType].groups[groupIndex];
+    const menuConfig = this.settings.menus[menuType];
+    const targetGroup = menuConfig.groups[groupIndex];
     const normalizedCommandId = typeof commandId === 'string' ? commandId.trim() : '';
 
     if (!targetGroup || !normalizedCommandId) {
@@ -255,7 +341,9 @@ class MenuCustomizerStore {
   async removeCommandFromGroup(menuType, groupIndex, commandIndex) {
     this.ensureMenuConfig(menuType);
     const targetGroup = this.settings.menus[menuType].groups[groupIndex];
-    if (!targetGroup) return;
+    if (!targetGroup) {
+      return;
+    }
 
     targetGroup.commands.splice(commandIndex, 1);
     await this.save();
@@ -265,14 +353,102 @@ class MenuCustomizerStore {
   async moveCommandInGroup(menuType, groupIndex, commandIndex, offset) {
     this.ensureMenuConfig(menuType);
     const targetGroup = this.settings.menus[menuType].groups[groupIndex];
-    if (!targetGroup) return;
+    if (!targetGroup) {
+      return;
+    }
 
-    const targetIndex = commandIndex + offset;
-    if (targetIndex < 0 || targetIndex >= targetGroup.commands.length) return;
+    if (!this.moveArrayItem(targetGroup.commands, commandIndex, offset)) {
+      return;
+    }
 
-    const [commandId] = targetGroup.commands.splice(commandIndex, 1);
-    targetGroup.commands.splice(targetIndex, 0, commandId);
     await this.save();
+  }
+
+  // 新增一个与分组并列的根级命令。
+  async addRootCommand(menuType, commandId) {
+    this.ensureMenuConfig(menuType);
+    const menuConfig = this.settings.menus[menuType];
+    const normalizedCommandId = typeof commandId === 'string' ? commandId.trim() : '';
+
+    if (!normalizedCommandId) {
+      return {
+        success: false,
+        reason: 'empty'
+      };
+    }
+
+    if (!this.getCommandMetadata(menuType, normalizedCommandId)) {
+      return {
+        success: false,
+        reason: 'missing'
+      };
+    }
+
+    if (menuConfig.rootItems.some((item) => item.type === 'command' && item.commandId === normalizedCommandId)) {
+      return {
+        success: false,
+        reason: 'duplicate'
+      };
+    }
+
+    menuConfig.rootItems.push(this.createRootItem('command', { commandId: normalizedCommandId }));
+    await this.save();
+    return {
+      success: true,
+      reason: 'added'
+    };
+  }
+
+  // 新增一个根级分隔线。
+  async addRootSeparator(menuType) {
+    this.ensureMenuConfig(menuType);
+    this.settings.menus[menuType].rootItems.push(this.createRootItem('separator'));
+    await this.save();
+  }
+
+  // 删除根级结构中的命令或分隔线；分组应通过“删除分组”操作处理。
+  async removeRootItem(menuType, itemIndex) {
+    this.ensureMenuConfig(menuType);
+    const menuConfig = this.settings.menus[menuType];
+    const targetItem = menuConfig.rootItems[itemIndex];
+    if (!targetItem || targetItem.type === 'group') {
+      return false;
+    }
+
+    menuConfig.rootItems.splice(itemIndex, 1);
+    await this.save();
+    return true;
+  }
+
+  // 调整根级结构项顺序。
+  async moveRootItem(menuType, itemIndex, offset) {
+    this.ensureMenuConfig(menuType);
+    const menuConfig = this.settings.menus[menuType];
+    if (!this.moveArrayItem(menuConfig.rootItems, itemIndex, offset)) {
+      return false;
+    }
+
+    this.alignGroupOrderWithRootItems(menuConfig);
+    await this.save();
+    return true;
+  }
+
+  // 更新根级结构项属性，目前主要用于命令/分隔线的隐藏状态。
+  async updateRootItem(menuType, itemIndex, patch) {
+    this.ensureMenuConfig(menuType);
+    const menuConfig = this.settings.menus[menuType];
+    const currentItem = menuConfig.rootItems[itemIndex];
+    if (!currentItem || currentItem.type === 'group') {
+      return false;
+    }
+
+    menuConfig.rootItems[itemIndex] = this.normalizeRootItem(
+      menuType,
+      Object.assign({}, currentItem, patch),
+      new Set(menuConfig.groups.map((group) => group.id))
+    );
+    await this.save();
+    return true;
   }
 
   // 新增一条手动命令映射，用于补齐无 commandId 的原始菜单项识别。
@@ -303,7 +479,7 @@ class MenuCustomizerStore {
     await this.save();
   }
 
-  // 根据用户提供的 title + section + commandId 映射，严格识别无显式 commandId 的菜单项。
+  // 根据“手动映射 + 初始内置数据”严格识别无显式 commandId 的菜单项。
   resolveMappedCommandId(menuType, title, section) {
     const normalizedTitle = this.normalizeText(title);
     const normalizedSection = this.normalizeText(section);
@@ -329,6 +505,23 @@ class MenuCustomizerStore {
       return mapping.commandId;
     }
 
+    for (const builtinEntry of constants.getBuiltinCommandEntries(menuType)) {
+      if (!builtinEntry.title || !builtinEntry.commandId) {
+        continue;
+      }
+
+      if (this.normalizeText(builtinEntry.title) !== normalizedTitle) {
+        continue;
+      }
+
+      const builtinSection = this.normalizeText(builtinEntry.section);
+      if (builtinSection && builtinSection !== normalizedSection) {
+        continue;
+      }
+
+      return builtinEntry.commandId;
+    }
+
     return '';
   }
 
@@ -336,7 +529,9 @@ class MenuCustomizerStore {
   async updateCommandOverride(menuType, commandId, patch) {
     this.ensureMenuConfig(menuType);
     const normalizedCommandId = typeof commandId === 'string' ? commandId.trim() : '';
-    if (!normalizedCommandId) return;
+    if (!normalizedCommandId) {
+      return;
+    }
 
     const currentOverride = this.settings.menus[menuType].commandOverrides[normalizedCommandId] || {};
     const nextOverride = this.normalizeCommandOverride(Object.assign({}, currentOverride, patch));
@@ -360,6 +555,38 @@ class MenuCustomizerStore {
       hidden: false,
       forceSubmenu: false,
       commands: []
+    };
+  }
+
+  // 生成默认根级结构项。
+  createRootItem(type, payload) {
+    const source = this.isPlainObject(payload) ? payload : {};
+    const id = typeof source.id === 'string' && source.id.trim()
+      ? source.id.trim()
+      : `root-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    if (type === 'group') {
+      return {
+        id,
+        type: 'group',
+        groupId: typeof source.groupId === 'string' ? source.groupId.trim() : '',
+        hidden: false
+      };
+    }
+
+    if (type === 'command') {
+      return {
+        id,
+        type: 'command',
+        commandId: typeof source.commandId === 'string' ? source.commandId.trim() : '',
+        hidden: source.hidden === true
+      };
+    }
+
+    return {
+      id,
+      type: 'separator',
+      hidden: source.hidden === true
     };
   }
 
@@ -393,30 +620,43 @@ class MenuCustomizerStore {
     const defaultMenuConfig = defaultSettings.menus[menuType] || {
       enabled: false,
       groups: [],
+      rootItems: constants.cloneDefaultRootItems(menuType),
       commandOverrides: {},
       commandMappings: []
     };
     const source = this.isPlainObject(menuConfig) ? menuConfig : {};
     const commandOverrides = {};
+    const groups = Array.isArray(source.groups)
+      ? source.groups.map((group) => this.normalizeGroup(menuType, group))
+      : defaultMenuConfig.groups.map((group) => this.normalizeGroup(menuType, group));
 
     if (this.isPlainObject(source.commandOverrides)) {
       Object.entries(source.commandOverrides).forEach(([commandId, override]) => {
         const normalizedCommandId = typeof commandId === 'string' ? commandId.trim() : '';
-        if (!normalizedCommandId) return;
+        if (!normalizedCommandId) {
+          return;
+        }
+
         commandOverrides[normalizedCommandId] = this.normalizeCommandOverride(override);
       });
     }
 
-    return {
+    const normalizedConfig = {
       enabled: source.enabled === true,
-      groups: Array.isArray(source.groups)
-        ? source.groups.map((group) => this.normalizeGroup(menuType, group))
-        : defaultMenuConfig.groups.map((group) => this.normalizeGroup(menuType, group)),
+      groups,
+      rootItems: this.normalizeRootItems(
+        menuType,
+        Array.isArray(source.rootItems) ? source.rootItems : defaultMenuConfig.rootItems,
+        groups
+      ),
       commandOverrides,
       commandMappings: Array.isArray(source.commandMappings)
         ? source.commandMappings.map((mapping) => this.normalizeCommandMapping(mapping))
         : defaultMenuConfig.commandMappings.map((mapping) => this.normalizeCommandMapping(mapping))
     };
+
+    this.alignGroupOrderWithRootItems(normalizedConfig);
+    return normalizedConfig;
   }
 
   // 归一化分组配置，清理非法布局值与空命令。
@@ -439,6 +679,89 @@ class MenuCustomizerStore {
       forceSubmenu: source.forceSubmenu === true,
       commands: this.normalizeCommandList(source.commands)
     };
+  }
+
+  // 归一化单个根级结构项。
+  normalizeRootItem(menuType, item, validGroupIds) {
+    const source = this.isPlainObject(item) ? item : {};
+    const type = typeof source.type === 'string' ? source.type.trim() : '';
+
+    if (type === 'group') {
+      const groupId = typeof source.groupId === 'string' ? source.groupId.trim() : '';
+      if (!groupId || !validGroupIds.has(groupId)) {
+        return null;
+      }
+
+      return this.createRootItem('group', {
+        id: source.id,
+        groupId
+      });
+    }
+
+    if (type === 'command') {
+      const commandId = typeof source.commandId === 'string' ? source.commandId.trim() : '';
+      if (!commandId) {
+        return null;
+      }
+
+      return this.createRootItem('command', {
+        id: source.id,
+        commandId,
+        hidden: source.hidden === true
+      });
+    }
+
+    if (type === 'separator') {
+      return this.createRootItem('separator', {
+        id: source.id,
+        hidden: source.hidden === true
+      });
+    }
+
+    return null;
+  }
+
+  // 归一化根级结构列表，并自动补齐缺失的分组引用。
+  normalizeRootItems(menuType, rootItems, groups) {
+    const source = Array.isArray(rootItems) ? rootItems : [];
+    const validGroupIds = new Set(groups.map((group) => group.id));
+    const normalizedItems = [];
+    const seenGroupIds = new Set();
+
+    source.forEach((item) => {
+      const normalizedItem = this.normalizeRootItem(menuType, item, validGroupIds);
+      if (!normalizedItem) {
+        return;
+      }
+
+      if (normalizedItem.type === 'group') {
+        if (seenGroupIds.has(normalizedItem.groupId)) {
+          return;
+        }
+
+        seenGroupIds.add(normalizedItem.groupId);
+      }
+
+      normalizedItems.push(normalizedItem);
+    });
+
+    groups.forEach((group) => {
+      if (seenGroupIds.has(group.id)) {
+        return;
+      }
+
+      seenGroupIds.add(group.id);
+      normalizedItems.push(this.createRootItem('group', {
+        id: `${group.id}::root`,
+        groupId: group.id
+      }));
+    });
+
+    if (normalizedItems.length === 0 && groups.length === 0) {
+      return constants.cloneDefaultRootItems(menuType).filter((item) => item.type !== 'group');
+    }
+
+    return normalizedItems;
   }
 
   // 归一化单条手动命令映射。
@@ -473,9 +796,14 @@ class MenuCustomizerStore {
     const seen = new Set();
 
     commands.forEach((commandId) => {
-      if (typeof commandId !== 'string') return;
+      if (typeof commandId !== 'string') {
+        return;
+      }
+
       const normalizedCommandId = commandId.trim();
-      if (!normalizedCommandId || seen.has(normalizedCommandId)) return;
+      if (!normalizedCommandId || seen.has(normalizedCommandId)) {
+        return;
+      }
 
       seen.add(normalizedCommandId);
       dedupedCommands.push(normalizedCommandId);
@@ -501,6 +829,50 @@ class MenuCustomizerStore {
     }
 
     this.settings.menus[menuType] = this.normalizeMenuConfig(menuType);
+  }
+
+  // 根据根级结构顺序同步分组数组顺序，避免设置页展示错位。
+  alignGroupOrderWithRootItems(menuConfig) {
+    if (!menuConfig || !Array.isArray(menuConfig.groups) || !Array.isArray(menuConfig.rootItems)) {
+      return;
+    }
+
+    const groupOrderMap = new Map();
+    menuConfig.rootItems.forEach((item, index) => {
+      if (item.type === 'group' && !groupOrderMap.has(item.groupId)) {
+        groupOrderMap.set(item.groupId, index);
+      }
+    });
+
+    menuConfig.groups = menuConfig.groups
+      .map((group, index) => ({ group, index }))
+      .sort((left, right) => {
+        const leftOrder = groupOrderMap.has(left.group.id) ? groupOrderMap.get(left.group.id) : Number.MAX_SAFE_INTEGER;
+        const rightOrder = groupOrderMap.has(right.group.id) ? groupOrderMap.get(right.group.id) : Number.MAX_SAFE_INTEGER;
+        return leftOrder === rightOrder ? left.index - right.index : leftOrder - rightOrder;
+      })
+      .map((entry) => entry.group);
+  }
+
+  // 返回指定分组在根级结构中的位置。
+  getGroupRootItemIndex(menuConfig, groupId) {
+    return menuConfig.rootItems.findIndex((item) => item.type === 'group' && item.groupId === groupId);
+  }
+
+  // 通用数组位移工具，返回是否移动成功。
+  moveArrayItem(list, currentIndex, offset) {
+    if (!Array.isArray(list)) {
+      return false;
+    }
+
+    const targetIndex = currentIndex + offset;
+    if (currentIndex < 0 || currentIndex >= list.length || targetIndex < 0 || targetIndex >= list.length) {
+      return false;
+    }
+
+    const [item] = list.splice(currentIndex, 1);
+    list.splice(targetIndex, 0, item);
+    return true;
   }
 
   // 统一做标题归一化，降低空白与大小写差异带来的识别误差。

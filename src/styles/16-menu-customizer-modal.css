@@ -156,7 +156,7 @@
   display: grid;
   grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
   gap: 10px 14px;
-  align-items: start;
+  align-items: center;
 }
 
 .nene-menu-customizer-control-info {
@@ -332,6 +332,24 @@
   background: var(--background-primary);
 }
 
+.nene-menu-customizer-structure-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  background: var(--background-primary);
+}
+
+.nene-menu-customizer-structure-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 300px;
+}
+
 .nene-menu-customizer-command-content {
   display: flex;
   flex-direction: column;
@@ -341,6 +359,9 @@
 
 /* 命令显示名称优先展示。 */
 .nene-menu-customizer-command-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   color: var(--text-normal);
   line-height: 1.4;
 }

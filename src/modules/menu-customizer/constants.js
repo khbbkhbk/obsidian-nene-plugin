@@ -15,6 +15,25 @@ const GROUP_LAYOUT_OPTIONS = [
   { value: 'grid', label: '网格' }
 ];
 
+// 定义右键菜单的初始内置数据，用于补齐没有显式 commandId 的原始菜单项。
+// 这里使用扁平结构，每条记录自行声明所属 menuType，便于统一追加与检索。
+const BUILTIN_MENU_COMMAND_DATA = [
+  { menuType: 'editor', commandId: 'editor:cut', label: '剪切', title: '剪切', section: 'edit', icon: 'scissors' },
+  { menuType: 'editor', commandId: 'editor:copy', label: '复制', title: '复制', section: 'edit', icon: 'copy' },
+  { menuType: 'editor', commandId: 'editor:paste', label: '粘贴', title: '粘贴', section: 'edit', icon: 'clipboard-check' },
+  { menuType: 'editor', commandId: 'editor:paste-as-plain-text', label: '以纯文本形式粘贴', title: '以纯文本形式粘贴', section: 'edit', icon: 'clipboard-type' },
+  { menuType: 'editor', commandId: 'editor:select-all', label: '全选', title: '全选', section: 'edit', icon: 'box-select' },
+  { menuType: 'editor', commandId: 'editor:edit-link', label: '编辑链接', title: '编辑链接', section: 'edit', icon: 'text-cursor-input' },
+  { menuType: 'editor', commandId: 'editor:toggle-bold', label: '加粗', title: '加粗', section: 'format', icon: 'bold' },
+  { menuType: 'editor', commandId: 'editor:toggle-italics', label: '斜体', title: '斜体', section: 'format', icon: 'italic' },
+  { menuType: 'editor', commandId: 'editor:toggle-highlight', label: '高亮', title: '高亮', section: 'format', icon: 'highlighter' },
+  { menuType: 'editor', commandId: 'editor:toggle-strikethrough', label: '删除线', title: '删除线', section: 'format', icon: 'strikethrough' },
+  { menuType: 'editor', commandId: 'editor:toggle-code', label: '代码', title: '代码', section: 'format', icon: 'code' },
+  { menuType: 'editor', commandId: 'editor:insert-link', label: '链接', title: '链接', section: 'insert', icon: 'link' },
+  { menuType: 'editor', commandId: 'editor:insert-embed', label: '嵌入', title: '嵌入', section: 'insert', icon: 'sticky-note' },
+  { menuType: 'editor', commandId: 'editor:insert-codeblock', label: '代码块', title: '代码块', section: 'insert', icon: 'code-2' },
+];
+
 // 定义四个菜单默认的分组结构，仅作为首次安装与重置后的初始配置。
 const DEFAULT_MENU_GROUPS = {
   editor: [
@@ -26,6 +45,7 @@ const DEFAULT_MENU_GROUPS = {
       hidden: false,
       forceSubmenu: false,
       commands: [
+        'editor:edit-link',
         'editor:cut',
         'editor:copy',
         'editor:paste',
@@ -37,7 +57,7 @@ const DEFAULT_MENU_GROUPS = {
       id: 'editor-format',
       name: '格式',
       icon: 'bold',
-      layout: 'list',
+      layout: 'icon-bar',
       hidden: false,
       forceSubmenu: true,
       commands: [
@@ -52,15 +72,13 @@ const DEFAULT_MENU_GROUPS = {
       id: 'editor-insert',
       name: '插入',
       icon: 'plus',
-      layout: 'list',
+      layout: 'icon-bar',
       hidden: false,
       forceSubmenu: true,
       commands: [
         'editor:insert-link',
         'editor:insert-embed',
-        'editor:insert-table',
-        'editor:insert-codeblock',
-        'editor:insert-horizontal-rule'
+        'editor:insert-codeblock'
       ]
     }
   ],
@@ -139,9 +157,24 @@ const DEFAULT_MENU_GROUPS = {
   ]
 };
 
+// 根据默认分组生成根级菜单结构，保证首次安装时“分组顺序”与默认配置一致。
+function buildDefaultRootItems(menuType) {
+  return cloneDefaultGroups(menuType).map((group) => ({
+    id: `${group.id}::root`,
+    type: 'group',
+    groupId: group.id,
+    hidden: false
+  }));
+}
+
 // 深拷贝默认分组，避免运行时共享引用。
 function cloneDefaultGroups(menuType) {
   return JSON.parse(JSON.stringify(DEFAULT_MENU_GROUPS[menuType] || []));
+}
+
+// 深拷贝默认根级结构，避免运行时共享引用。
+function cloneDefaultRootItems(menuType) {
+  return JSON.parse(JSON.stringify(buildDefaultRootItems(menuType)));
 }
 
 // 构造菜单自定义模块的默认配置。
@@ -152,6 +185,7 @@ function buildDefaultMenuCustomizerSettings() {
     menus[menuType.id] = {
       enabled: false,
       groups: cloneDefaultGroups(menuType.id),
+      rootItems: cloneDefaultRootItems(menuType.id),
       commandOverrides: {},
       commandMappings: []
     };
@@ -168,10 +202,46 @@ function createDefaultMenuCustomizerSettings() {
   return JSON.parse(JSON.stringify(DEFAULT_MENU_CUSTOMIZER_SETTINGS));
 }
 
+// 返回指定菜单类型下的初始内置命令条目。
+function getBuiltinCommandEntries(menuType) {
+  return BUILTIN_MENU_COMMAND_DATA
+    .filter((entry) => entry.menuType === menuType)
+    .map((entry) => Object.assign({}, entry));
+}
+
+// 返回指定菜单类型和命令 ID 对应的初始内置命令元信息。
+function getBuiltinCommandMetadata(menuType, commandId) {
+  const normalizedCommandId = typeof commandId === 'string' ? commandId.trim() : '';
+  if (!menuType || !normalizedCommandId) {
+    return null;
+  }
+
+  const entries = getBuiltinCommandEntries(menuType).filter((entry) => entry.commandId === normalizedCommandId);
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const primaryEntry = entries[0];
+
+  return {
+    id: normalizedCommandId,
+    label: primaryEntry.label || primaryEntry.title || normalizedCommandId,
+    icon: primaryEntry.icon || '',
+    aliases: Array.from(new Set(entries.map((entry) => entry.title).filter(Boolean))),
+    sections: Array.from(new Set(entries.map((entry) => entry.section).filter(Boolean))),
+    source: 'builtin',
+    canExecute: false
+  };
+}
+
 module.exports = {
+  BUILTIN_MENU_COMMAND_DATA,
   DEFAULT_MENU_CUSTOMIZER_SETTINGS,
   DEFAULT_MENU_GROUPS,
   GROUP_LAYOUT_OPTIONS,
   MENU_TYPE_OPTIONS,
-  createDefaultMenuCustomizerSettings
+  cloneDefaultRootItems,
+  createDefaultMenuCustomizerSettings,
+  getBuiltinCommandEntries,
+  getBuiltinCommandMetadata
 };
