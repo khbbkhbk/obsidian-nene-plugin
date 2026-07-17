@@ -21,6 +21,8 @@ class PluginDataStore {
     this.featureData.fileMarker = await this.loadFeatureSlice('fileMarker', rawData?.fileMarker);
     this.featureData.anchorGraph = await this.loadFeatureSlice('anchorGraph', rawData?.anchorGraph);
     this.featureData.menuCustomizer = await this.loadFeatureSlice('menuCustomizer', rawData?.menuCustomizer);
+    this.featureData.copyPath = await this.loadFeatureSlice('copyPath', rawData?.copyPath);
+    this.featureData.statusBarEnhancer = await this.loadFeatureSlice('statusBarEnhancer', rawData?.statusBarEnhancer);
 
     if (this.hasLegacyFeatureSlices(rawData)) {
       await this.save();
@@ -78,6 +80,26 @@ class PluginDataStore {
     this.featureData.menuCustomizer = this.normalizeMenuCustomizerData(menuCustomizerData);
   }
 
+  // 返回复制路径模块的独立配置切片。
+  getCopyPathData() {
+    return this.featureData.copyPath;
+  }
+
+  // 更新复制路径模块的独立配置切片缓存。
+  setCopyPathData(copyPathData) {
+    this.featureData.copyPath = this.normalizeCopyPathData(copyPathData);
+  }
+
+  // 返回状态栏增强模块的独立配置切片。
+  getStatusBarEnhancerData() {
+    return this.featureData.statusBarEnhancer;
+  }
+
+  // 更新状态栏增强模块的独立配置切片缓存。
+  setStatusBarEnhancerData(statusBarEnhancerData) {
+    this.featureData.statusBarEnhancer = this.normalizeStatusBarEnhancerData(statusBarEnhancerData);
+  }
+
   // 保存文件标记功能数据到独立配置文件。
   async saveFileMarkerData(fileMarkerData) {
     this.setFileMarkerData(fileMarkerData);
@@ -96,12 +118,26 @@ class PluginDataStore {
     await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
   }
 
+  // 保存复制路径模块数据到独立配置文件。
+  async saveCopyPathData(copyPathData) {
+    this.setCopyPathData(copyPathData);
+    await this.featureConfigManager.save('copyPath', this.featureData.copyPath);
+  }
+
+  // 保存状态栏增强模块数据到独立配置文件。
+  async saveStatusBarEnhancerData(statusBarEnhancerData) {
+    this.setStatusBarEnhancerData(statusBarEnhancerData);
+    await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
+  }
+
   // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
   async saveAll() {
     await this.save();
     await this.featureConfigManager.save('fileMarker', this.featureData.fileMarker);
     await this.featureConfigManager.save('anchorGraph', this.featureData.anchorGraph);
     await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
+    await this.featureConfigManager.save('copyPath', this.featureData.copyPath);
+    await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
   }
 
   // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
@@ -111,6 +147,8 @@ class PluginDataStore {
     const fileMarkerPath = this.featureConfigManager.getFeatureConfigPath('fileMarker');
     const anchorGraphPath = this.featureConfigManager.getFeatureConfigPath('anchorGraph');
     const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath('menuCustomizer');
+    const copyPathPath = this.featureConfigManager.getFeatureConfigPath('copyPath');
+    const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('statusBarEnhancer');
 
     return {
       directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
@@ -142,6 +180,20 @@ class PluginDataStore {
         path: menuCustomizerPath,
         exists: await this.featureConfigManager.exists('menuCustomizer'),
         summary: `当前含 ${Object.values(this.featureData.menuCustomizer.menus || {}).reduce((count, menuConfig) => count + (Array.isArray(menuConfig.groups) ? menuConfig.groups.length : 0), 0)} 个分组`
+      },
+      copyPath: {
+        key: 'copyPath',
+        name: '复制路径配置',
+        path: copyPathPath,
+        exists: await this.featureConfigManager.exists('copyPath'),
+        summary: `文件夹末尾补 /：${this.featureData.copyPath.addTrailingSlashToFolders === true ? '已开启' : '已关闭'}`
+      },
+      statusBarEnhancer: {
+        key: 'statusBarEnhancer',
+        name: '状态栏增强配置',
+        path: statusBarEnhancerPath,
+        exists: await this.featureConfigManager.exists('statusBarEnhancer'),
+        summary: `显示文件名：${this.featureData.statusBarEnhancer.showFileName === true ? '已开启' : '已关闭'}，显示图标：${this.featureData.statusBarEnhancer.showIcons === true ? '已开启' : '已关闭'}，复制绝对路径：${this.featureData.statusBarEnhancer.copyAbsolutePath !== false ? '已开启' : '已关闭'}`
       }
     };
   }
@@ -187,6 +239,10 @@ class PluginDataStore {
       this.featureData.anchorGraph = defaultFeatureData;
     } else if (featureKey === 'menuCustomizer') {
       this.featureData.menuCustomizer = defaultFeatureData;
+    } else if (featureKey === 'copyPath') {
+      this.featureData.copyPath = defaultFeatureData;
+    } else if (featureKey === 'statusBarEnhancer') {
+      this.featureData.statusBarEnhancer = defaultFeatureData;
     }
 
     await this.featureConfigManager.save(featureKey, defaultFeatureData);
@@ -209,7 +265,9 @@ class PluginDataStore {
     return Object.assign({}, normalizedCoreData, {
       fileMarker: this.normalizeFileMarkerData(source.fileMarker),
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
-      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
+      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
+      copyPath: this.normalizeCopyPathData(source.copyPath),
+      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
     });
   }
 
@@ -221,6 +279,8 @@ class PluginDataStore {
     delete normalizedCoreData.fileMarker;
     delete normalizedCoreData.anchorGraph;
     delete normalizedCoreData.menuCustomizer;
+    delete normalizedCoreData.copyPath;
+    delete normalizedCoreData.statusBarEnhancer;
 
     normalizedCoreData.features = this.normalizeFeatures(source.features);
     return normalizedCoreData;
@@ -233,7 +293,9 @@ class PluginDataStore {
     return {
       fileMarker: this.normalizeFileMarkerData(source.fileMarker),
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
-      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer)
+      menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
+      copyPath: this.normalizeCopyPathData(source.copyPath),
+      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
     };
   }
 
@@ -248,6 +310,12 @@ class PluginDataStore {
       },
       menuCustomizer: {
         enabled: features?.menuCustomizer?.enabled === true
+      },
+      copyPath: {
+        enabled: features?.copyPath?.enabled === true
+      },
+      statusBarEnhancer: {
+        enabled: features?.statusBarEnhancer?.enabled === true
       }
     };
   }
@@ -314,6 +382,28 @@ class PluginDataStore {
     };
   }
 
+  // 归一化复制路径模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeCopyPathData(copyPathData) {
+    const source = this.isPlainObject(copyPathData) ? copyPathData : {};
+    const defaultCopyPath = constants.DEFAULT_FEATURE_DATA.copyPath;
+
+    return {
+      addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
+        && defaultCopyPath.addTrailingSlashToFolders !== false
+    };
+  }
+
+  // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeStatusBarEnhancerData(statusBarEnhancerData) {
+    const source = this.isPlainObject(statusBarEnhancerData) ? statusBarEnhancerData : {};
+
+    return {
+      showFileName: source.showFileName === true,
+      showIcons: source.showIcons === true,
+      copyAbsolutePath: source.copyAbsolutePath !== false
+    };
+  }
+
   // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
   async loadFeatureSlice(featureKey, legacyData) {
     const loadResult = await this.featureConfigManager.load(featureKey);
@@ -347,6 +437,14 @@ class PluginDataStore {
       return this.normalizeMenuCustomizerData(featureData);
     }
 
+    if (featureKey === 'copyPath') {
+      return this.normalizeCopyPathData(featureData);
+    }
+
+    if (featureKey === 'statusBarEnhancer') {
+      return this.normalizeStatusBarEnhancerData(featureData);
+    }
+
     return this.isPlainObject(featureData) ? featureData : {};
   }
 
@@ -355,7 +453,9 @@ class PluginDataStore {
     const source = this.isPlainObject(data) ? data : {};
     return this.isPlainObject(source.fileMarker)
       || this.isPlainObject(source.anchorGraph)
-      || this.isPlainObject(source.menuCustomizer);
+      || this.isPlainObject(source.menuCustomizer)
+      || this.isPlainObject(source.copyPath)
+      || this.isPlainObject(source.statusBarEnhancer);
   }
 
   // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
@@ -374,7 +474,9 @@ class PluginDataStore {
       ? Object.assign({}, bundle.featureData, {
         fileMarker: bundle.featureData?.fileMarker || bundle.fileMarker,
         anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
-        menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer
+        menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
+        copyPath: bundle.featureData?.copyPath || bundle.copyPath,
+        statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer
       })
       : bundle;
 

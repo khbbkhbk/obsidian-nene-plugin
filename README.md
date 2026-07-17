@@ -1,4 +1,13 @@
 Obsidian插件ねね，集成功能列表：
+- [x] 状态栏增强
+  - 新增功能：状态栏显示当前活动文件路径，支持点击复制（基于第三方插件“ravimashru/obsidian-show-file-path”）
+- [x] 关系图谱增强
+  - 新增功能：支持额外实时识别a标签形式的正向链接（class包含internal-link，且带有data-href或href的HTML a标签，并排除特殊字符干扰）
+- [x] 命令增强
+  - 路径与链接相关
+    - 复制当前目标的库内路径（基于第三方插件“shumadrid/obsidian-copy-path”）
+    - 复制当前目标的完整路径（基于第三方插件“shumadrid/obsidian-copy-path”）
+    - 复制当前目标的URI链接（基于第三方插件“michalbures/obsidian-file-path-to-uri”）
 - [x] 为第三方插件列表添加 data-plugin-name 属性，以支持自定义 CSS 样式。
 - [ ] 窗口模式下执行“在文件列表中显示当前文件”，将无视Obsidian窗口是否隐藏/最小化/失去焦点，强制还原窗口
 - [ ] 在窗口模式下，自动附加一个小窗口，该窗口支持以下特性：
@@ -9,5 +18,3 @@ Obsidian插件ねね，集成功能列表：
     - [ ] 入链默认折叠，出链默认展开
     - [ ] 每个链接支持新建窗口模式下打开、新建标签页打开、当前标签页打开
   - [ ] 每个笔记窗口附带一个小窗口
-- [x] 关系图谱
-    - 支持额外实时识别a标签形式的正向链接：class包含internal-link，且带有data-href或href的HTML a标签（排除特殊字符干扰）。

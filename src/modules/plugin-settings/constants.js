@@ -10,6 +10,12 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   menuCustomizer: {
     enabled: false
+  },
+  copyPath: {
+    enabled: false
+  },
+  statusBarEnhancer: {
+    enabled: false
   }
 };
 

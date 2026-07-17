@@ -6,6 +6,8 @@ var pluginData = require('./modules/plugin-data/index.js');
 var pluginSettings = require('./modules/plugin-settings/index.js');
 var pluginListEnhancerModule = require('./modules/plugin-list-enhancer/index.js');
 var anchorGraphLinksModule = require('./modules/anchor-graph-links/index.js');
+var copyPathModule = require('./modules/copy-path/index.js');
+var statusBarEnhancerModule = require('./modules/status-bar-enhancer/index.js');
 var menuCustomizerModule = require('./modules/menu-customizer/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
 
@@ -18,6 +20,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this); // 管理旧设置页增强逻辑
     this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
+    this.copyPathStore = new copyPathModule.CopyPathStore(this); // 管理复制路径模块配置与右键菜单目标缓存
+    this.copyPathService = new copyPathModule.CopyPathService(this); // 管理复制路径命令执行逻辑
+    this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
+    this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
     this.menuCustomizerStore = new menuCustomizerModule.MenuCustomizerStore(this); // 管理右键菜单自定义配置
     this.menuCustomizerRuntime = new menuCustomizerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
   }
@@ -35,11 +41,14 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures()); // 将插件级功能开关注入设置仓库
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData()); // 将文件标记切片挂载到业务仓库
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData()); // 将右键菜单配置切片挂载到业务仓库
+    this.copyPathStore.load(this.dataStore.getCopyPathData()); // 将复制路径配置切片挂载到业务仓库
+    this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData()); // 将状态栏增强配置切片挂载到业务仓库
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
     this.setupFileMarkerView();
     this.setupFileMenu();
     this.setupEditorMenu();
+    this.setupStatusBarEnhancerEvents();
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
@@ -49,6 +58,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
+    this.syncStatusBarEnhancerState();
     this.syncMenuCustomizerState();
   }
 
@@ -57,6 +67,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     console.log('Unloading obsidian-nene-plugin');
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
+    this.statusBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
 
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
@@ -81,6 +92,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
         this.menuCustomizerRuntime.annotateFileMenu(menu, file);
+        this.copyPathStore.rememberMenuTarget(file);
         if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
@@ -102,6 +114,23 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu) => {
         this.menuCustomizerRuntime.annotateEditorMenu(menu);
+      })
+    );
+  }
+
+  // 注册状态栏增强所需的工作区事件，保证切换文件与改名时状态栏立即刷新。
+  setupStatusBarEnhancerEvents() {
+    this.registerEvent(
+      this.app.workspace.on('file-open', (file) => {
+        this.statusBarEnhancerRuntime.renderFilePath(file);
+      })
+    );
+
+    this.registerEvent(
+      this.app.vault.on('rename', (file) => {
+        if (file instanceof obsidian.TFile && file === this.app.workspace.getActiveFile()) {
+          this.statusBarEnhancerRuntime.renderFilePath(file);
+        }
       })
     );
   }
@@ -146,6 +175,30 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       name: '刷新关系图谱 HTML 链接',
       callback: async () => {
         await this.refreshAnchorGraphLinks(true);
+      }
+    });
+
+    this.addCommand({
+      id: 'copy-vault-path',
+      name: '复制当前目标的库内路径',
+      callback: async () => {
+        await this.copyPathService.copyVaultPathFromCommand();
+      }
+    });
+
+    this.addCommand({
+      id: 'copy-full-path',
+      name: '复制当前目标的完整路径',
+      callback: async () => {
+        await this.copyPathService.copyFullPathFromCommand();
+      }
+    });
+
+    this.addCommand({
+      id: 'copy-uri-link',
+      name: '复制当前目标的URI链接',
+      callback: async () => {
+        await this.copyPathService.copyUriLinkFromCommand();
       }
     });
   }
@@ -257,6 +310,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isMenuCustomizerEnabled();
   }
 
+  // 返回复制路径模块当前是否被用户启用。
+  isCopyPathEnabled() {
+    return this.pluginSettingsStore.isCopyPathEnabled();
+  }
+
+  // 返回状态栏增强模块当前是否被用户启用。
+  isStatusBarEnhancerEnabled() {
+    return this.pluginSettingsStore.isStatusBarEnhancerEnabled();
+  }
+
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -289,7 +352,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       anchorGraphRuntimeMessage: anchorGraphRuntime.message,
       menuCustomizerEnabled: this.isMenuCustomizerEnabled(),
       menuCustomizerMenuCount: this.menuCustomizerStore.getEnabledMenuCount(),
-      menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount()
+      menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount(),
+      copyPathEnabled: this.isCopyPathEnabled(),
+      copyPathTrailingSlashEnabled: this.copyPathStore.getSettings().addTrailingSlashToFolders === true,
+      statusBarEnhancerEnabled: this.isStatusBarEnhancerEnabled(),
+      statusBarEnhancerShowFileName: this.statusBarEnhancerStore.getSettings().showFileName === true,
+      statusBarEnhancerShowIcons: this.statusBarEnhancerStore.getSettings().showIcons === true,
+      statusBarEnhancerCopyAbsolutePath: this.statusBarEnhancerStore.getSettings().copyAbsolutePath !== false
     };
   }
 
@@ -397,6 +466,42 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextEnabled;
   }
 
+  // 更新复制路径模块开关。
+  async updateCopyPathEnabled(enabled) {
+    return this.pluginSettingsStore.setCopyPathEnabled(enabled);
+  }
+
+  // 更新复制路径模块的文件夹末尾斜杠配置。
+  async updateCopyPathTrailingSlashEnabled(enabled) {
+    return this.copyPathStore.setAddTrailingSlashToFolders(enabled);
+  }
+
+  // 更新状态栏增强模块开关，并立即同步状态栏显示状态。
+  async updateStatusBarEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setStatusBarEnhancerEnabled(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextEnabled;
+  }
+
+  // 更新状态栏增强的“显示文件名”配置，并立即刷新状态栏。
+  async updateStatusBarEnhancerShowFileName(enabled) {
+    const nextValue = await this.statusBarEnhancerStore.setShowFileName(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+
+  // 更新状态栏增强的“显示图标”配置，并立即刷新状态栏。
+  async updateStatusBarEnhancerShowIcons(enabled) {
+    const nextValue = await this.statusBarEnhancerStore.setShowIcons(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+
+  // 更新状态栏增强的“复制绝对路径”配置。
+  async updateStatusBarEnhancerCopyAbsolutePath(enabled) {
+    return this.statusBarEnhancerStore.setCopyAbsolutePath(enabled);
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -501,6 +606,18 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.anchorGraphLinkEnhancer.stop();
   }
 
+  // 根据当前设置同步状态栏增强模块的启停状态，并在启用时刷新当前活动文件路径。
+  syncStatusBarEnhancerState() {
+    this.statusBarEnhancerRuntime.load(this.statusBarEnhancerStore.getSettings());
+
+    if (this.isStatusBarEnhancerEnabled()) {
+      this.statusBarEnhancerRuntime.start();
+      return;
+    }
+
+    this.statusBarEnhancerRuntime.stop();
+  }
+
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -518,10 +635,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures());
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
+    this.copyPathStore.load(this.dataStore.getCopyPathData());
+    this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
 
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();
     this.syncAnchorGraphEnhancerState();
+    this.syncStatusBarEnhancerState();
     this.syncMenuCustomizerState();
 
     if (this.isAnchorGraphEnabled()) {

@@ -1,8 +1,10 @@
 'use strict';
 
 var anchorGraphConstants = require('../anchor-graph-links/constants');
+var copyPathConstants = require('../copy-path/constants');
 var fileMarkerConstants = require('../file-marker/constants');
 var menuCustomizerConstants = require('../menu-customizer/constants');
+var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
 
 // 定义独立功能配置目录名称，统一由功能配置管理器复用。
 const FEATURE_CONFIG_DIRECTORY_NAME = 'configs';
@@ -14,7 +16,9 @@ const FEATURE_EXPORT_DIRECTORY_NAME = 'exports';
 const FEATURE_CONFIG_FILE_NAMES = {
   fileMarker: 'file-marker',
   anchorGraph: 'anchor-graph',
-  menuCustomizer: 'menu-customizer'
+  menuCustomizer: 'menu-customizer',
+  copyPath: 'copy-path',
+  statusBarEnhancer: 'status-bar-enhancer'
 };
 
 // 定义插件级持久化数据的默认结构，拆分后仅保留核心开关与兼容字段。
@@ -28,6 +32,12 @@ const DEFAULT_PLUGIN_DATA = {
     },
     menuCustomizer: {
       enabled: false
+    },
+    copyPath: {
+      enabled: false
+    },
+    statusBarEnhancer: {
+      enabled: false
     }
   }
 };
@@ -36,7 +46,9 @@ const DEFAULT_PLUGIN_DATA = {
 const DEFAULT_FEATURE_DATA = {
   fileMarker: fileMarkerConstants.DEFAULT_FILE_MARKER_SETTINGS,
   anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
-  menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS
+  menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
+  copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
+  statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS
 };
 
 module.exports = {

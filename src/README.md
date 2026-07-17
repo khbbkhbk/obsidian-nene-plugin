@@ -14,6 +14,8 @@
   - `src/modules/plugin-settings/`：只管理插件级功能开关，例如 `features.anchorGraph.enabled`。
   - `src/modules/file-marker/`：只管理文件标记自己的数据切片，即 `configs/file-marker.json` 中的 `marks` 与 `groups`。
   - `src/modules/anchor-graph-links/`：管理关系图谱增强逻辑及 `configs/anchor-graph.json` 中的模块设置。
+  - `src/modules/copy-path/`：管理路径复制相关命令及 `configs/copy-path.json` 中的模块设置。
+  - `src/modules/status-bar-enhancer/`：管理状态栏路径显示、点击复制逻辑及 `configs/status-bar-enhancer.json` 中的模块设置。
 - 当前 `data.json` 结构如下：
 
 ```json

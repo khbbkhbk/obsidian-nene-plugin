@@ -57,6 +57,30 @@ class PluginSettingsStore {
     return this.isMenuCustomizerEnabled();
   }
 
+  // 返回复制路径模块是否启用，供主入口和设置页统一读取。
+  isCopyPathEnabled() {
+    return Boolean(this.settings.copyPath.enabled);
+  }
+
+  // 切换复制路径模块的启用状态，并立即持久化到本地。
+  async setCopyPathEnabled(enabled) {
+    this.settings.copyPath.enabled = Boolean(enabled);
+    await this.save();
+    return this.isCopyPathEnabled();
+  }
+
+  // 返回状态栏增强模块是否启用，供主入口和设置页统一读取。
+  isStatusBarEnhancerEnabled() {
+    return Boolean(this.settings.statusBarEnhancer.enabled);
+  }
+
+  // 切换状态栏增强模块的启用状态，并立即持久化到本地。
+  async setStatusBarEnhancerEnabled(enabled) {
+    this.settings.statusBarEnhancer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isStatusBarEnhancerEnabled();
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -74,6 +98,12 @@ class PluginSettingsStore {
       },
       menuCustomizer: {
         enabled: source.menuCustomizer?.enabled === true
+      },
+      copyPath: {
+        enabled: source.copyPath?.enabled === true
+      },
+      statusBarEnhancer: {
+        enabled: source.statusBarEnhancer?.enabled === true
       }
     };
   }

@@ -100,7 +100,7 @@
       "commandMappings": []
     },
     "file": {
-      "enabled": false,
+      "enabled": true,
       "groups": [
         {
           "id": "file-open-actions",
@@ -143,13 +143,31 @@
           "type": "group",
           "groupId": "file-management",
           "hidden": false
+        },
+        {
+          "id": "root-1784266711665-of5m8p",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-full-path",
+          "hidden": false
+        },
+        {
+          "id": "root-1784266723357-ip28vh",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-vault-path",
+          "hidden": false
+        },
+        {
+          "id": "root-1784268826531-j91oiu",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-uri-link",
+          "hidden": false
         }
       ],
       "commandOverrides": {},
       "commandMappings": []
     },
     "folder": {
-      "enabled": false,
+      "enabled": true,
       "groups": [
         {
           "id": "folder-create",
@@ -189,6 +207,24 @@
           "id": "folder-management::root",
           "type": "group",
           "groupId": "folder-management",
+          "hidden": false
+        },
+        {
+          "id": "root-1784266760883-br5ou6",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-vault-path",
+          "hidden": false
+        },
+        {
+          "id": "root-1784266765156-xry3m5",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-full-path",
+          "hidden": false
+        },
+        {
+          "id": "root-1784268894038-yum6xo",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:copy-uri-link",
           "hidden": false
         }
       ],

@@ -8,6 +8,12 @@
     },
     "menuCustomizer": {
       "enabled": true
+    },
+    "copyPath": {
+      "enabled": true
+    },
+    "statusBarEnhancer": {
+      "enabled": true
     }
   }
 }

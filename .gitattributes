@@ -1,0 +1,7 @@
+# 对所有文本文件统一使用 LF
+* text eol=lf
+
+# 或者按文件类型指定
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
