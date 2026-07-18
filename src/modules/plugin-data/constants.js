@@ -1,9 +1,9 @@
 'use strict';
 
-var anchorGraphConstants = require('../anchor-graph-links/constants');
+var anchorGraphConstants = require('../graph-view-enhancer/constants');
 var copyPathConstants = require('../copy-path/constants');
 var fileMarkerConstants = require('../file-marker/constants');
-var menuCustomizerConstants = require('../menu-customizer/constants');
+var menuCustomizerConstants = require('../context-menu-enhancer/constants');
 var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
 
 // 定义独立功能配置目录名称，统一由功能配置管理器复用。

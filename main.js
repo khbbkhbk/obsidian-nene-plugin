@@ -674,9 +674,9 @@ var require_file_marker = __commonJS({
   }
 });
 
-// src/modules/anchor-graph-links/constants.js
+// src/modules/graph-view-enhancer/constants.js
 var require_constants2 = __commonJS({
-  "src/modules/anchor-graph-links/constants.js"(exports2, module2) {
+  "src/modules/graph-view-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_ANCHOR_GRAPH_SETTINGS = {
       defaultSettings: {
@@ -705,9 +705,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// src/modules/menu-customizer/constants.js
+// src/modules/context-menu-enhancer/constants.js
 var require_constants4 = __commonJS({
-  "src/modules/menu-customizer/constants.js"(exports2, module2) {
+  "src/modules/context-menu-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var MENU_TYPE_OPTIONS = [
       { id: "editor", name: "编辑区右键菜单" },
@@ -1801,9 +1801,9 @@ var require_plugin_list_enhancer = __commonJS({
   }
 });
 
-// src/modules/anchor-graph-links/index.js
-var require_anchor_graph_links = __commonJS({
-  "src/modules/anchor-graph-links/index.js"(exports2, module2) {
+// src/modules/graph-view-enhancer/index.js
+var require_graph_view_enhancer = __commonJS({
+  "src/modules/graph-view-enhancer/index.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
     var MIN_GRAPH_COMPATIBLE_API_VERSION = "1.4.16";
@@ -3112,9 +3112,9 @@ var require_status_bar_enhancer = __commonJS({
   }
 });
 
-// src/modules/menu-customizer/runtime.js
+// src/modules/context-menu-enhancer/runtime.js
 var require_runtime2 = __commonJS({
-  "src/modules/menu-customizer/runtime.js"(exports2, module2) {
+  "src/modules/context-menu-enhancer/runtime.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
     var constants = require_constants4();
@@ -3770,9 +3770,9 @@ var require_runtime2 = __commonJS({
   }
 });
 
-// src/modules/menu-customizer/store.js
+// src/modules/context-menu-enhancer/store.js
 var require_store6 = __commonJS({
-  "src/modules/menu-customizer/store.js"(exports2, module2) {
+  "src/modules/context-menu-enhancer/store.js"(exports2, module2) {
     "use strict";
     var constants = require_constants4();
     var MenuCustomizerStore = class {
@@ -4493,9 +4493,9 @@ var require_store6 = __commonJS({
   }
 });
 
-// src/modules/menu-customizer/view.js
+// src/modules/context-menu-enhancer/view.js
 var require_view4 = __commonJS({
-  "src/modules/menu-customizer/view.js"(exports2, module2) {
+  "src/modules/context-menu-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
     function renderMenuCustomizerHeader(containerEl, title, description) {
@@ -5550,9 +5550,9 @@ var require_view4 = __commonJS({
   }
 });
 
-// src/modules/menu-customizer/index.js
-var require_menu_customizer = __commonJS({
-  "src/modules/menu-customizer/index.js"(exports2, module2) {
+// src/modules/context-menu-enhancer/index.js
+var require_context_menu_enhancer = __commonJS({
+  "src/modules/context-menu-enhancer/index.js"(exports2, module2) {
     "use strict";
     var constants = require_constants4();
     var runtime = require_runtime2();
@@ -5568,7 +5568,7 @@ var require_settings_tab = __commonJS({
     "use strict";
     var obsidian2 = require("obsidian");
     var copyPathModule2 = require_copy_path();
-    var menuCustomizerModule2 = require_menu_customizer();
+    var menuCustomizerModule = require_context_menu_enhancer();
     var statusBarEnhancerModule2 = require_status_bar_enhancer();
     async function copyTextToClipboard(text) {
       if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -5872,7 +5872,7 @@ var require_settings_tab = __commonJS({
         this.contentEl.empty();
       }
     };
-    var MenuCustomizerManagementModal = class extends menuCustomizerModule2.MenuCustomizerManagementModal {
+    var MenuCustomizerManagementModal = class extends menuCustomizerModule.MenuCustomizerManagementModal {
     };
     var CopyPathManagementModal = class extends copyPathModule2.CopyPathManagementModal {
     };
@@ -6130,10 +6130,10 @@ var fileMarker = require_file_marker();
 var pluginData = require_plugin_data();
 var pluginSettings = require_plugin_settings();
 var pluginListEnhancerModule = require_plugin_list_enhancer();
-var anchorGraphLinksModule = require_anchor_graph_links();
+var graphViewEnhancerModule = require_graph_view_enhancer();
 var copyPathModule = require_copy_path();
 var statusBarEnhancerModule = require_status_bar_enhancer();
-var menuCustomizerModule = require_menu_customizer();
+var contextMenuEnhancerModule = require_context_menu_enhancer();
 var settingsTabModule = require_settings_tab();
 var ObsidianNenePlugin = class extends obsidian.Plugin {
   constructor() {
@@ -6142,13 +6142,13 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginSettingsStore = new pluginSettings.PluginSettingsStore(this);
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this);
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this);
-    this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this);
+    this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this);
     this.copyPathStore = new copyPathModule.CopyPathStore(this);
     this.copyPathService = new copyPathModule.CopyPathService(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
-    this.menuCustomizerStore = new menuCustomizerModule.MenuCustomizerStore(this);
-    this.menuCustomizerRuntime = new menuCustomizerModule.MenuCustomizerRuntime(this);
+    this.menuCustomizerStore = new contextMenuEnhancerModule.MenuCustomizerStore(this);
+    this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this);
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {

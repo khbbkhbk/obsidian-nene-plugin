@@ -2,7 +2,7 @@
 
 var obsidian = require('obsidian');
 var copyPathModule = require('../copy-path/index.js');
-var menuCustomizerModule = require('../menu-customizer/index.js');
+var menuCustomizerModule = require('../context-menu-enhancer/index.js');
 var statusBarEnhancerModule = require('../status-bar-enhancer/index.js');
 
 // 优先使用现代剪贴板 API，失败时回退到传统复制命令。

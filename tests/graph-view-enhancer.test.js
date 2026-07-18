@@ -212,6 +212,12 @@ test('插件级数据仓库会将旧版 data.json 中的模块数据迁移到独
       },
       menuCustomizer: {
         enabled: false
+      },
+      copyPath: {
+        enabled: false
+      },
+      statusBarEnhancer: {
+        enabled: false
       }
     }
   });
@@ -348,6 +354,12 @@ test('插件级数据仓库支持导出、导入与重置独立配置文件', as
       },
       menuCustomizer: {
         enabled: false
+      },
+      copyPath: {
+        enabled: false
+      },
+      statusBarEnhancer: {
+        enabled: false
       }
     }
   });
@@ -388,6 +400,12 @@ test('插件级功能设置仓库会持久化文件标记、关系图谱与右�
     },
     menuCustomizer: {
       enabled: true
+    },
+    copyPath: {
+      enabled: false
+    },
+    statusBarEnhancer: {
+      enabled: false
     }
   });
 });
@@ -397,7 +415,7 @@ test('关系图谱增强会根据运行环境兼容性进行启用或降级', ()
     requireApiVersion: () => false
   });
   const { AnchorGraphLinkEnhancer: IncompatibleEnhancer } = loadModuleWithObsidianStub(
-    'src/modules/anchor-graph-links/index.js',
+    'src/modules/graph-view-enhancer/index.js',
     incompatibleObsidianStub
   );
   const incompatiblePlugin = {
@@ -419,7 +437,7 @@ test('关系图谱增强会根据运行环境兼容性进行启用或降级', ()
     requireApiVersion: () => true
   });
   const { AnchorGraphLinkEnhancer: CompatibleEnhancer } = loadModuleWithObsidianStub(
-    'src/modules/anchor-graph-links/index.js',
+    'src/modules/graph-view-enhancer/index.js',
     compatibleObsidianStub
   );
   const compatiblePlugin = {
@@ -440,7 +458,7 @@ test('关系图谱增强会根据运行环境兼容性进行启用或降级', ()
 test('HTML 内部链接提取可兼容属性值中的特殊字符与复杂写法', () => {
   const obsidianStub = createObsidianStub();
   const { AnchorGraphLinkEnhancer } = loadModuleWithObsidianStub(
-    'src/modules/anchor-graph-links/index.js',
+    'src/modules/graph-view-enhancer/index.js',
     obsidianStub
   );
   const enhancer = new AnchorGraphLinkEnhancer({
@@ -474,7 +492,7 @@ test('HTML 内部链接提取可兼容属性值中的特殊字符与复杂写法
 test('大仓库快照构建会按批次让出主线程，避免长时间阻塞', async () => {
   const obsidianStub = createObsidianStub();
   const { AnchorGraphLinkEnhancer } = loadModuleWithObsidianStub(
-    'src/modules/anchor-graph-links/index.js',
+    'src/modules/graph-view-enhancer/index.js',
     obsidianStub
   );
 

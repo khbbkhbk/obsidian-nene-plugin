@@ -5,10 +5,10 @@ var fileMarker = require('./modules/file-marker/index.js');
 var pluginData = require('./modules/plugin-data/index.js');
 var pluginSettings = require('./modules/plugin-settings/index.js');
 var pluginListEnhancerModule = require('./modules/plugin-list-enhancer/index.js');
-var anchorGraphLinksModule = require('./modules/anchor-graph-links/index.js');
+var graphViewEnhancerModule = require('./modules/graph-view-enhancer/index.js');
 var copyPathModule = require('./modules/copy-path/index.js');
 var statusBarEnhancerModule = require('./modules/status-bar-enhancer/index.js');
-var menuCustomizerModule = require('./modules/menu-customizer/index.js');
+var contextMenuEnhancerModule = require('./modules/context-menu-enhancer/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
 
 // 定义插件主类，作为模块装配层，统一协调各功能目录。
@@ -19,13 +19,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginSettingsStore = new pluginSettings.PluginSettingsStore(this); // 管理插件级功能开关
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this); // 管理旧设置页增强逻辑
-    this.anchorGraphLinkEnhancer = new anchorGraphLinksModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
+    this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
     this.copyPathStore = new copyPathModule.CopyPathStore(this); // 管理复制路径模块配置与右键菜单目标缓存
     this.copyPathService = new copyPathModule.CopyPathService(this); // 管理复制路径命令执行逻辑
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
-    this.menuCustomizerStore = new menuCustomizerModule.MenuCustomizerStore(this); // 管理右键菜单自定义配置
-    this.menuCustomizerRuntime = new menuCustomizerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
+    this.menuCustomizerStore = new contextMenuEnhancerModule.MenuCustomizerStore(this); // 管理右键菜单自定义配置
+    this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
