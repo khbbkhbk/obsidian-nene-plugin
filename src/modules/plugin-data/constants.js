@@ -5,6 +5,7 @@ var copyPathConstants = require('../copy-path/constants');
 var fileMarkerConstants = require('../file-marker/constants');
 var menuCustomizerConstants = require('../context-menu-enhancer/constants');
 var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
+var tabBarEnhancerConstants = require('../tab-bar-enhancer/constants');
 
 // 定义独立功能配置目录名称，统一由功能配置管理器复用。
 const FEATURE_CONFIG_DIRECTORY_NAME = 'configs';
@@ -18,7 +19,8 @@ const FEATURE_CONFIG_FILE_NAMES = {
   anchorGraph: 'anchor-graph',
   menuCustomizer: 'menu-customizer',
   copyPath: 'copy-path',
-  statusBarEnhancer: 'status-bar-enhancer'
+  statusBarEnhancer: 'status-bar-enhancer',
+  tabBarEnhancer: 'tab-bar-enhancer'
 };
 
 // 定义插件级持久化数据的默认结构，拆分后仅保留核心开关与兼容字段。
@@ -38,6 +40,9 @@ const DEFAULT_PLUGIN_DATA = {
     },
     statusBarEnhancer: {
       enabled: false
+    },
+    tabBarEnhancer: {
+      enabled: false
     }
   }
 };
@@ -48,7 +53,8 @@ const DEFAULT_FEATURE_DATA = {
   anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
   menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
   copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
-  statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS
+  statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
+  tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS
 };
 
 module.exports = {

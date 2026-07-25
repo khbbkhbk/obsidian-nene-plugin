@@ -25,6 +25,17 @@ function renderDetailItem(containerEl, label, value, codeStyle) {
   });
 }
 
+// 对文本输入的保存操作做防抖，避免每次按键都触发一次配置文件写入。
+function debounceSave(saveTask, delay) {
+  let timerId = null;
+  return (...args) => {
+    window.clearTimeout(timerId);
+    timerId = window.setTimeout(() => {
+      void saveTask(...args);
+    }, delay);
+  };
+}
+
 // 定义状态栏增强模块管理弹窗，集中放置状态栏显示与复制行为配置。
 class StatusBarEnhancerManagementModal extends obsidian.Modal {
   constructor(app, plugin, onSettingsChanged) {
@@ -59,6 +70,9 @@ class StatusBarEnhancerManagementModal extends obsidian.Modal {
     renderDetailItem(detailListEl, '显示文件名', summary.statusBarEnhancerShowFileName ? '已开启' : '已关闭');
     renderDetailItem(detailListEl, '显示图标', summary.statusBarEnhancerShowIcons ? '已开启' : '已关闭');
     renderDetailItem(detailListEl, '点击复制绝对路径', summary.statusBarEnhancerCopyAbsolutePath ? '已开启' : '已关闭');
+    renderDetailItem(detailListEl, '显示最后修改时间', summary.statusBarEnhancerLastModifiedEnabled ? '已开启' : '已关闭');
+    renderDetailItem(detailListEl, '显示创建时间', summary.statusBarEnhancerCreatedEnabled ? '已开启' : '已关闭');
+    renderDetailItem(detailListEl, '点击循环显示', summary.statusBarEnhancerCycleOnClick ? '已开启' : '已关闭');
     renderDetailItem(detailListEl, '配置文件', configSummary.statusBarEnhancer.path, true);
 
     new obsidian.Setting(contentEl)
@@ -98,6 +112,116 @@ class StatusBarEnhancerManagementModal extends obsidian.Modal {
           .onChange(async (value) => {
             await this.plugin.updateStatusBarEnhancerCopyAbsolutePath(value);
             new obsidian.Notice(value ? '状态栏点击复制已改为绝对路径' : '状态栏点击复制已改为库内相对路径');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('最后修改时间')
+      .setHeading();
+
+    new obsidian.Setting(contentEl)
+      .setName('显示最后修改时间')
+      .setDesc('在状态栏显示当前活动文件的最后修改时间。')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.statusBarEnhancerLastModifiedEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerLastModifiedEnabled(value);
+            new obsidian.Notice(value ? '已开启最后修改时间显示' : '已关闭最后修改时间显示');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('最后修改时间前缀')
+      .setDesc('显示在最后修改时间之前的文本。')
+      .addText((text) => {
+        const debouncedSave = debounceSave(async (value) => {
+          await this.plugin.updateStatusBarEnhancerLastModifiedPrepend(value);
+          await this.onSettingsChanged();
+        }, 500);
+        text
+          .setPlaceholder('🖋️')
+          .setValue(summary.statusBarEnhancerLastModifiedPrepend)
+          .onChange(debouncedSave);
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('最后修改时间格式')
+      .setDesc('兼容 Moment.js 格式，例如 YYYY-MM-DD HH:mm:ss。')
+      .addText((text) => {
+        const debouncedSave = debounceSave(async (value) => {
+          await this.plugin.updateStatusBarEnhancerLastModifiedTimestampFormat(value);
+          await this.onSettingsChanged();
+        }, 500);
+        text
+          .setPlaceholder(' HH:mm:ss')
+          .setValue(summary.statusBarEnhancerLastModifiedTimestampFormat)
+          .onChange(debouncedSave);
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('创建时间')
+      .setHeading();
+
+    new obsidian.Setting(contentEl)
+      .setName('显示创建时间')
+      .setDesc('在状态栏显示当前活动文件的创建时间。')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.statusBarEnhancerCreatedEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCreatedEnabled(value);
+            new obsidian.Notice(value ? '已开启创建时间显示' : '已关闭创建时间显示');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('创建时间前缀')
+      .setDesc('显示在创建时间之前的文本。')
+      .addText((text) => {
+        const debouncedSave = debounceSave(async (value) => {
+          await this.plugin.updateStatusBarEnhancerCreatedPrepend(value);
+          await this.onSettingsChanged();
+        }, 500);
+        text
+          .setPlaceholder('📘')
+          .setValue(summary.statusBarEnhancerCreatedPrepend)
+          .onChange(debouncedSave);
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('创建时间格式')
+      .setDesc('兼容 Moment.js 格式，例如 YYYY-MM-DD HH:mm:ss。')
+      .addText((text) => {
+        const debouncedSave = debounceSave(async (value) => {
+          await this.plugin.updateStatusBarEnhancerCreatedTimestampFormat(value);
+          await this.onSettingsChanged();
+        }, 500);
+        text
+          .setPlaceholder('YYYY-MM-DD')
+          .setValue(summary.statusBarEnhancerCreatedTimestampFormat)
+          .onChange(debouncedSave);
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('交互')
+      .setHeading();
+
+    new obsidian.Setting(contentEl)
+      .setName('点击循环显示')
+      .setDesc('点击状态栏时间项时，在「仅最后修改时间 → 仅创建时间 → 两者都显示」之间循环，循环结果会保存为当前配置。')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.statusBarEnhancerCycleOnClick)
+          .onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCycleOnClickEnabled(value);
+            new obsidian.Notice(value ? '已开启点击循环显示' : '已关闭点击循环显示');
             await this.onSettingsChanged();
             await this.render();
           });

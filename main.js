@@ -932,7 +932,14 @@ var require_constants5 = __commonJS({
     var DEFAULT_STATUS_BAR_ENHANCER_SETTINGS = {
       showFileName: false,
       showIcons: false,
-      copyAbsolutePath: true
+      copyAbsolutePath: true,
+      lastModifiedEnabled: true,
+      lastModifiedPrepend: "🖋️",
+      lastModifiedTimestampFormat: " HH:mm:ss",
+      createdEnabled: false,
+      createdPrepend: "📘",
+      createdTimestampFormat: "YYYY-MM-DD",
+      cycleOnClickEnabled: true
     };
     module2.exports = {
       DEFAULT_STATUS_BAR_ENHANCER_SETTINGS
@@ -940,8 +947,24 @@ var require_constants5 = __commonJS({
   }
 });
 
-// src/modules/plugin-data/constants.js
+// src/modules/tab-bar-enhancer/constants.js
 var require_constants6 = __commonJS({
+  "src/modules/tab-bar-enhancer/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_TAB_BAR_ENHANCER_SETTINGS = {
+      debug: false,
+      topBarWheelTabSwitch: false,
+      skipCssHiddenTabs: true,
+      skipUnloadedPluginTabs: true
+    };
+    module2.exports = {
+      DEFAULT_TAB_BAR_ENHANCER_SETTINGS
+    };
+  }
+});
+
+// src/modules/plugin-data/constants.js
+var require_constants7 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
     var anchorGraphConstants = require_constants2();
@@ -949,6 +972,7 @@ var require_constants6 = __commonJS({
     var fileMarkerConstants = require_constants();
     var menuCustomizerConstants = require_constants4();
     var statusBarEnhancerConstants = require_constants5();
+    var tabBarEnhancerConstants = require_constants6();
     var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
     var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
     var FEATURE_CONFIG_FILE_NAMES = {
@@ -956,7 +980,8 @@ var require_constants6 = __commonJS({
       anchorGraph: "anchor-graph",
       menuCustomizer: "menu-customizer",
       copyPath: "copy-path",
-      statusBarEnhancer: "status-bar-enhancer"
+      statusBarEnhancer: "status-bar-enhancer",
+      tabBarEnhancer: "tab-bar-enhancer"
     };
     var DEFAULT_PLUGIN_DATA = {
       features: {
@@ -974,6 +999,9 @@ var require_constants6 = __commonJS({
         },
         statusBarEnhancer: {
           enabled: false
+        },
+        tabBarEnhancer: {
+          enabled: false
         }
       }
     };
@@ -982,7 +1010,8 @@ var require_constants6 = __commonJS({
       anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
       menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
       copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
-      statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS
+      statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
+      tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS
     };
     module2.exports = {
       DEFAULT_FEATURE_DATA,
@@ -999,7 +1028,7 @@ var require_feature_config_manager = __commonJS({
   "src/modules/plugin-data/feature-config-manager.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var constants = require_constants6();
+    var constants = require_constants7();
     var FeatureConfigManager = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1102,7 +1131,7 @@ var require_store2 = __commonJS({
   "src/modules/plugin-data/store.js"(exports2, module2) {
     "use strict";
     var featureConfigManagerModule = require_feature_config_manager();
-    var constants = require_constants6();
+    var constants = require_constants7();
     var PluginDataStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1120,6 +1149,7 @@ var require_store2 = __commonJS({
         this.featureData.menuCustomizer = await this.loadFeatureSlice("menuCustomizer", rawData?.menuCustomizer);
         this.featureData.copyPath = await this.loadFeatureSlice("copyPath", rawData?.copyPath);
         this.featureData.statusBarEnhancer = await this.loadFeatureSlice("statusBarEnhancer", rawData?.statusBarEnhancer);
+        this.featureData.tabBarEnhancer = await this.loadFeatureSlice("tabBarEnhancer", rawData?.tabBarEnhancer);
         if (this.hasLegacyFeatureSlices(rawData)) {
           await this.save();
         }
@@ -1181,6 +1211,14 @@ var require_store2 = __commonJS({
       setStatusBarEnhancerData(statusBarEnhancerData) {
         this.featureData.statusBarEnhancer = this.normalizeStatusBarEnhancerData(statusBarEnhancerData);
       }
+      // 返回标签栏增强模块的独立配置切片。
+      getTabBarEnhancerData() {
+        return this.featureData.tabBarEnhancer;
+      }
+      // 更新标签栏增强模块的独立配置切片缓存。
+      setTabBarEnhancerData(tabBarEnhancerData) {
+        this.featureData.tabBarEnhancer = this.normalizeTabBarEnhancerData(tabBarEnhancerData);
+      }
       // 保存文件标记功能数据到独立配置文件。
       async saveFileMarkerData(fileMarkerData) {
         this.setFileMarkerData(fileMarkerData);
@@ -1206,6 +1244,11 @@ var require_store2 = __commonJS({
         this.setStatusBarEnhancerData(statusBarEnhancerData);
         await this.featureConfigManager.save("statusBarEnhancer", this.featureData.statusBarEnhancer);
       }
+      // 保存标签栏增强模块数据到独立配置文件。
+      async saveTabBarEnhancerData(tabBarEnhancerData) {
+        this.setTabBarEnhancerData(tabBarEnhancerData);
+        await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
+      }
       // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
       async saveAll() {
         await this.save();
@@ -1214,6 +1257,7 @@ var require_store2 = __commonJS({
         await this.featureConfigManager.save("menuCustomizer", this.featureData.menuCustomizer);
         await this.featureConfigManager.save("copyPath", this.featureData.copyPath);
         await this.featureConfigManager.save("statusBarEnhancer", this.featureData.statusBarEnhancer);
+        await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
       }
       // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
       async getConfigFileStatuses() {
@@ -1224,6 +1268,7 @@ var require_store2 = __commonJS({
         const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath("menuCustomizer");
         const copyPathPath = this.featureConfigManager.getFeatureConfigPath("copyPath");
         const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("statusBarEnhancer");
+        const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("tabBarEnhancer");
         return {
           directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
           exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
@@ -1267,7 +1312,14 @@ var require_store2 = __commonJS({
             name: "状态栏增强配置",
             path: statusBarEnhancerPath,
             exists: await this.featureConfigManager.exists("statusBarEnhancer"),
-            summary: `显示文件名：${this.featureData.statusBarEnhancer.showFileName === true ? "已开启" : "已关闭"}，显示图标：${this.featureData.statusBarEnhancer.showIcons === true ? "已开启" : "已关闭"}，复制绝对路径：${this.featureData.statusBarEnhancer.copyAbsolutePath !== false ? "已开启" : "已关闭"}`
+            summary: `显示文件名：${this.featureData.statusBarEnhancer.showFileName === true ? "已开启" : "已关闭"}，显示图标：${this.featureData.statusBarEnhancer.showIcons === true ? "已开启" : "已关闭"}，复制绝对路径：${this.featureData.statusBarEnhancer.copyAbsolutePath !== false ? "已开启" : "已关闭"}，最后修改时间：${this.featureData.statusBarEnhancer.lastModifiedEnabled !== false ? "已开启" : "已关闭"}，创建时间：${this.featureData.statusBarEnhancer.createdEnabled === true ? "已开启" : "已关闭"}`
+          },
+          tabBarEnhancer: {
+            key: "tabBarEnhancer",
+            name: "标签栏增强配置",
+            path: tabBarEnhancerPath,
+            exists: await this.featureConfigManager.exists("tabBarEnhancer"),
+            summary: `空白区滚轮切换：${this.featureData.tabBarEnhancer.topBarWheelTabSwitch === true ? "已开启" : "已关闭"}，跳过隐藏标签：${this.featureData.tabBarEnhancer.skipCssHiddenTabs !== false ? "已开启" : "已关闭"}，跳过未加载插件标签：${this.featureData.tabBarEnhancer.skipUnloadedPluginTabs !== false ? "已开启" : "已关闭"}`
           }
         };
       }
@@ -1311,6 +1363,8 @@ var require_store2 = __commonJS({
           this.featureData.copyPath = defaultFeatureData;
         } else if (featureKey === "statusBarEnhancer") {
           this.featureData.statusBarEnhancer = defaultFeatureData;
+        } else if (featureKey === "tabBarEnhancer") {
+          this.featureData.tabBarEnhancer = defaultFeatureData;
         }
         await this.featureConfigManager.save(featureKey, defaultFeatureData);
         return defaultFeatureData;
@@ -1331,7 +1385,8 @@ var require_store2 = __commonJS({
           anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
           copyPath: this.normalizeCopyPathData(source.copyPath),
-          statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
+          statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
+          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
         });
       }
       // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
@@ -1343,6 +1398,7 @@ var require_store2 = __commonJS({
         delete normalizedCoreData.menuCustomizer;
         delete normalizedCoreData.copyPath;
         delete normalizedCoreData.statusBarEnhancer;
+        delete normalizedCoreData.tabBarEnhancer;
         normalizedCoreData.features = this.normalizeFeatures(source.features);
         return normalizedCoreData;
       }
@@ -1354,7 +1410,8 @@ var require_store2 = __commonJS({
           anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
           copyPath: this.normalizeCopyPathData(source.copyPath),
-          statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
+          statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
+          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
         };
       }
       // 归一化插件级功能开关结构。
@@ -1374,6 +1431,9 @@ var require_store2 = __commonJS({
           },
           statusBarEnhancer: {
             enabled: features?.statusBarEnhancer?.enabled === true
+          },
+          tabBarEnhancer: {
+            enabled: features?.tabBarEnhancer?.enabled === true
           }
         };
       }
@@ -1438,10 +1498,28 @@ var require_store2 = __commonJS({
       // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
       normalizeStatusBarEnhancerData(statusBarEnhancerData) {
         const source = this.isPlainObject(statusBarEnhancerData) ? statusBarEnhancerData : {};
+        const defaults = constants.DEFAULT_FEATURE_DATA.statusBarEnhancer;
         return {
           showFileName: source.showFileName === true,
           showIcons: source.showIcons === true,
-          copyAbsolutePath: source.copyAbsolutePath !== false
+          copyAbsolutePath: source.copyAbsolutePath !== false,
+          lastModifiedEnabled: source.lastModifiedEnabled !== false,
+          lastModifiedPrepend: typeof source.lastModifiedPrepend === "string" ? source.lastModifiedPrepend : defaults.lastModifiedPrepend,
+          lastModifiedTimestampFormat: typeof source.lastModifiedTimestampFormat === "string" && source.lastModifiedTimestampFormat ? source.lastModifiedTimestampFormat : defaults.lastModifiedTimestampFormat,
+          createdEnabled: source.createdEnabled === true,
+          createdPrepend: typeof source.createdPrepend === "string" ? source.createdPrepend : defaults.createdPrepend,
+          createdTimestampFormat: typeof source.createdTimestampFormat === "string" && source.createdTimestampFormat ? source.createdTimestampFormat : defaults.createdTimestampFormat,
+          cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+        };
+      }
+      // 归一化标签栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+      normalizeTabBarEnhancerData(tabBarEnhancerData) {
+        const source = this.isPlainObject(tabBarEnhancerData) ? tabBarEnhancerData : {};
+        return {
+          debug: source.debug === true,
+          topBarWheelTabSwitch: source.topBarWheelTabSwitch === true,
+          skipCssHiddenTabs: source.skipCssHiddenTabs !== false,
+          skipUnloadedPluginTabs: source.skipUnloadedPluginTabs !== false
         };
       }
       // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
@@ -1476,12 +1554,15 @@ var require_store2 = __commonJS({
         if (featureKey === "statusBarEnhancer") {
           return this.normalizeStatusBarEnhancerData(featureData);
         }
+        if (featureKey === "tabBarEnhancer") {
+          return this.normalizeTabBarEnhancerData(featureData);
+        }
         return this.isPlainObject(featureData) ? featureData : {};
       }
       // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
       hasLegacyFeatureSlices(data) {
         const source = this.isPlainObject(data) ? data : {};
-        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.copyPath) || this.isPlainObject(source.statusBarEnhancer);
+        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.copyPath) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer);
       }
       // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
       getCoreConfigPath() {
@@ -1498,7 +1579,8 @@ var require_store2 = __commonJS({
           anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
           menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
           copyPath: bundle.featureData?.copyPath || bundle.copyPath,
-          statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer
+          statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
+          tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer
         }) : bundle;
         const coreSource = hasSeparatedPayload ? Object.assign({}, bundle.coreData, {
           features: bundle.coreData?.features || bundle.features
@@ -1537,7 +1619,7 @@ var require_store2 = __commonJS({
 var require_plugin_data = __commonJS({
   "src/modules/plugin-data/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants6();
+    var constants = require_constants7();
     var featureConfigManager = require_feature_config_manager();
     var store = require_store2();
     module2.exports = Object.assign({}, constants, featureConfigManager, store);
@@ -1545,7 +1627,7 @@ var require_plugin_data = __commonJS({
 });
 
 // src/modules/plugin-settings/constants.js
-var require_constants7 = __commonJS({
+var require_constants8 = __commonJS({
   "src/modules/plugin-settings/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FEATURE_SETTINGS = {
@@ -1563,6 +1645,9 @@ var require_constants7 = __commonJS({
       },
       statusBarEnhancer: {
         enabled: false
+      },
+      tabBarEnhancer: {
+        enabled: false
       }
     };
     module2.exports = {
@@ -1575,7 +1660,7 @@ var require_constants7 = __commonJS({
 var require_store3 = __commonJS({
   "src/modules/plugin-settings/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants7();
+    var constants = require_constants8();
     var PluginSettingsStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1641,6 +1726,16 @@ var require_store3 = __commonJS({
         await this.save();
         return this.isStatusBarEnhancerEnabled();
       }
+      // 返回标签栏增强模块是否启用，供主入口和设置页统一读取。
+      isTabBarEnhancerEnabled() {
+        return Boolean(this.settings.tabBarEnhancer.enabled);
+      }
+      // 切换标签栏增强模块的启用状态，并立即持久化到本地。
+      async setTabBarEnhancerEnabled(enabled) {
+        this.settings.tabBarEnhancer.enabled = Boolean(enabled);
+        await this.save();
+        return this.isTabBarEnhancerEnabled();
+      }
       // 返回功能设置对象，供主入口与设置页读取当前切片。
       getSettings() {
         return this.settings;
@@ -1663,6 +1758,9 @@ var require_store3 = __commonJS({
           },
           statusBarEnhancer: {
             enabled: source.statusBarEnhancer?.enabled === true
+          },
+          tabBarEnhancer: {
+            enabled: source.tabBarEnhancer?.enabled === true
           }
         };
       }
@@ -1677,7 +1775,7 @@ var require_store3 = __commonJS({
 var require_plugin_settings = __commonJS({
   "src/modules/plugin-settings/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants7();
+    var constants = require_constants8();
     var store = require_store3();
     module2.exports = Object.assign({}, constants, store);
   }
@@ -2793,6 +2891,8 @@ var require_runtime = __commonJS({
         this.plugin = plugin;
         this.settings = null;
         this.statusBarEl = null;
+        this.lastModifiedTimestampEl = null;
+        this.createdTimestampEl = null;
       }
       // 挂载最新配置。
       load(settings) {
@@ -2800,25 +2900,49 @@ var require_runtime = __commonJS({
       }
       // 启动状态栏增强，创建状态栏节点并立刻渲染当前活动文件。
       start() {
-        if (this.statusBarEl) {
-          this.renderActiveFilePath();
-          return;
-        }
-        this.statusBarEl = this.plugin.addStatusBarItem();
-        this.statusBarEl.addClass("mod-clickable");
-        this.statusBarEl.addClass("nene-status-bar-enhancer");
-        this.statusBarEl.addEventListener("click", () => {
-          void this.copyActivePath();
-        });
+        this.ensureStatusBarItems();
         this.renderActiveFilePath();
+        this.renderActiveTimestamps();
       }
-      // 停止状态栏增强并移除状态栏节点。
+      // 停止状态栏增强并移除全部状态栏节点。
       stop() {
-        if (!this.statusBarEl) {
-          return;
+        if (this.statusBarEl) {
+          this.statusBarEl.remove();
+          this.statusBarEl = null;
         }
-        this.statusBarEl.remove();
-        this.statusBarEl = null;
+        if (this.lastModifiedTimestampEl) {
+          this.lastModifiedTimestampEl.remove();
+          this.lastModifiedTimestampEl = null;
+        }
+        if (this.createdTimestampEl) {
+          this.createdTimestampEl.remove();
+          this.createdTimestampEl = null;
+        }
+      }
+      // 确保路径与时间戳状态栏节点已创建，重复调用时直接跳过。
+      ensureStatusBarItems() {
+        if (!this.statusBarEl) {
+          this.statusBarEl = this.plugin.addStatusBarItem();
+          this.statusBarEl.addClass("mod-clickable");
+          this.statusBarEl.addClass("nene-status-bar-enhancer");
+          this.statusBarEl.addEventListener("click", () => {
+            void this.copyActivePath();
+          });
+        }
+        if (!this.lastModifiedTimestampEl) {
+          this.lastModifiedTimestampEl = this.plugin.addStatusBarItem();
+          this.lastModifiedTimestampEl.addClass("nene-status-bar-timestamp");
+          this.lastModifiedTimestampEl.addEventListener("click", () => {
+            void this.cycleTimestampDisplay();
+          });
+        }
+        if (!this.createdTimestampEl) {
+          this.createdTimestampEl = this.plugin.addStatusBarItem();
+          this.createdTimestampEl.addClass("nene-status-bar-timestamp");
+          this.createdTimestampEl.addEventListener("click", () => {
+            void this.cycleTimestampDisplay();
+          });
+        }
       }
       // 渲染当前活动文件的路径到状态栏。
       renderActiveFilePath() {
@@ -2844,6 +2968,69 @@ var require_runtime = __commonJS({
           this.getShowIcons()
         );
         this.statusBarEl.appendChild(fragment);
+      }
+      // 渲染当前活动文件的时间戳到状态栏。
+      renderActiveTimestamps() {
+        const activeFile = this.plugin.app.workspace.getActiveFile();
+        this.renderTimestamps(activeFile);
+      }
+      // 根据指定文件刷新两个时间戳状态栏项。
+      renderTimestamps(file) {
+        this.renderLastModifiedTimestamp(file);
+        this.renderCreatedTimestamp(file);
+      }
+      // 刷新最后修改时间状态栏项，模块未启用或无活动文件时隐藏。
+      renderLastModifiedTimestamp(file) {
+        if (!this.lastModifiedTimestampEl) {
+          return;
+        }
+        if (!(file instanceof obsidian2.TFile) || !this.getLastModifiedEnabled()) {
+          this.lastModifiedTimestampEl.hide();
+          return;
+        }
+        const timestampText = obsidian2.moment(file.stat.mtime).format(this.getLastModifiedTimestampFormat());
+        this.lastModifiedTimestampEl.setText(`${this.getLastModifiedPrepend()}${timestampText}`);
+        this.lastModifiedTimestampEl.show();
+      }
+      // 刷新创建时间状态栏项，模块未启用或无活动文件时隐藏。
+      renderCreatedTimestamp(file) {
+        if (!this.createdTimestampEl) {
+          return;
+        }
+        if (!(file instanceof obsidian2.TFile) || !this.getCreatedEnabled()) {
+          this.createdTimestampEl.hide();
+          return;
+        }
+        const timestampText = obsidian2.moment(file.stat.ctime).format(this.getCreatedTimestampFormat());
+        this.createdTimestampEl.setText(`${this.getCreatedPrepend()}${timestampText}`);
+        this.createdTimestampEl.show();
+      }
+      // 点击时间戳状态栏项时在「仅最后修改时间 → 仅创建时间 → 两者都显示」间循环，
+      // 与原插件行为一致，循环结果会作为当前配置持久化到配置文件。
+      async cycleTimestampDisplay() {
+        if (!this.getCycleOnClickEnabled()) {
+          return;
+        }
+        const store = this.plugin.statusBarEnhancerStore;
+        const current = store.getSettings();
+        let nextState;
+        if (current.lastModifiedEnabled && current.createdEnabled) {
+          nextState = { lastModifiedEnabled: true, createdEnabled: false };
+        } else if (current.lastModifiedEnabled) {
+          nextState = { lastModifiedEnabled: false, createdEnabled: true };
+        } else if (current.createdEnabled) {
+          nextState = { lastModifiedEnabled: true, createdEnabled: true };
+        } else {
+          nextState = { lastModifiedEnabled: true, createdEnabled: false };
+        }
+        try {
+          await store.setTimestampDisplayState(nextState.lastModifiedEnabled, nextState.createdEnabled);
+          this.load(store.getSettings());
+          this.renderActiveTimestamps();
+        } catch (error) {
+          console.error("[ねね] 状态栏增强切换时间戳显示失败", error);
+          new obsidian2.Notice("切换时间戳显示失败，请查看控制台日志");
+        }
       }
       // 复制当前活动文件路径，供状态栏点击与命令复用。
       async copyActivePath() {
@@ -2946,6 +3133,34 @@ var require_runtime = __commonJS({
       getCopyAbsolutePath() {
         return this.settings?.copyAbsolutePath !== false;
       }
+      // 返回“是否显示最后修改时间”开关。
+      getLastModifiedEnabled() {
+        return this.settings?.lastModifiedEnabled !== false;
+      }
+      // 返回最后修改时间的前缀文本。
+      getLastModifiedPrepend() {
+        return typeof this.settings?.lastModifiedPrepend === "string" ? this.settings.lastModifiedPrepend : "";
+      }
+      // 返回最后修改时间的显示格式。
+      getLastModifiedTimestampFormat() {
+        return typeof this.settings?.lastModifiedTimestampFormat === "string" && this.settings.lastModifiedTimestampFormat ? this.settings.lastModifiedTimestampFormat : " HH:mm:ss";
+      }
+      // 返回“是否显示创建时间”开关。
+      getCreatedEnabled() {
+        return this.settings?.createdEnabled === true;
+      }
+      // 返回创建时间的前缀文本。
+      getCreatedPrepend() {
+        return typeof this.settings?.createdPrepend === "string" ? this.settings.createdPrepend : "";
+      }
+      // 返回创建时间的显示格式。
+      getCreatedTimestampFormat() {
+        return typeof this.settings?.createdTimestampFormat === "string" && this.settings.createdTimestampFormat ? this.settings.createdTimestampFormat : "YYYY-MM-DD";
+      }
+      // 返回“点击循环显示”开关。
+      getCycleOnClickEnabled() {
+        return this.settings?.cycleOnClickEnabled !== false;
+      }
     };
     module2.exports = {
       StatusBarEnhancerRuntime
@@ -2995,13 +3210,75 @@ var require_store5 = __commonJS({
         await this.save();
         return this.settings.copyAbsolutePath;
       }
+      // 更新“是否显示最后修改时间”开关。
+      async setLastModifiedEnabled(enabled) {
+        this.settings.lastModifiedEnabled = Boolean(enabled);
+        await this.save();
+        return this.settings.lastModifiedEnabled;
+      }
+      // 更新最后修改时间的前缀文本。
+      async setLastModifiedPrepend(text) {
+        this.settings.lastModifiedPrepend = typeof text === "string" ? text : "";
+        await this.save();
+        return this.settings.lastModifiedPrepend;
+      }
+      // 更新最后修改时间的显示格式，空值时回退为默认格式。
+      async setLastModifiedTimestampFormat(format) {
+        const trimmedFormat = typeof format === "string" ? format : "";
+        this.settings.lastModifiedTimestampFormat = trimmedFormat ? trimmedFormat : constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS.lastModifiedTimestampFormat;
+        await this.save();
+        return this.settings.lastModifiedTimestampFormat;
+      }
+      // 更新“是否显示创建时间”开关。
+      async setCreatedEnabled(enabled) {
+        this.settings.createdEnabled = Boolean(enabled);
+        await this.save();
+        return this.settings.createdEnabled;
+      }
+      // 更新创建时间的前缀文本。
+      async setCreatedPrepend(text) {
+        this.settings.createdPrepend = typeof text === "string" ? text : "";
+        await this.save();
+        return this.settings.createdPrepend;
+      }
+      // 更新创建时间的显示格式，空值时回退为默认格式。
+      async setCreatedTimestampFormat(format) {
+        const trimmedFormat = typeof format === "string" ? format : "";
+        this.settings.createdTimestampFormat = trimmedFormat ? trimmedFormat : constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS.createdTimestampFormat;
+        await this.save();
+        return this.settings.createdTimestampFormat;
+      }
+      // 更新“点击循环显示”开关。
+      async setCycleOnClickEnabled(enabled) {
+        this.settings.cycleOnClickEnabled = Boolean(enabled);
+        await this.save();
+        return this.settings.cycleOnClickEnabled;
+      }
+      // 一次性更新两个时间戳的显示开关，供点击循环复用，避免短时间内重复写入配置文件。
+      async setTimestampDisplayState(lastModifiedEnabled, createdEnabled) {
+        this.settings.lastModifiedEnabled = Boolean(lastModifiedEnabled);
+        this.settings.createdEnabled = Boolean(createdEnabled);
+        await this.save();
+        return {
+          lastModifiedEnabled: this.settings.lastModifiedEnabled,
+          createdEnabled: this.settings.createdEnabled
+        };
+      }
       // 归一化状态栏增强模块配置结构。
       normalizeSettings(settings) {
         const source = settings || constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
+        const defaults = constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
         return {
           showFileName: source.showFileName === true,
           showIcons: source.showIcons === true,
-          copyAbsolutePath: source.copyAbsolutePath !== false
+          copyAbsolutePath: source.copyAbsolutePath !== false,
+          lastModifiedEnabled: source.lastModifiedEnabled !== false,
+          lastModifiedPrepend: typeof source.lastModifiedPrepend === "string" ? source.lastModifiedPrepend : defaults.lastModifiedPrepend,
+          lastModifiedTimestampFormat: typeof source.lastModifiedTimestampFormat === "string" && source.lastModifiedTimestampFormat ? source.lastModifiedTimestampFormat : defaults.lastModifiedTimestampFormat,
+          createdEnabled: source.createdEnabled === true,
+          createdPrepend: typeof source.createdPrepend === "string" ? source.createdPrepend : defaults.createdPrepend,
+          createdTimestampFormat: typeof source.createdTimestampFormat === "string" && source.createdTimestampFormat ? source.createdTimestampFormat : defaults.createdTimestampFormat,
+          cycleOnClickEnabled: source.cycleOnClickEnabled !== false
         };
       }
     };
@@ -3034,6 +3311,15 @@ var require_view3 = __commonJS({
         text: value
       });
     }
+    function debounceSave(saveTask, delay) {
+      let timerId = null;
+      return (...args) => {
+        window.clearTimeout(timerId);
+        timerId = window.setTimeout(() => {
+          void saveTask(...args);
+        }, delay);
+      };
+    }
     var StatusBarEnhancerManagementModal = class extends obsidian2.Modal {
       constructor(app, plugin, onSettingsChanged) {
         super(app);
@@ -3063,6 +3349,9 @@ var require_view3 = __commonJS({
         renderDetailItem(detailListEl, "显示文件名", summary.statusBarEnhancerShowFileName ? "已开启" : "已关闭");
         renderDetailItem(detailListEl, "显示图标", summary.statusBarEnhancerShowIcons ? "已开启" : "已关闭");
         renderDetailItem(detailListEl, "点击复制绝对路径", summary.statusBarEnhancerCopyAbsolutePath ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "显示最后修改时间", summary.statusBarEnhancerLastModifiedEnabled ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "显示创建时间", summary.statusBarEnhancerCreatedEnabled ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "点击循环显示", summary.statusBarEnhancerCycleOnClick ? "已开启" : "已关闭");
         renderDetailItem(detailListEl, "配置文件", configSummary.statusBarEnhancer.path, true);
         new obsidian2.Setting(contentEl).setName("显示文件名").setDesc("在状态栏路径中显示当前文件名。考虑到状态栏长度，建议关闭").addToggle((toggle) => {
           toggle.setValue(summary.statusBarEnhancerShowFileName).onChange(async (value) => {
@@ -3084,6 +3373,61 @@ var require_view3 = __commonJS({
           toggle.setValue(summary.statusBarEnhancerCopyAbsolutePath).onChange(async (value) => {
             await this.plugin.updateStatusBarEnhancerCopyAbsolutePath(value);
             new obsidian2.Notice(value ? "状态栏点击复制已改为绝对路径" : "状态栏点击复制已改为库内相对路径");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("最后修改时间").setHeading();
+        new obsidian2.Setting(contentEl).setName("显示最后修改时间").setDesc("在状态栏显示当前活动文件的最后修改时间。").addToggle((toggle) => {
+          toggle.setValue(summary.statusBarEnhancerLastModifiedEnabled).onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerLastModifiedEnabled(value);
+            new obsidian2.Notice(value ? "已开启最后修改时间显示" : "已关闭最后修改时间显示");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("最后修改时间前缀").setDesc("显示在最后修改时间之前的文本。").addText((text) => {
+          const debouncedSave = debounceSave(async (value) => {
+            await this.plugin.updateStatusBarEnhancerLastModifiedPrepend(value);
+            await this.onSettingsChanged();
+          }, 500);
+          text.setPlaceholder("🖋️").setValue(summary.statusBarEnhancerLastModifiedPrepend).onChange(debouncedSave);
+        });
+        new obsidian2.Setting(contentEl).setName("最后修改时间格式").setDesc("兼容 Moment.js 格式，例如 YYYY-MM-DD HH:mm:ss。").addText((text) => {
+          const debouncedSave = debounceSave(async (value) => {
+            await this.plugin.updateStatusBarEnhancerLastModifiedTimestampFormat(value);
+            await this.onSettingsChanged();
+          }, 500);
+          text.setPlaceholder(" HH:mm:ss").setValue(summary.statusBarEnhancerLastModifiedTimestampFormat).onChange(debouncedSave);
+        });
+        new obsidian2.Setting(contentEl).setName("创建时间").setHeading();
+        new obsidian2.Setting(contentEl).setName("显示创建时间").setDesc("在状态栏显示当前活动文件的创建时间。").addToggle((toggle) => {
+          toggle.setValue(summary.statusBarEnhancerCreatedEnabled).onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCreatedEnabled(value);
+            new obsidian2.Notice(value ? "已开启创建时间显示" : "已关闭创建时间显示");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("创建时间前缀").setDesc("显示在创建时间之前的文本。").addText((text) => {
+          const debouncedSave = debounceSave(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCreatedPrepend(value);
+            await this.onSettingsChanged();
+          }, 500);
+          text.setPlaceholder("📘").setValue(summary.statusBarEnhancerCreatedPrepend).onChange(debouncedSave);
+        });
+        new obsidian2.Setting(contentEl).setName("创建时间格式").setDesc("兼容 Moment.js 格式，例如 YYYY-MM-DD HH:mm:ss。").addText((text) => {
+          const debouncedSave = debounceSave(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCreatedTimestampFormat(value);
+            await this.onSettingsChanged();
+          }, 500);
+          text.setPlaceholder("YYYY-MM-DD").setValue(summary.statusBarEnhancerCreatedTimestampFormat).onChange(debouncedSave);
+        });
+        new obsidian2.Setting(contentEl).setName("交互").setHeading();
+        new obsidian2.Setting(contentEl).setName("点击循环显示").setDesc("点击状态栏时间项时，在「仅最后修改时间 → 仅创建时间 → 两者都显示」之间循环，循环结果会保存为当前配置。").addToggle((toggle) => {
+          toggle.setValue(summary.statusBarEnhancerCycleOnClick).onChange(async (value) => {
+            await this.plugin.updateStatusBarEnhancerCycleOnClickEnabled(value);
+            new obsidian2.Notice(value ? "已开启点击循环显示" : "已关闭点击循环显示");
             await this.onSettingsChanged();
             await this.render();
           });
@@ -3112,8 +3456,458 @@ var require_status_bar_enhancer = __commonJS({
   }
 });
 
-// src/modules/context-menu-enhancer/runtime.js
+// src/modules/tab-bar-enhancer/runtime.js
 var require_runtime2 = __commonJS({
+  "src/modules/tab-bar-enhancer/runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var TAB_HEADER_SELECTOR = ".workspace-tab-header";
+    var TAB_HEADER_CONTAINER_SELECTOR = ".workspace-tab-header-container";
+    var TOP_BAR_WHEEL_CLASS = "nene-tab-bar-wheel-switch";
+    var DEBUG_HIGHLIGHT_CLASS = "nene-tab-debug-highlight";
+    var DEBUG_HIGHLIGHT_YELLOW_CLASS = "nene-tab-debug-yellow";
+    var DEBUG_HIGHLIGHT_RED_CLASS = "nene-tab-debug-red";
+    var TabBarEnhancerRuntime = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = null;
+        this.registeredWindows = /* @__PURE__ */ new Set();
+      }
+      // 挂载最新配置。
+      load(settings) {
+        this.settings = settings || this.plugin.tabBarEnhancerStore.getSettings();
+      }
+      // 启动标签栏增强，同步 body 上的实验性 class；滚轮监听由主入口统一注册。
+      start() {
+        this.syncTopBarWheelClass(true);
+      }
+      // 停止标签栏增强，移除 body 上的实验性 class；滚轮监听随插件卸载自动回收。
+      stop() {
+        document.body.classList.toggle(TOP_BAR_WHEEL_CLASS, false);
+      }
+      // 根据模块开关与配置同步 body 上的实验性 class，供启停与配置变更时调用。
+      syncTopBarWheelClass(moduleEnabled) {
+        const shouldEnable = Boolean(moduleEnabled) && this.getTopBarWheelTabSwitch();
+        document.body.classList.toggle(TOP_BAR_WHEEL_CLASS, shouldEnable);
+      }
+      // 为当前全部工作区窗口注册滚轮监听，供布局就绪后调用。
+      registerWheelHandlersForExistingWindows() {
+        this.getAllWorkspaceWindows().forEach((win) => {
+          this.registerWheelHandler(win);
+        });
+      }
+      // 为单个窗口注册滚轮监听，重复注册时直接跳过。
+      registerWheelHandler(win) {
+        if (!win || this.registeredWindows.has(win)) {
+          return;
+        }
+        this.registeredWindows.add(win);
+        this.plugin.registerDomEvent(win, "wheel", (evt) => {
+          this.handleWheelEvent(win, evt);
+        });
+      }
+      // 弹出窗口关闭时移除记录，避免缓存持有已销毁的窗口对象。
+      unregisterWheelHandler(win) {
+        this.registeredWindows.delete(win);
+      }
+      // 处理滚轮事件，根据滚动方向切换到左邻或右邻标签。
+      handleWheelEvent(win, evt) {
+        if (!this.plugin.isTabBarEnhancerEnabled()) {
+          return;
+        }
+        const leaf = this.findLeafByWheelEvent(evt);
+        if (!leaf) {
+          return;
+        }
+        this.focusElectronWindow(win);
+        const skipOptions = {
+          skipCssHiddenTabs: this.getSkipCssHiddenTabs(),
+          skipUnloadedPluginTabs: this.getSkipUnloadedPluginTabs()
+        };
+        if (evt.deltaY <= 0) {
+          this.gotoSiblingTab(leaf, -1, skipOptions);
+        } else {
+          this.gotoSiblingTab(leaf, 1, skipOptions);
+        }
+      }
+      // 根据滚轮事件定位所属标签对应的工作区面板，未命中标签区域时返回空值。
+      findLeafByWheelEvent(evt) {
+        this.logDebug("开始定位滚轮事件对应的标签", evt);
+        if (!this.checkIsWheelInTabContainer(evt)) {
+          this.logDebug("滚轮事件不在标签区域内，提前返回");
+          return null;
+        }
+        const targetEl = evt.target instanceof Element ? evt.target : null;
+        const wheeledTabContainer = targetEl ? targetEl.closest(TAB_HEADER_CONTAINER_SELECTOR) : null;
+        if (!wheeledTabContainer) {
+          this.logDebug("未找到标签栏容器，提前返回");
+          return null;
+        }
+        if (this.getDebug()) {
+          this.highlightElement(wheeledTabContainer, DEBUG_HIGHLIGHT_YELLOW_CLASS);
+        }
+        const wheeledTabHeader = wheeledTabContainer.find(`${TAB_HEADER_SELECTOR}.is-active`) || wheeledTabContainer.find(TAB_HEADER_SELECTOR);
+        if (!wheeledTabHeader) {
+          this.logDebug("未找到标签头，提前返回");
+          return null;
+        }
+        if (this.getDebug()) {
+          this.highlightElement(wheeledTabHeader, DEBUG_HIGHLIGHT_RED_CLASS);
+        }
+        const wheeledLeaf = this.getAllLeaves().find(
+          (leaf) => leaf.tabHeaderEl && leaf.tabHeaderEl.isEqualNode(wheeledTabHeader)
+        );
+        if (!wheeledLeaf) {
+          this.logDebug("未找到标签头对应的工作区面板，提前返回");
+          return null;
+        }
+        if (this.getDebug()) {
+          this.highlightLeaf(wheeledLeaf);
+        }
+        const wheeledParent = this.getAllWorkspaceParents().find(
+          (split) => split.containerEl && split.containerEl.contains(wheeledTabHeader)
+        );
+        if (!wheeledParent) {
+          this.logDebug("未找到标签所在的分栏，提前返回");
+          return null;
+        }
+        const foundLeaf = (wheeledParent.children || []).find(
+          (leaf) => leaf instanceof obsidian2.WorkspaceLeaf && leaf.id === wheeledLeaf.id
+        );
+        this.logDebug("定位完成", foundLeaf);
+        return foundLeaf || null;
+      }
+      // 判断滚轮事件是否发生在标签头或标签栏容器内。
+      // 使用 Element 而非 HTMLElement 判定，兼容标签头内 SVG 图标上触发的滚轮事件。
+      checkIsWheelInTabContainer(evt) {
+        const targetEl = evt.target instanceof Element ? evt.target : null;
+        if (!targetEl) {
+          return false;
+        }
+        return Boolean(targetEl.closest(TAB_HEADER_SELECTOR) || targetEl.closest(TAB_HEADER_CONTAINER_SELECTOR));
+      }
+      // 切换到指定方向的相邻标签，到达边界时循环，并按配置跳过特定标签。
+      gotoSiblingTab(argLeaf, direction, skipOptions) {
+        const parentSplit = argLeaf.parentSplit;
+        if (!parentSplit || !Array.isArray(parentSplit.children)) {
+          return;
+        }
+        const siblingLeaves = parentSplit.children.filter(
+          (item) => item instanceof obsidian2.WorkspaceLeaf
+        );
+        const index = siblingLeaves.findIndex((leaf) => leaf.id === argLeaf.id);
+        if (index === -1) {
+          return;
+        }
+        let targetIndex = index;
+        let steps = 0;
+        const maxSteps = siblingLeaves.length;
+        while (steps < maxSteps) {
+          targetIndex += direction;
+          if (targetIndex < 0) {
+            targetIndex = siblingLeaves.length - 1;
+          } else if (targetIndex >= siblingLeaves.length) {
+            targetIndex = 0;
+          }
+          steps++;
+          if (!this.shouldSkipLeaf(siblingLeaves[targetIndex], skipOptions)) {
+            break;
+          }
+        }
+        this.focusLeaf(siblingLeaves[targetIndex]);
+      }
+      // 判断目标标签是否需要按配置跳过。
+      shouldSkipLeaf(leaf, skipOptions) {
+        if (skipOptions.skipCssHiddenTabs && this.isTabHeaderHidden(leaf)) {
+          return true;
+        }
+        if (skipOptions.skipUnloadedPluginTabs && this.isUnloadedPluginLeaf(leaf)) {
+          return true;
+        }
+        return false;
+      }
+      // 判断标签头是否被 CSS 隐藏（自身或祖先节点 display: none）。
+      isTabHeaderHidden(leaf) {
+        const tabHeaderEl = leaf ? leaf.tabHeaderEl : null;
+        if (!tabHeaderEl) {
+          return true;
+        }
+        return !tabHeaderEl.isShown();
+      }
+      // 判断标签所属插件是否尚未加载，通过 Obsidian 未知视图使用的幽灵图标识别。
+      isUnloadedPluginLeaf(leaf) {
+        const iconEl = leaf && leaf.tabHeaderEl ? leaf.tabHeaderEl.find("svg") : null;
+        return Boolean(iconEl && iconEl.classList.contains("lucide-ghost"));
+      }
+      // 激活目标面板并处理搜索视图等需要额外聚焦输入框的特殊情况。
+      focusLeaf(leaf) {
+        if (!leaf) {
+          return;
+        }
+        this.plugin.app.workspace.setActiveLeaf(leaf, { focus: true });
+        if (leaf.getViewState().type === "search") {
+          const searchInputEl = leaf.view.containerEl.find(".search-input-container input");
+          if (searchInputEl) {
+            searchInputEl.focus();
+          }
+        }
+      }
+      // 聚焦承载标签的 Electron 窗口，平台不支持时静默跳过。
+      focusElectronWindow(win) {
+        const electronWindow = win ? win.electronWindow : null;
+        if (electronWindow && typeof electronWindow.focus === "function") {
+          electronWindow.focus();
+        }
+      }
+      // 返回当前全部工作区面板。
+      getAllLeaves() {
+        const leaves = [];
+        this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+          leaves.push(leaf);
+        });
+        return leaves;
+      }
+      // 返回当前全部工作区窗口对象，按窗口去重。
+      getAllWorkspaceWindows() {
+        const windows = /* @__PURE__ */ new Set();
+        this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+          const container = leaf.getContainer();
+          if (container && container.win) {
+            windows.add(container.win);
+          }
+        });
+        return Array.from(windows);
+      }
+      // 返回当前全部工作区分栏，按对象去重。
+      getAllWorkspaceParents() {
+        const parents = /* @__PURE__ */ new Set();
+        this.plugin.app.workspace.iterateAllLeaves((leaf) => {
+          if (leaf.parentSplit) {
+            parents.add(leaf.parentSplit);
+          }
+        });
+        return Array.from(parents);
+      }
+      // 调试模式下短暂高亮指定元素，便于确认滚轮命中的标签区域。
+      highlightElement(el, colorClass) {
+        el.addClass(DEBUG_HIGHLIGHT_CLASS, colorClass);
+        window.setTimeout(() => {
+          el.removeClass(DEBUG_HIGHLIGHT_CLASS, colorClass);
+        }, 300);
+      }
+      // 调试模式下短暂高亮整个面板，平台不支持时静默跳过。
+      highlightLeaf(leaf) {
+        if (typeof leaf.highlight === "function" && typeof leaf.unhighlight === "function") {
+          leaf.highlight();
+          window.setTimeout(() => leaf.unhighlight(), 300);
+        }
+      }
+      // 仅在调试模式开启时输出控制台日志。
+      logDebug(...args) {
+        if (this.getDebug()) {
+          console.debug("[ねね] 标签栏增强", ...args);
+        }
+      }
+      // 返回“空白标签区滚轮切换”开关。
+      getTopBarWheelTabSwitch() {
+        return this.settings?.topBarWheelTabSwitch === true;
+      }
+      // 返回“跳过 CSS 隐藏的标签”开关。
+      getSkipCssHiddenTabs() {
+        return this.settings?.skipCssHiddenTabs !== false;
+      }
+      // 返回“跳过未加载插件的标签”开关。
+      getSkipUnloadedPluginTabs() {
+        return this.settings?.skipUnloadedPluginTabs !== false;
+      }
+      // 返回“调试模式”开关。
+      getDebug() {
+        return this.settings?.debug === true;
+      }
+    };
+    module2.exports = {
+      TabBarEnhancerRuntime
+    };
+  }
+});
+
+// src/modules/tab-bar-enhancer/store.js
+var require_store6 = __commonJS({
+  "src/modules/tab-bar-enhancer/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants6();
+    var TabBarEnhancerStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = this.normalizeSettings();
+      }
+      // 挂载从独立配置文件读出的设置切片。
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+      }
+      // 持久化当前标签栏增强配置到独立 JSON 文件。
+      async save() {
+        this.settings = this.normalizeSettings(this.settings);
+        this.plugin.dataStore.setTabBarEnhancerData(this.settings);
+        await this.plugin.dataStore.saveTabBarEnhancerData(this.settings);
+      }
+      // 返回当前完整配置。
+      getSettings() {
+        return this.settings;
+      }
+      // 更新“空白标签区滚轮切换”开关。
+      async setTopBarWheelTabSwitch(enabled) {
+        this.settings.topBarWheelTabSwitch = Boolean(enabled);
+        await this.save();
+        return this.settings.topBarWheelTabSwitch;
+      }
+      // 更新“跳过 CSS 隐藏的标签”开关。
+      async setSkipCssHiddenTabs(enabled) {
+        this.settings.skipCssHiddenTabs = Boolean(enabled);
+        await this.save();
+        return this.settings.skipCssHiddenTabs;
+      }
+      // 更新“跳过未加载插件的标签”开关。
+      async setSkipUnloadedPluginTabs(enabled) {
+        this.settings.skipUnloadedPluginTabs = Boolean(enabled);
+        await this.save();
+        return this.settings.skipUnloadedPluginTabs;
+      }
+      // 更新“调试模式”开关。
+      async setDebug(enabled) {
+        this.settings.debug = Boolean(enabled);
+        await this.save();
+        return this.settings.debug;
+      }
+      // 归一化标签栏增强模块配置结构。
+      normalizeSettings(settings) {
+        const source = settings || constants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS;
+        return {
+          debug: source.debug === true,
+          topBarWheelTabSwitch: source.topBarWheelTabSwitch === true,
+          skipCssHiddenTabs: source.skipCssHiddenTabs !== false,
+          skipUnloadedPluginTabs: source.skipUnloadedPluginTabs !== false
+        };
+      }
+    };
+    module2.exports = {
+      TabBarEnhancerStore
+    };
+  }
+});
+
+// src/modules/tab-bar-enhancer/view.js
+var require_view4 = __commonJS({
+  "src/modules/tab-bar-enhancer/view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    function renderModalHeader(containerEl, title, description) {
+      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    function renderDetailItem(containerEl, label, value, codeStyle) {
+      const itemEl = containerEl.createDiv({ cls: "nene-settings-detail-item" });
+      itemEl.createDiv({ cls: "nene-settings-detail-label", text: label });
+      itemEl.createEl(codeStyle ? "code" : "div", {
+        cls: "nene-settings-detail-value",
+        text: value
+      });
+    }
+    var TabBarEnhancerManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      // 打开弹窗时渲染标签栏增强模块详情与配置项。
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      // 根据当前最新状态渲染标签栏增强模块管理界面。
+      async render() {
+        const { contentEl } = this;
+        const summary = this.plugin.getSettingsSummary();
+        const configSummary = await this.plugin.getConfigManagementSummary();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "标签栏增强模块",
+          "该模块支持在标签头或标签栏上滚动鼠标滚轮切换标签：向上滚动切换到左侧标签，向下滚动切换到右侧标签，到达边界后循环。仅面向桌面端。"
+        );
+        const detailListEl = contentEl.createDiv({ cls: "nene-settings-detail-list" });
+        renderDetailItem(detailListEl, "当前状态", summary.tabBarEnhancerEnabled ? "已启用" : "已关闭");
+        renderDetailItem(detailListEl, "空白标签区滚轮切换", summary.tabBarEnhancerTopBarWheel ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "跳过 CSS 隐藏的标签", summary.tabBarEnhancerSkipCssHiddenTabs ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "跳过未加载插件的标签", summary.tabBarEnhancerSkipUnloadedPluginTabs ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "调试模式", summary.tabBarEnhancerDebug ? "已开启" : "已关闭");
+        renderDetailItem(detailListEl, "配置文件", configSummary.tabBarEnhancer.path, true);
+        new obsidian2.Setting(contentEl).setName("空白标签区滚轮切换（实验性）").setDesc("允许在标签栏的空白区域滚动滚轮切换标签。注意：当窗口框架样式为“隐藏”时，开启后该空白区域将无法用于拖拽移动窗口。").addToggle((toggle) => {
+          toggle.setValue(summary.tabBarEnhancerTopBarWheel).onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerTopBarWheel(value);
+            new obsidian2.Notice(value ? "已开启空白标签区滚轮切换" : "已关闭空白标签区滚轮切换");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("跳过 CSS 隐藏的标签").setDesc("切换标签时跳过被 CSS 隐藏（display: none）的标签头。").addToggle((toggle) => {
+          toggle.setValue(summary.tabBarEnhancerSkipCssHiddenTabs).onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerSkipCssHiddenTabs(value);
+            new obsidian2.Notice(value ? "切换时将跳过 CSS 隐藏的标签" : "切换时不再跳过 CSS 隐藏的标签");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("跳过未加载插件的标签").setDesc("切换标签时跳过所属插件尚未加载的标签。").addToggle((toggle) => {
+          toggle.setValue(summary.tabBarEnhancerSkipUnloadedPluginTabs).onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerSkipUnloadedPluginTabs(value);
+            new obsidian2.Notice(value ? "切换时将跳过未加载插件的标签" : "切换时不再跳过未加载插件的标签");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("调试模式").setDesc("在控制台输出调试日志，并短暂高亮滚轮命中的标签元素，仅排查问题时开启。").addToggle((toggle) => {
+          toggle.setValue(summary.tabBarEnhancerDebug).onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerDebug(value);
+            new obsidian2.Notice(value ? "已开启标签栏增强调试模式" : "已关闭标签栏增强调试模式");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    module2.exports = {
+      TabBarEnhancerManagementModal
+    };
+  }
+});
+
+// src/modules/tab-bar-enhancer/index.js
+var require_tab_bar_enhancer = __commonJS({
+  "src/modules/tab-bar-enhancer/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants6();
+    var runtime = require_runtime2();
+    var store = require_store6();
+    var view = require_view4();
+    module2.exports = Object.assign({}, constants, runtime, store, view);
+  }
+});
+
+// src/modules/context-menu-enhancer/runtime.js
+var require_runtime3 = __commonJS({
   "src/modules/context-menu-enhancer/runtime.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
@@ -3771,7 +4565,7 @@ var require_runtime2 = __commonJS({
 });
 
 // src/modules/context-menu-enhancer/store.js
-var require_store6 = __commonJS({
+var require_store7 = __commonJS({
   "src/modules/context-menu-enhancer/store.js"(exports2, module2) {
     "use strict";
     var constants = require_constants4();
@@ -4494,7 +5288,7 @@ var require_store6 = __commonJS({
 });
 
 // src/modules/context-menu-enhancer/view.js
-var require_view4 = __commonJS({
+var require_view5 = __commonJS({
   "src/modules/context-menu-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
@@ -5555,9 +6349,9 @@ var require_context_menu_enhancer = __commonJS({
   "src/modules/context-menu-enhancer/index.js"(exports2, module2) {
     "use strict";
     var constants = require_constants4();
-    var runtime = require_runtime2();
-    var store = require_store6();
-    var view = require_view4();
+    var runtime = require_runtime3();
+    var store = require_store7();
+    var view = require_view5();
     module2.exports = Object.assign({}, constants, runtime, store, view);
   }
 });
@@ -5570,6 +6364,7 @@ var require_settings_tab = __commonJS({
     var copyPathModule2 = require_copy_path();
     var menuCustomizerModule = require_context_menu_enhancer();
     var statusBarEnhancerModule2 = require_status_bar_enhancer();
+    var tabBarEnhancerModule2 = require_tab_bar_enhancer();
     async function copyTextToClipboard(text) {
       if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         await navigator.clipboard.writeText(text);
@@ -5878,6 +6673,8 @@ var require_settings_tab = __commonJS({
     };
     var StatusBarEnhancerManagementModal = class extends statusBarEnhancerModule2.StatusBarEnhancerManagementModal {
     };
+    var TabBarEnhancerManagementModal = class extends tabBarEnhancerModule2.TabBarEnhancerManagementModal {
+    };
     var ConfigManagementModal = class extends obsidian2.Modal {
       constructor(app, plugin, onSettingsChanged) {
         super(app);
@@ -5908,6 +6705,7 @@ var require_settings_tab = __commonJS({
         renderDetailItem(detailListEl, "右键菜单配置", `${configSummary.menuCustomizer.exists ? "已存在" : "未发现"}，${configSummary.menuCustomizer.summary}`);
         renderDetailItem(detailListEl, "复制路径配置", `${configSummary.copyPath.exists ? "已存在" : "未发现"}，${configSummary.copyPath.summary}`);
         renderDetailItem(detailListEl, "状态栏增强配置", `${configSummary.statusBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.statusBarEnhancer.summary}`);
+        renderDetailItem(detailListEl, "标签栏增强配置", `${configSummary.tabBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.tabBarEnhancer.summary}`);
         renderDetailItem(detailListEl, "配置目录", configSummary.directoryPath, true);
         renderDetailItem(detailListEl, "导出目录", configSummary.exportDirectoryPath, true);
         new obsidian2.Setting(contentEl).setName("查看导出 JSON").setDesc("").addButton((button) => {
@@ -5942,12 +6740,12 @@ var require_settings_tab = __commonJS({
             }).open();
           });
         });
-        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径和状态栏增强设置都会恢复为首次安装状态。").addButton((button) => {
+        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径、状态栏增强和标签栏增强设置都会恢复为首次安装状态。").addButton((button) => {
           button.setButtonText("重置全部").setWarning().onClick(() => {
             new ConfirmActionModal(
               this.app,
               "重置全部插件配置",
-              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json 和 status-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。",
+              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。",
               "确认全部重置",
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -5988,6 +6786,7 @@ var require_settings_tab = __commonJS({
         this.renderMenuCustomizerSection(featureGroupEl, summary);
         this.renderCopyPathSection(featureGroupEl, summary);
         this.renderStatusBarEnhancerSection(featureGroupEl, summary);
+        this.renderTabBarEnhancerSection(featureGroupEl, summary);
         const managementGroupEl = containerEl.createDiv({ cls: "nene-settings-group" });
         managementGroupEl.createDiv({ cls: "nene-settings-group-title", text: "配置管理" });
         this.renderConfigManagementEntry(managementGroupEl);
@@ -6089,6 +6888,24 @@ var require_settings_tab = __commonJS({
           });
         });
       }
+      // 渲染标签栏增强模块分区，仅保留状态概览、开关与弹窗入口。
+      renderTabBarEnhancerSection(containerEl, summary) {
+        new obsidian2.Setting(containerEl).setName("标签栏增强").setDesc(
+          summary.tabBarEnhancerEnabled ? `已启用，空白区滚轮切换${summary.tabBarEnhancerTopBarWheel ? "已开启" : "已关闭"}，跳过 CSS 隐藏标签${summary.tabBarEnhancerSkipCssHiddenTabs ? "已开启" : "已关闭"}，跳过未加载插件标签${summary.tabBarEnhancerSkipUnloadedPluginTabs ? "已开启" : "已关闭"}。` : "未启用。启用后可在标签头上滚动鼠标滚轮切换标签，仅桌面端可用。"
+        ).addToggle((toggle) => {
+          toggle.setValue(summary.tabBarEnhancerEnabled).onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerEnabled(value);
+            new obsidian2.Notice(value ? "已启用标签栏增强模块" : "已关闭标签栏增强模块");
+            await this.display();
+          });
+        }).addButton((button) => {
+          button.setButtonText("管理").onClick(() => {
+            new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+        });
+      }
       // 渲染配置管理入口，仅保留总览描述与弹窗入口。
       renderConfigManagementEntry(containerEl) {
         new obsidian2.Setting(containerEl).setName("配置文件管理").setDesc("查看配置文件状态、导出到独立文件、导入 JSON 以及重置全部配置。").addButton((button) => {
@@ -6116,6 +6933,9 @@ var require_settings_tab = __commonJS({
         listEl.createEl("li", {
           text: "状态栏增强模块主要面向桌面端；移动端通常不显示状态栏，因此只会保留配置，不会实际显示路径。"
         });
+        listEl.createEl("li", {
+          text: "标签栏增强模块仅面向桌面端，依赖若干未文档化的内部接口实现滚轮切换标签，后续 Obsidian 版本存在失效风险。"
+        });
       }
     };
     module2.exports = {
@@ -6133,6 +6953,7 @@ var pluginListEnhancerModule = require_plugin_list_enhancer();
 var graphViewEnhancerModule = require_graph_view_enhancer();
 var copyPathModule = require_copy_path();
 var statusBarEnhancerModule = require_status_bar_enhancer();
+var tabBarEnhancerModule = require_tab_bar_enhancer();
 var contextMenuEnhancerModule = require_context_menu_enhancer();
 var settingsTabModule = require_settings_tab();
 var ObsidianNenePlugin = class extends obsidian.Plugin {
@@ -6147,6 +6968,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.copyPathService = new copyPathModule.CopyPathService(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
+    this.tabBarEnhancerStore = new tabBarEnhancerModule.TabBarEnhancerStore(this);
+    this.tabBarEnhancerRuntime = new tabBarEnhancerModule.TabBarEnhancerRuntime(this);
     this.menuCustomizerStore = new contextMenuEnhancerModule.MenuCustomizerStore(this);
     this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this);
   }
@@ -6163,11 +6986,13 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
+    this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
     this.setupFileMenu();
     this.setupEditorMenu();
     this.setupStatusBarEnhancerEvents();
+    this.setupTabBarEnhancerEvents();
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
@@ -6177,6 +7002,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
     this.syncStatusBarEnhancerState();
+    this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
@@ -6185,6 +7011,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
     this.statusBarEnhancerRuntime.stop();
+    this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
@@ -6230,15 +7057,40 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => {
         this.statusBarEnhancerRuntime.renderFilePath(file);
+        this.statusBarEnhancerRuntime.renderTimestamps(file);
       })
     );
     this.registerEvent(
       this.app.vault.on("rename", (file) => {
         if (file instanceof obsidian.TFile && file === this.app.workspace.getActiveFile()) {
           this.statusBarEnhancerRuntime.renderFilePath(file);
+          this.statusBarEnhancerRuntime.renderTimestamps(file);
         }
       })
     );
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (file instanceof obsidian.TFile && file === this.app.workspace.getActiveFile()) {
+          this.statusBarEnhancerRuntime.renderLastModifiedTimestamp(file);
+        }
+      })
+    );
+  }
+  // 注册标签栏增强所需的滚轮监听，布局就绪后为全部窗口挂载，并跟踪弹出窗口的开关。
+  setupTabBarEnhancerEvents() {
+    this.app.workspace.onLayoutReady(() => {
+      this.tabBarEnhancerRuntime.registerWheelHandlersForExistingWindows();
+      this.registerEvent(
+        this.app.workspace.on("window-open", (workspaceWindow) => {
+          this.tabBarEnhancerRuntime.registerWheelHandler(workspaceWindow.win);
+        })
+      );
+      this.registerEvent(
+        this.app.workspace.on("window-close", (workspaceWindow) => {
+          this.tabBarEnhancerRuntime.unregisterWheelHandler(workspaceWindow.win);
+        })
+      );
+    });
   }
   // 注册文件系统事件，保证文件改名或删除后标记数据同步更新。
   setupVaultEvents() {
@@ -6392,6 +7244,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isStatusBarEnhancerEnabled() {
     return this.pluginSettingsStore.isStatusBarEnhancerEnabled();
   }
+  // 返回标签栏增强模块当前是否被用户启用。
+  isTabBarEnhancerEnabled() {
+    return this.pluginSettingsStore.isTabBarEnhancerEnabled();
+  }
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -6426,7 +7282,19 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       statusBarEnhancerEnabled: this.isStatusBarEnhancerEnabled(),
       statusBarEnhancerShowFileName: this.statusBarEnhancerStore.getSettings().showFileName === true,
       statusBarEnhancerShowIcons: this.statusBarEnhancerStore.getSettings().showIcons === true,
-      statusBarEnhancerCopyAbsolutePath: this.statusBarEnhancerStore.getSettings().copyAbsolutePath !== false
+      statusBarEnhancerCopyAbsolutePath: this.statusBarEnhancerStore.getSettings().copyAbsolutePath !== false,
+      statusBarEnhancerLastModifiedEnabled: this.statusBarEnhancerStore.getSettings().lastModifiedEnabled !== false,
+      statusBarEnhancerLastModifiedPrepend: this.statusBarEnhancerStore.getSettings().lastModifiedPrepend,
+      statusBarEnhancerLastModifiedTimestampFormat: this.statusBarEnhancerStore.getSettings().lastModifiedTimestampFormat,
+      statusBarEnhancerCreatedEnabled: this.statusBarEnhancerStore.getSettings().createdEnabled === true,
+      statusBarEnhancerCreatedPrepend: this.statusBarEnhancerStore.getSettings().createdPrepend,
+      statusBarEnhancerCreatedTimestampFormat: this.statusBarEnhancerStore.getSettings().createdTimestampFormat,
+      statusBarEnhancerCycleOnClick: this.statusBarEnhancerStore.getSettings().cycleOnClickEnabled !== false,
+      tabBarEnhancerEnabled: this.isTabBarEnhancerEnabled(),
+      tabBarEnhancerTopBarWheel: this.tabBarEnhancerStore.getSettings().topBarWheelTabSwitch === true,
+      tabBarEnhancerSkipCssHiddenTabs: this.tabBarEnhancerStore.getSettings().skipCssHiddenTabs !== false,
+      tabBarEnhancerSkipUnloadedPluginTabs: this.tabBarEnhancerStore.getSettings().skipUnloadedPluginTabs !== false,
+      tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true
     };
   }
   // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
@@ -6544,6 +7412,78 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   async updateStatusBarEnhancerCopyAbsolutePath(enabled) {
     return this.statusBarEnhancerStore.setCopyAbsolutePath(enabled);
   }
+  // 更新状态栏增强的“显示最后修改时间”配置，并立即刷新状态栏。
+  async updateStatusBarEnhancerLastModifiedEnabled(enabled) {
+    const nextValue = await this.statusBarEnhancerStore.setLastModifiedEnabled(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的最后修改时间前缀，并立即刷新状态栏。
+  async updateStatusBarEnhancerLastModifiedPrepend(text) {
+    const nextValue = await this.statusBarEnhancerStore.setLastModifiedPrepend(text);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的最后修改时间格式，并立即刷新状态栏。
+  async updateStatusBarEnhancerLastModifiedTimestampFormat(format) {
+    const nextValue = await this.statusBarEnhancerStore.setLastModifiedTimestampFormat(format);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的“显示创建时间”配置，并立即刷新状态栏。
+  async updateStatusBarEnhancerCreatedEnabled(enabled) {
+    const nextValue = await this.statusBarEnhancerStore.setCreatedEnabled(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的创建时间前缀，并立即刷新状态栏。
+  async updateStatusBarEnhancerCreatedPrepend(text) {
+    const nextValue = await this.statusBarEnhancerStore.setCreatedPrepend(text);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的创建时间格式，并立即刷新状态栏。
+  async updateStatusBarEnhancerCreatedTimestampFormat(format) {
+    const nextValue = await this.statusBarEnhancerStore.setCreatedTimestampFormat(format);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新状态栏增强的“点击循环显示”配置，并立即同步运行时设置。
+  async updateStatusBarEnhancerCycleOnClickEnabled(enabled) {
+    const nextValue = await this.statusBarEnhancerStore.setCycleOnClickEnabled(enabled);
+    this.syncStatusBarEnhancerState();
+    return nextValue;
+  }
+  // 更新标签栏增强模块开关，并立即同步实验性 class 的挂载状态。
+  async updateTabBarEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setTabBarEnhancerEnabled(enabled);
+    this.syncTabBarEnhancerState();
+    return nextEnabled;
+  }
+  // 更新标签栏增强的“空白标签区滚轮切换”配置，并立即同步实验性 class。
+  async updateTabBarEnhancerTopBarWheel(enabled) {
+    const nextValue = await this.tabBarEnhancerStore.setTopBarWheelTabSwitch(enabled);
+    this.syncTabBarEnhancerState();
+    return nextValue;
+  }
+  // 更新标签栏增强的“跳过 CSS 隐藏的标签”配置，并立即重载运行时设置。
+  async updateTabBarEnhancerSkipCssHiddenTabs(enabled) {
+    const nextValue = await this.tabBarEnhancerStore.setSkipCssHiddenTabs(enabled);
+    this.syncTabBarEnhancerState();
+    return nextValue;
+  }
+  // 更新标签栏增强的“跳过未加载插件的标签”配置，并立即重载运行时设置。
+  async updateTabBarEnhancerSkipUnloadedPluginTabs(enabled) {
+    const nextValue = await this.tabBarEnhancerStore.setSkipUnloadedPluginTabs(enabled);
+    this.syncTabBarEnhancerState();
+    return nextValue;
+  }
+  // 更新标签栏增强的“调试模式”配置，并立即重载运行时设置。
+  async updateTabBarEnhancerDebug(enabled) {
+    const nextValue = await this.tabBarEnhancerStore.setDebug(enabled);
+    this.syncTabBarEnhancerState();
+    return nextValue;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -6638,6 +7578,15 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     this.statusBarEnhancerRuntime.stop();
   }
+  // 根据当前设置同步标签栏增强模块的启停状态，并挂载或移除实验性 class。
+  syncTabBarEnhancerState() {
+    this.tabBarEnhancerRuntime.load(this.tabBarEnhancerStore.getSettings());
+    if (this.isTabBarEnhancerEnabled()) {
+      this.tabBarEnhancerRuntime.start();
+      return;
+    }
+    this.tabBarEnhancerRuntime.stop();
+  }
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -6654,10 +7603,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
+    this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();
     this.syncAnchorGraphEnhancerState();
     this.syncStatusBarEnhancerState();
+    this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
     if (this.isAnchorGraphEnabled()) {
       await this.refreshAnchorGraphLinks(false);

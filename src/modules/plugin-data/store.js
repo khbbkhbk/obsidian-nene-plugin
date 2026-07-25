@@ -23,6 +23,7 @@ class PluginDataStore {
     this.featureData.menuCustomizer = await this.loadFeatureSlice('menuCustomizer', rawData?.menuCustomizer);
     this.featureData.copyPath = await this.loadFeatureSlice('copyPath', rawData?.copyPath);
     this.featureData.statusBarEnhancer = await this.loadFeatureSlice('statusBarEnhancer', rawData?.statusBarEnhancer);
+    this.featureData.tabBarEnhancer = await this.loadFeatureSlice('tabBarEnhancer', rawData?.tabBarEnhancer);
 
     if (this.hasLegacyFeatureSlices(rawData)) {
       await this.save();
@@ -100,6 +101,16 @@ class PluginDataStore {
     this.featureData.statusBarEnhancer = this.normalizeStatusBarEnhancerData(statusBarEnhancerData);
   }
 
+  // 返回标签栏增强模块的独立配置切片。
+  getTabBarEnhancerData() {
+    return this.featureData.tabBarEnhancer;
+  }
+
+  // 更新标签栏增强模块的独立配置切片缓存。
+  setTabBarEnhancerData(tabBarEnhancerData) {
+    this.featureData.tabBarEnhancer = this.normalizeTabBarEnhancerData(tabBarEnhancerData);
+  }
+
   // 保存文件标记功能数据到独立配置文件。
   async saveFileMarkerData(fileMarkerData) {
     this.setFileMarkerData(fileMarkerData);
@@ -130,6 +141,12 @@ class PluginDataStore {
     await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
   }
 
+  // 保存标签栏增强模块数据到独立配置文件。
+  async saveTabBarEnhancerData(tabBarEnhancerData) {
+    this.setTabBarEnhancerData(tabBarEnhancerData);
+    await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
+  }
+
   // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
   async saveAll() {
     await this.save();
@@ -138,6 +155,7 @@ class PluginDataStore {
     await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
     await this.featureConfigManager.save('copyPath', this.featureData.copyPath);
     await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
+    await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
   }
 
   // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
@@ -149,6 +167,7 @@ class PluginDataStore {
     const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath('menuCustomizer');
     const copyPathPath = this.featureConfigManager.getFeatureConfigPath('copyPath');
     const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('statusBarEnhancer');
+    const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('tabBarEnhancer');
 
     return {
       directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
@@ -193,7 +212,14 @@ class PluginDataStore {
         name: '状态栏增强配置',
         path: statusBarEnhancerPath,
         exists: await this.featureConfigManager.exists('statusBarEnhancer'),
-        summary: `显示文件名：${this.featureData.statusBarEnhancer.showFileName === true ? '已开启' : '已关闭'}，显示图标：${this.featureData.statusBarEnhancer.showIcons === true ? '已开启' : '已关闭'}，复制绝对路径：${this.featureData.statusBarEnhancer.copyAbsolutePath !== false ? '已开启' : '已关闭'}`
+        summary: `显示文件名：${this.featureData.statusBarEnhancer.showFileName === true ? '已开启' : '已关闭'}，显示图标：${this.featureData.statusBarEnhancer.showIcons === true ? '已开启' : '已关闭'}，复制绝对路径：${this.featureData.statusBarEnhancer.copyAbsolutePath !== false ? '已开启' : '已关闭'}，最后修改时间：${this.featureData.statusBarEnhancer.lastModifiedEnabled !== false ? '已开启' : '已关闭'}，创建时间：${this.featureData.statusBarEnhancer.createdEnabled === true ? '已开启' : '已关闭'}`
+      },
+      tabBarEnhancer: {
+        key: 'tabBarEnhancer',
+        name: '标签栏增强配置',
+        path: tabBarEnhancerPath,
+        exists: await this.featureConfigManager.exists('tabBarEnhancer'),
+        summary: `空白区滚轮切换：${this.featureData.tabBarEnhancer.topBarWheelTabSwitch === true ? '已开启' : '已关闭'}，跳过隐藏标签：${this.featureData.tabBarEnhancer.skipCssHiddenTabs !== false ? '已开启' : '已关闭'}，跳过未加载插件标签：${this.featureData.tabBarEnhancer.skipUnloadedPluginTabs !== false ? '已开启' : '已关闭'}`
       }
     };
   }
@@ -243,6 +269,8 @@ class PluginDataStore {
       this.featureData.copyPath = defaultFeatureData;
     } else if (featureKey === 'statusBarEnhancer') {
       this.featureData.statusBarEnhancer = defaultFeatureData;
+    } else if (featureKey === 'tabBarEnhancer') {
+      this.featureData.tabBarEnhancer = defaultFeatureData;
     }
 
     await this.featureConfigManager.save(featureKey, defaultFeatureData);
@@ -267,7 +295,8 @@ class PluginDataStore {
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
       copyPath: this.normalizeCopyPathData(source.copyPath),
-      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
+      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
+      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
     });
   }
 
@@ -281,6 +310,7 @@ class PluginDataStore {
     delete normalizedCoreData.menuCustomizer;
     delete normalizedCoreData.copyPath;
     delete normalizedCoreData.statusBarEnhancer;
+    delete normalizedCoreData.tabBarEnhancer;
 
     normalizedCoreData.features = this.normalizeFeatures(source.features);
     return normalizedCoreData;
@@ -295,7 +325,8 @@ class PluginDataStore {
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
       copyPath: this.normalizeCopyPathData(source.copyPath),
-      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer)
+      statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
+      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
     };
   }
 
@@ -316,6 +347,9 @@ class PluginDataStore {
       },
       statusBarEnhancer: {
         enabled: features?.statusBarEnhancer?.enabled === true
+      },
+      tabBarEnhancer: {
+        enabled: features?.tabBarEnhancer?.enabled === true
       }
     };
   }
@@ -396,11 +430,39 @@ class PluginDataStore {
   // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
   normalizeStatusBarEnhancerData(statusBarEnhancerData) {
     const source = this.isPlainObject(statusBarEnhancerData) ? statusBarEnhancerData : {};
+    const defaults = constants.DEFAULT_FEATURE_DATA.statusBarEnhancer;
 
     return {
       showFileName: source.showFileName === true,
       showIcons: source.showIcons === true,
-      copyAbsolutePath: source.copyAbsolutePath !== false
+      copyAbsolutePath: source.copyAbsolutePath !== false,
+      lastModifiedEnabled: source.lastModifiedEnabled !== false,
+      lastModifiedPrepend: typeof source.lastModifiedPrepend === 'string'
+        ? source.lastModifiedPrepend
+        : defaults.lastModifiedPrepend,
+      lastModifiedTimestampFormat: typeof source.lastModifiedTimestampFormat === 'string' && source.lastModifiedTimestampFormat
+        ? source.lastModifiedTimestampFormat
+        : defaults.lastModifiedTimestampFormat,
+      createdEnabled: source.createdEnabled === true,
+      createdPrepend: typeof source.createdPrepend === 'string'
+        ? source.createdPrepend
+        : defaults.createdPrepend,
+      createdTimestampFormat: typeof source.createdTimestampFormat === 'string' && source.createdTimestampFormat
+        ? source.createdTimestampFormat
+        : defaults.createdTimestampFormat,
+      cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+    };
+  }
+
+  // 归一化标签栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeTabBarEnhancerData(tabBarEnhancerData) {
+    const source = this.isPlainObject(tabBarEnhancerData) ? tabBarEnhancerData : {};
+
+    return {
+      debug: source.debug === true,
+      topBarWheelTabSwitch: source.topBarWheelTabSwitch === true,
+      skipCssHiddenTabs: source.skipCssHiddenTabs !== false,
+      skipUnloadedPluginTabs: source.skipUnloadedPluginTabs !== false
     };
   }
 
@@ -445,6 +507,10 @@ class PluginDataStore {
       return this.normalizeStatusBarEnhancerData(featureData);
     }
 
+    if (featureKey === 'tabBarEnhancer') {
+      return this.normalizeTabBarEnhancerData(featureData);
+    }
+
     return this.isPlainObject(featureData) ? featureData : {};
   }
 
@@ -455,7 +521,8 @@ class PluginDataStore {
       || this.isPlainObject(source.anchorGraph)
       || this.isPlainObject(source.menuCustomizer)
       || this.isPlainObject(source.copyPath)
-      || this.isPlainObject(source.statusBarEnhancer);
+      || this.isPlainObject(source.statusBarEnhancer)
+      || this.isPlainObject(source.tabBarEnhancer);
   }
 
   // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
@@ -476,7 +543,8 @@ class PluginDataStore {
         anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
         menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
         copyPath: bundle.featureData?.copyPath || bundle.copyPath,
-        statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer
+        statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
+        tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer
       })
       : bundle;
 

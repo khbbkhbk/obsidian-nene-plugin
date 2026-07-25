@@ -4,6 +4,7 @@ var obsidian = require('obsidian');
 var copyPathModule = require('../copy-path/index.js');
 var menuCustomizerModule = require('../context-menu-enhancer/index.js');
 var statusBarEnhancerModule = require('../status-bar-enhancer/index.js');
+var tabBarEnhancerModule = require('../tab-bar-enhancer/index.js');
 
 // 优先使用现代剪贴板 API，失败时回退到传统复制命令。
 async function copyTextToClipboard(text) {
@@ -406,6 +407,10 @@ class CopyPathManagementModal extends copyPathModule.CopyPathManagementModal {
 class StatusBarEnhancerManagementModal extends statusBarEnhancerModule.StatusBarEnhancerManagementModal {
 }
 
+// 定义标签栏增强模块管理弹窗入口，实际内容由独立模块实现。
+class TabBarEnhancerManagementModal extends tabBarEnhancerModule.TabBarEnhancerManagementModal {
+}
+
 // 定义配置文件管理弹窗，集中处理导入、导出与全量重置。
 class ConfigManagementModal extends obsidian.Modal {
   constructor(app, plugin, onSettingsChanged) {
@@ -441,6 +446,7 @@ class ConfigManagementModal extends obsidian.Modal {
     renderDetailItem(detailListEl, '右键菜单配置', `${configSummary.menuCustomizer.exists ? '已存在' : '未发现'}，${configSummary.menuCustomizer.summary}`);
     renderDetailItem(detailListEl, '复制路径配置', `${configSummary.copyPath.exists ? '已存在' : '未发现'}，${configSummary.copyPath.summary}`);
     renderDetailItem(detailListEl, '状态栏增强配置', `${configSummary.statusBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.statusBarEnhancer.summary}`);
+    renderDetailItem(detailListEl, '标签栏增强配置', `${configSummary.tabBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.tabBarEnhancer.summary}`);
     renderDetailItem(detailListEl, '配置目录', configSummary.directoryPath, true);
     renderDetailItem(detailListEl, '导出目录', configSummary.exportDirectoryPath, true);
 
@@ -502,7 +508,7 @@ class ConfigManagementModal extends obsidian.Modal {
 
     new obsidian.Setting(contentEl)
       .setName('重置全部配置')
-      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径和状态栏增强设置都会恢复为首次安装状态。')
+      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径、状态栏增强和标签栏增强设置都会恢复为首次安装状态。')
       .addButton((button) => {
         button
           .setButtonText('重置全部')
@@ -511,7 +517,7 @@ class ConfigManagementModal extends obsidian.Modal {
             new ConfirmActionModal(
               this.app,
               '重置全部插件配置',
-              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json 和 status-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。',
+              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。',
               '确认全部重置',
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -559,6 +565,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.renderMenuCustomizerSection(featureGroupEl, summary);
     this.renderCopyPathSection(featureGroupEl, summary);
     this.renderStatusBarEnhancerSection(featureGroupEl, summary);
+    this.renderTabBarEnhancerSection(featureGroupEl, summary);
 
     const managementGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
     managementGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '配置管理' });
@@ -729,6 +736,39 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
       });
   }
 
+  // 渲染标签栏增强模块分区，仅保留状态概览、开关与弹窗入口。
+  renderTabBarEnhancerSection(containerEl, summary) {
+    new obsidian.Setting(containerEl)
+      .setName('标签栏增强')
+      .setDesc(
+        summary.tabBarEnhancerEnabled
+          ? (
+            `已启用，空白区滚轮切换${summary.tabBarEnhancerTopBarWheel ? '已开启' : '已关闭'}，`
+            + `跳过 CSS 隐藏标签${summary.tabBarEnhancerSkipCssHiddenTabs ? '已开启' : '已关闭'}，`
+            + `跳过未加载插件标签${summary.tabBarEnhancerSkipUnloadedPluginTabs ? '已开启' : '已关闭'}。`
+          )
+          : '未启用。启用后可在标签头上滚动鼠标滚轮切换标签，仅桌面端可用。'
+      )
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.tabBarEnhancerEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateTabBarEnhancerEnabled(value);
+            new obsidian.Notice(value ? '已启用标签栏增强模块' : '已关闭标签栏增强模块');
+            await this.display();
+          });
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('管理')
+          .onClick(() => {
+            new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }).open();
+          });
+      });
+  }
+
   // 渲染配置管理入口，仅保留总览描述与弹窗入口。
   renderConfigManagementEntry(containerEl) {
     new obsidian.Setting(containerEl)
@@ -762,6 +802,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     });
     listEl.createEl('li', {
       text: '状态栏增强模块主要面向桌面端；移动端通常不显示状态栏，因此只会保留配置，不会实际显示路径。'
+    });
+    listEl.createEl('li', {
+      text: '标签栏增强模块仅面向桌面端，依赖若干未文档化的内部接口实现滚轮切换标签，后续 Obsidian 版本存在失效风险。'
     });
   }
 }

@@ -30,7 +30,9 @@ class StatusBarEnhancerRuntime {
   constructor(plugin) {
     this.plugin = plugin; // 保存插件实例，便于读取配置与工作区状态
     this.settings = null; // 缓存最近一次加载的配置
-    this.statusBarEl = null; // 缓存状态栏 DOM 节点，避免重复创建
+    this.statusBarEl = null; // 缓存路径状态栏 DOM 节点，避免重复创建
+    this.lastModifiedTimestampEl = null; // 缓存最后修改时间状态栏 DOM 节点
+    this.createdTimestampEl = null; // 缓存创建时间状态栏 DOM 节点
   }
 
   // 挂载最新配置。
@@ -40,28 +42,55 @@ class StatusBarEnhancerRuntime {
 
   // 启动状态栏增强，创建状态栏节点并立刻渲染当前活动文件。
   start() {
-    if (this.statusBarEl) {
-      this.renderActiveFilePath();
-      return;
-    }
-
-    this.statusBarEl = this.plugin.addStatusBarItem();
-    this.statusBarEl.addClass('mod-clickable');
-    this.statusBarEl.addClass('nene-status-bar-enhancer');
-    this.statusBarEl.addEventListener('click', () => {
-      void this.copyActivePath();
-    });
+    this.ensureStatusBarItems();
     this.renderActiveFilePath();
+    this.renderActiveTimestamps();
   }
 
-  // 停止状态栏增强并移除状态栏节点。
+  // 停止状态栏增强并移除全部状态栏节点。
   stop() {
-    if (!this.statusBarEl) {
-      return;
+    if (this.statusBarEl) {
+      this.statusBarEl.remove();
+      this.statusBarEl = null;
     }
 
-    this.statusBarEl.remove();
-    this.statusBarEl = null;
+    if (this.lastModifiedTimestampEl) {
+      this.lastModifiedTimestampEl.remove();
+      this.lastModifiedTimestampEl = null;
+    }
+
+    if (this.createdTimestampEl) {
+      this.createdTimestampEl.remove();
+      this.createdTimestampEl = null;
+    }
+  }
+
+  // 确保路径与时间戳状态栏节点已创建，重复调用时直接跳过。
+  ensureStatusBarItems() {
+    if (!this.statusBarEl) {
+      this.statusBarEl = this.plugin.addStatusBarItem();
+      this.statusBarEl.addClass('mod-clickable');
+      this.statusBarEl.addClass('nene-status-bar-enhancer');
+      this.statusBarEl.addEventListener('click', () => {
+        void this.copyActivePath();
+      });
+    }
+
+    if (!this.lastModifiedTimestampEl) {
+      this.lastModifiedTimestampEl = this.plugin.addStatusBarItem();
+      this.lastModifiedTimestampEl.addClass('nene-status-bar-timestamp');
+      this.lastModifiedTimestampEl.addEventListener('click', () => {
+        void this.cycleTimestampDisplay();
+      });
+    }
+
+    if (!this.createdTimestampEl) {
+      this.createdTimestampEl = this.plugin.addStatusBarItem();
+      this.createdTimestampEl.addClass('nene-status-bar-timestamp');
+      this.createdTimestampEl.addEventListener('click', () => {
+        void this.cycleTimestampDisplay();
+      });
+    }
   }
 
   // 渲染当前活动文件的路径到状态栏。
@@ -93,6 +122,81 @@ class StatusBarEnhancerRuntime {
       this.getShowIcons()
     );
     this.statusBarEl.appendChild(fragment);
+  }
+
+  // 渲染当前活动文件的时间戳到状态栏。
+  renderActiveTimestamps() {
+    const activeFile = this.plugin.app.workspace.getActiveFile();
+    this.renderTimestamps(activeFile);
+  }
+
+  // 根据指定文件刷新两个时间戳状态栏项。
+  renderTimestamps(file) {
+    this.renderLastModifiedTimestamp(file);
+    this.renderCreatedTimestamp(file);
+  }
+
+  // 刷新最后修改时间状态栏项，模块未启用或无活动文件时隐藏。
+  renderLastModifiedTimestamp(file) {
+    if (!this.lastModifiedTimestampEl) {
+      return;
+    }
+
+    if (!(file instanceof obsidian.TFile) || !this.getLastModifiedEnabled()) {
+      this.lastModifiedTimestampEl.hide();
+      return;
+    }
+
+    const timestampText = obsidian.moment(file.stat.mtime).format(this.getLastModifiedTimestampFormat());
+    this.lastModifiedTimestampEl.setText(`${this.getLastModifiedPrepend()}${timestampText}`);
+    this.lastModifiedTimestampEl.show();
+  }
+
+  // 刷新创建时间状态栏项，模块未启用或无活动文件时隐藏。
+  renderCreatedTimestamp(file) {
+    if (!this.createdTimestampEl) {
+      return;
+    }
+
+    if (!(file instanceof obsidian.TFile) || !this.getCreatedEnabled()) {
+      this.createdTimestampEl.hide();
+      return;
+    }
+
+    const timestampText = obsidian.moment(file.stat.ctime).format(this.getCreatedTimestampFormat());
+    this.createdTimestampEl.setText(`${this.getCreatedPrepend()}${timestampText}`);
+    this.createdTimestampEl.show();
+  }
+
+  // 点击时间戳状态栏项时在「仅最后修改时间 → 仅创建时间 → 两者都显示」间循环，
+  // 与原插件行为一致，循环结果会作为当前配置持久化到配置文件。
+  async cycleTimestampDisplay() {
+    if (!this.getCycleOnClickEnabled()) {
+      return;
+    }
+
+    const store = this.plugin.statusBarEnhancerStore;
+    const current = store.getSettings();
+    let nextState;
+
+    if (current.lastModifiedEnabled && current.createdEnabled) {
+      nextState = { lastModifiedEnabled: true, createdEnabled: false };
+    } else if (current.lastModifiedEnabled) {
+      nextState = { lastModifiedEnabled: false, createdEnabled: true };
+    } else if (current.createdEnabled) {
+      nextState = { lastModifiedEnabled: true, createdEnabled: true };
+    } else {
+      nextState = { lastModifiedEnabled: true, createdEnabled: false };
+    }
+
+    try {
+      await store.setTimestampDisplayState(nextState.lastModifiedEnabled, nextState.createdEnabled);
+      this.load(store.getSettings());
+      this.renderActiveTimestamps();
+    } catch (error) {
+      console.error('[ねね] 状态栏增强切换时间戳显示失败', error);
+      new obsidian.Notice('切换时间戳显示失败，请查看控制台日志');
+    }
   }
 
   // 复制当前活动文件路径，供状态栏点击与命令复用。
@@ -221,6 +325,45 @@ class StatusBarEnhancerRuntime {
   // 返回“是否复制绝对路径”开关。
   getCopyAbsolutePath() {
     return this.settings?.copyAbsolutePath !== false;
+  }
+
+  // 返回“是否显示最后修改时间”开关。
+  getLastModifiedEnabled() {
+    return this.settings?.lastModifiedEnabled !== false;
+  }
+
+  // 返回最后修改时间的前缀文本。
+  getLastModifiedPrepend() {
+    return typeof this.settings?.lastModifiedPrepend === 'string' ? this.settings.lastModifiedPrepend : '';
+  }
+
+  // 返回最后修改时间的显示格式。
+  getLastModifiedTimestampFormat() {
+    return typeof this.settings?.lastModifiedTimestampFormat === 'string' && this.settings.lastModifiedTimestampFormat
+      ? this.settings.lastModifiedTimestampFormat
+      : ' HH:mm:ss';
+  }
+
+  // 返回“是否显示创建时间”开关。
+  getCreatedEnabled() {
+    return this.settings?.createdEnabled === true;
+  }
+
+  // 返回创建时间的前缀文本。
+  getCreatedPrepend() {
+    return typeof this.settings?.createdPrepend === 'string' ? this.settings.createdPrepend : '';
+  }
+
+  // 返回创建时间的显示格式。
+  getCreatedTimestampFormat() {
+    return typeof this.settings?.createdTimestampFormat === 'string' && this.settings.createdTimestampFormat
+      ? this.settings.createdTimestampFormat
+      : 'YYYY-MM-DD';
+  }
+
+  // 返回“点击循环显示”开关。
+  getCycleOnClickEnabled() {
+    return this.settings?.cycleOnClickEnabled !== false;
   }
 }
 

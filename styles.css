@@ -1284,3 +1284,26 @@
   color: var(--icon-color-hover);
   background-color: var(--background-modifier-hover);
 }
+
+/* ------------------------------ */
+/* 标签栏增强模块 */
+/* ------------------------------ */
+
+/* 空白标签区滚轮切换（实验性）：开启后移除标签栏空白区的窗口拖拽区域，
+   否则滚轮事件会被 Electron 的拖拽区域吞掉。
+   参考：-webkit-app-region: drag eats all click events · Issue #1354 · electron/electron
+   https://github.com/electron/electron/issues/1354 */
+body.nene-tab-bar-wheel-switch .workspace-tab-header-spacer,
+body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
+  -webkit-app-region: none !important;
+}
+
+/* 调试模式下短暂高亮滚轮命中的标签容器（黄色）。 */
+.nene-tab-debug-highlight.nene-tab-debug-yellow {
+  background-color: yellow !important;
+}
+
+/* 调试模式下短暂高亮滚轮命中的标签头（红色）。 */
+.nene-tab-debug-highlight.nene-tab-debug-red {
+  background-color: red !important;
+}

@@ -81,6 +81,18 @@ class PluginSettingsStore {
     return this.isStatusBarEnhancerEnabled();
   }
 
+  // 返回标签栏增强模块是否启用，供主入口和设置页统一读取。
+  isTabBarEnhancerEnabled() {
+    return Boolean(this.settings.tabBarEnhancer.enabled);
+  }
+
+  // 切换标签栏增强模块的启用状态，并立即持久化到本地。
+  async setTabBarEnhancerEnabled(enabled) {
+    this.settings.tabBarEnhancer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isTabBarEnhancerEnabled();
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -104,6 +116,9 @@ class PluginSettingsStore {
       },
       statusBarEnhancer: {
         enabled: source.statusBarEnhancer?.enabled === true
+      },
+      tabBarEnhancer: {
+        enabled: source.tabBarEnhancer?.enabled === true
       }
     };
   }

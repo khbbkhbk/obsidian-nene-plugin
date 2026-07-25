@@ -16,6 +16,9 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   statusBarEnhancer: {
     enabled: false
+  },
+  tabBarEnhancer: {
+    enabled: false
   }
 };
 
