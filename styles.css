@@ -1420,6 +1420,11 @@ body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
   background: transparent !important;
 }
 
+/* 拖拽目标位置高亮 — 在目标行上方显示强调色边框 */
+.nene-organizer-row-drop-target {
+  border-top: 3px solid var(--interactive-accent) !important;
+}
+
 .nene-organizer-row-clone>span {
   visibility: hidden !important;
 }

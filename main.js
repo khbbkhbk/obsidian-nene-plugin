@@ -3722,67 +3722,115 @@ var require_organizer_view = __commonJS({
       stationaryRow.removeClass("nene-organizer-row-clone");
       rowsWrapper.removeChild(movableRow);
     }
-    function calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
-      movableRow.style.left = event.clientX - offsetX + "px";
-      movableRow.style.top = event.clientY - offsetY + "px";
-      var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
-      if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
-        var dir = dist > 0 ? 1 : -1;
-        var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
-        return newIndex;
-      }
-      return index;
-    }
-    function handlePositionChange(barStatus, rowsContainer, rows, row, stationaryRow, newIndex) {
-      var passedEntry = rowsContainer.children[newIndex];
-      var passedId = passedEntry.getAttribute("data-nene-organizer-row-id");
-      if (row.element) {
-        var statusBarChangeRequired = barStatus[passedId] != null;
-        if (statusBarChangeRequired) {
-          var passedElement = rows.filter(function(x) {
-            return x.id === passedId;
-          })[0].element;
-          var temp = passedElement.style.order;
-          passedElement.style.order = row.element.style.order;
-          row.element.style.order = temp;
+    function calculateTargetIndex(event, rowsContainer) {
+      var children = Array.from(rowsContainer.children);
+      var mouseY = event.clientY;
+      var nonCloneCount = 0;
+      for (var i = 0; i < children.length; i++) {
+        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
+        var rect = children[i].getBoundingClientRect();
+        nonCloneCount++;
+        if (mouseY < rect.top + rect.height / 2) {
+          return nonCloneCount - 1;
         }
       }
+      return nonCloneCount;
+    }
+    function clearDropIndicator(rowsContainer) {
+      Array.from(rowsContainer.children).forEach(function(entry) {
+        entry.removeClass("nene-organizer-row-drop-target");
+      });
+    }
+    function updateDropIndicator(rowsContainer, targetIndex) {
+      clearDropIndicator(rowsContainer);
+      var children = Array.from(rowsContainer.children);
+      var nonCloneIdx = -1;
+      for (var i = 0; i < children.length; i++) {
+        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
+        nonCloneIdx++;
+        if (nonCloneIdx === targetIndex) {
+          children[i].addClass("nene-organizer-row-drop-target");
+          break;
+        }
+      }
+    }
+    function toAbsoluteIndex(rowsContainer, nonCloneIndex) {
+      var children = rowsContainer.children;
+      var nonCloneIdx = -1;
+      for (var i = 0; i < children.length; i++) {
+        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
+        nonCloneIdx++;
+        if (nonCloneIdx === nonCloneIndex) {
+          return i;
+        }
+      }
+      return children.length;
+    }
+    function applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, stationaryRow, targetNonCloneIndex) {
+      var absIndex = toAbsoluteIndex(rowsContainer, targetNonCloneIndex);
+      var currentAbsIndex = Array.from(rowsContainer.children).indexOf(stationaryRow);
+      if (absIndex === currentAbsIndex) return;
       rowsContainer.removeChild(stationaryRow);
-      if (newIndex !== rowsContainer.children.length) {
-        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
+      if (absIndex !== rowsContainer.children.length) {
+        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[absIndex]);
       } else {
         rowsContainer.appendChild(stationaryRow);
       }
       Array.from(rowsContainer.children).forEach(function(entry, idx) {
         var id = entry.getAttribute("data-nene-organizer-row-id");
         barStatus[id].position = idx;
+        var rowData = rows.filter(function(r) {
+          return r.id === id;
+        })[0];
+        if (rowData && rowData.element) {
+          rowData.element.style.order = (idx + 1).toString();
+        }
       });
+      plugin.setOrganizerElementStatus(barStatus);
+    }
+    function cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData) {
+      clearDropIndicator(rowsContainer);
+      if (cloneData) {
+        deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
+      }
+      dragging = false;
+      plugin.getOrganizerSpooler().enableObserver();
     }
     function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, rows, row) {
       if (dragging) return;
       dragging = true;
       event.preventDefault();
       var cloneData = cloneRow(rowsWrapper, barStatus, rowsContainer, event, row);
-      var index = cloneData.index;
+      var targetIndex = barStatus[row.id].position;
+      plugin.getOrganizerSpooler().disableObserver();
+      updateDropIndicator(rowsContainer, targetIndex);
       function onMouseMove(moveEvent) {
         moveEvent.preventDefault();
-        plugin.getOrganizerSpooler().disableObserver();
-        var newIndex = calculateRowIndex(moveEvent, rowsContainer, cloneData.movableRow, cloneData.stationaryRow, cloneData.offsetX, cloneData.offsetY, index);
-        if (newIndex !== index) {
-          handlePositionChange(barStatus, rowsContainer, rows, row, cloneData.stationaryRow, newIndex);
-          index = newIndex;
+        cloneData.movableRow.style.left = moveEvent.clientX - cloneData.offsetX + "px";
+        cloneData.movableRow.style.top = moveEvent.clientY - cloneData.offsetY + "px";
+        var newTarget = calculateTargetIndex(moveEvent, rowsContainer);
+        if (newTarget !== targetIndex) {
+          targetIndex = newTarget;
+          updateDropIndicator(rowsContainer, targetIndex);
         }
-        plugin.getOrganizerSpooler().enableObserver();
       }
       function onMouseUp() {
-        deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
-        dragging = false;
+        cleanupMouseDownListeners();
+        applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, cloneData.stationaryRow, targetIndex);
+        cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
+      }
+      function cleanupMouseDownListeners() {
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
-        plugin.setOrganizerElementStatus(barStatus);
+        window.removeEventListener("blur", onWindowBlur);
+      }
+      function onWindowBlur() {
+        cleanupMouseDownListeners();
+        cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
       }
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener("blur", onWindowBlur);
     }
     module2.exports = {
       StatusBarOrganizerModal

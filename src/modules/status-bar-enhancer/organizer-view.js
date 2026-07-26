@@ -261,45 +261,116 @@ function deleteRowClone(rowsWrapper, stationaryRow, movableRow) {
   rowsWrapper.removeChild(movableRow);
 }
 
-function calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
-  movableRow.style.left = (event.clientX - offsetX) + 'px';
-  movableRow.style.top = (event.clientY - offsetY) + 'px';
+/**
+ * 计算鼠标当前位置对应的目标插入索引（基于各行中点，跳过被拖拽行）。
+ * 返回值相对于非克隆行的顺序（0 = 最前，length = 末尾）。
+ */
+function calculateTargetIndex(event, rowsContainer) {
+  var children = Array.from(rowsContainer.children);
+  var mouseY = event.clientY;
+  var nonCloneCount = 0;
 
-  var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
+  for (var i = 0; i < children.length; i++) {
+    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
+    var rect = children[i].getBoundingClientRect();
+    nonCloneCount++;
 
-  if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
-    var dir = dist > 0 ? 1 : -1;
-    var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
-    return newIndex;
-  }
-  return index;
-}
-
-function handlePositionChange(barStatus, rowsContainer, rows, row, stationaryRow, newIndex) {
-  var passedEntry = rowsContainer.children[newIndex];
-  var passedId = passedEntry.getAttribute('data-nene-organizer-row-id');
-
-  if (row.element) {
-    var statusBarChangeRequired = barStatus[passedId] != null;
-    if (statusBarChangeRequired) {
-      var passedElement = rows.filter(function (x) { return x.id === passedId; })[0].element;
-      var temp = passedElement.style.order;
-      passedElement.style.order = row.element.style.order;
-      row.element.style.order = temp;
+    if (mouseY < rect.top + rect.height / 2) {
+      return nonCloneCount - 1;
     }
   }
 
+  return nonCloneCount;
+}
+
+/**
+ * 清除所有行上的拖拽目标高亮。
+ */
+function clearDropIndicator(rowsContainer) {
+  Array.from(rowsContainer.children).forEach(function (entry) {
+    entry.removeClass('nene-organizer-row-drop-target');
+  });
+}
+
+/**
+ * 在目标位置的行上添加拖拽目标高亮。
+ */
+function updateDropIndicator(rowsContainer, targetIndex) {
+  clearDropIndicator(rowsContainer);
+
+  var children = Array.from(rowsContainer.children);
+  var nonCloneIdx = -1;
+
+  for (var i = 0; i < children.length; i++) {
+    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
+    nonCloneIdx++;
+    if (nonCloneIdx === targetIndex) {
+      children[i].addClass('nene-organizer-row-drop-target');
+      break;
+    }
+  }
+}
+
+/**
+ * 将非克隆索引转换为 rowsContainer 中的绝对索引。
+ */
+function toAbsoluteIndex(rowsContainer, nonCloneIndex) {
+  var children = rowsContainer.children;
+  var nonCloneIdx = -1;
+
+  for (var i = 0; i < children.length; i++) {
+    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
+    nonCloneIdx++;
+    if (nonCloneIdx === nonCloneIndex) {
+      return i;
+    }
+  }
+
+  return children.length;
+}
+
+/**
+ * 拖拽结束时执行最终 DOM 重排 + 状态栏 CSS order 同步 + 保存。
+ */
+function applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, stationaryRow, targetNonCloneIndex) {
+  var absIndex = toAbsoluteIndex(rowsContainer, targetNonCloneIndex);
+  var currentAbsIndex = Array.from(rowsContainer.children).indexOf(stationaryRow);
+
+  if (absIndex === currentAbsIndex) return;
+
+  // 重排行容器 DOM
   rowsContainer.removeChild(stationaryRow);
-  if (newIndex !== rowsContainer.children.length) {
-    rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
+  if (absIndex !== rowsContainer.children.length) {
+    rowsContainer.insertBefore(stationaryRow, rowsContainer.children[absIndex]);
   } else {
     rowsContainer.appendChild(stationaryRow);
   }
 
+  // 更新 barStatus 中所有行的 position，并立即同步状态栏元素的 CSS order
   Array.from(rowsContainer.children).forEach(function (entry, idx) {
     var id = entry.getAttribute('data-nene-organizer-row-id');
     barStatus[id].position = idx;
+    var rowData = rows.filter(function (r) { return r.id === id; })[0];
+    if (rowData && rowData.element) {
+      rowData.element.style.order = (idx + 1).toString();
+    }
   });
+
+  // 持久化
+  plugin.setOrganizerElementStatus(barStatus);
+}
+
+/**
+ * 清理拖拽视觉状态：移除监听、还原克隆、清除高亮、释放锁、恢复 Observer。
+ * 注意：此函数不保存 barStatus，调用方需自行决定是否保存。
+ */
+function cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData) {
+  clearDropIndicator(rowsContainer);
+  if (cloneData) {
+    deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
+  }
+  dragging = false;
+  plugin.getOrganizerSpooler().enableObserver();
 }
 
 function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, rows, row) {
@@ -308,34 +379,51 @@ function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, r
   event.preventDefault();
 
   var cloneData = cloneRow(rowsWrapper, barStatus, rowsContainer, event, row);
-  var index = cloneData.index;
+  // 被拖拽行在非克隆行中的起始索引（用 barStatus 中已保存的 position，不受 cloneRow 添加的 class 影响）
+  var targetIndex = barStatus[row.id].position;
+
+  // 拖拽期间禁用 Observer，避免干扰
+  plugin.getOrganizerSpooler().disableObserver();
+
+  // 初始化目标行高亮
+  updateDropIndicator(rowsContainer, targetIndex);
 
   function onMouseMove(moveEvent) {
     moveEvent.preventDefault();
-    plugin.getOrganizerSpooler().disableObserver();
 
-    var newIndex = calculateRowIndex(moveEvent, rowsContainer, cloneData.movableRow, cloneData.stationaryRow, cloneData.offsetX, cloneData.offsetY, index);
-    if (newIndex !== index) {
-      handlePositionChange(barStatus, rowsContainer, rows, row, cloneData.stationaryRow, newIndex);
-      index = newIndex;
+    // 更新克隆体跟随鼠标
+    cloneData.movableRow.style.left = (moveEvent.clientX - cloneData.offsetX) + 'px';
+    cloneData.movableRow.style.top = (moveEvent.clientY - cloneData.offsetY) + 'px';
+
+    // 基于行中点计算新目标位置，只更新高亮，不动 DOM
+    var newTarget = calculateTargetIndex(moveEvent, rowsContainer);
+    if (newTarget !== targetIndex) {
+      targetIndex = newTarget;
+      updateDropIndicator(rowsContainer, targetIndex);
     }
-
-    plugin.getOrganizerSpooler().enableObserver();
   }
 
   function onMouseUp() {
-    deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
-    dragging = false;
+    cleanupMouseDownListeners();
+    applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, cloneData.stationaryRow, targetIndex);
+    cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
+  }
 
+  function cleanupMouseDownListeners() {
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
+    window.removeEventListener('blur', onWindowBlur);
+  }
 
-    // 保存最终状态
-    plugin.setOrganizerElementStatus(barStatus);
+  // 兜底：窗口失去焦点时释放拖拽锁（如鼠标在浏览器外释放），不做任何重排
+  function onWindowBlur() {
+    cleanupMouseDownListeners();
+    cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
   }
 
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
+  window.addEventListener('blur', onWindowBlur);
 }
 
 module.exports = {
