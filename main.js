@@ -695,7 +695,7 @@ var require_constants3 = __commonJS({
   "src/modules/copy-path/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_COPY_PATH_SETTINGS = {
-      addTrailingSlashToFolders: true
+      addTrailingSlashToFolders: false
     };
     var MENU_TARGET_MAX_AGE = 2e3;
     module2.exports = {
@@ -958,7 +958,7 @@ var require_snippets_constants = __commonJS({
     var DEFAULT_SNIPPETS_SETTINGS = {
       aestheticStyle: false,
       openSnippetFile: true,
-      snippetEnabledStatus: false,
+      snippetEnabledStatus: true,
       stylingTemplate: ""
     };
     function normalizeSnippetsSettings(settings) {
@@ -8619,12 +8619,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     });
   }
   // 根据当前设置同步关系图谱增强模块的启停状态，供启动和设置切换共用。
+  // 始终先执行 stop() 清理可能残留的旧会话合成链接数据（如上次崩溃退出未正常卸载），再按需启动。
   syncAnchorGraphEnhancerState() {
+    this.anchorGraphLinkEnhancer.stop();
     if (this.isAnchorGraphEnabled()) {
       this.anchorGraphLinkEnhancer.start();
-      return;
     }
-    this.anchorGraphLinkEnhancer.stop();
   }
   // 根据当前设置同步状态栏增强模块的启停状态，并在启用时刷新当前活动文件路径。
   syncStatusBarEnhancerState() {
@@ -8632,16 +8632,17 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.snippetsRuntime.load(this.snippetsStore.getSettings());
     if (this.isStatusBarEnhancerEnabled()) {
       this.statusBarEnhancerRuntime.start();
+      this.snippetsRuntime.start();
       if (this.organizerSpooler) {
         this.organizerSpooler.start();
       }
     } else {
       this.statusBarEnhancerRuntime.stop();
+      this.snippetsRuntime.stop();
       if (this.organizerSpooler) {
         this.organizerSpooler.stop();
       }
     }
-    this.snippetsRuntime.start();
   }
   // 根据当前设置同步标签栏增强模块的启停状态，并挂载或移除实验性 class。
   syncTabBarEnhancerState() {

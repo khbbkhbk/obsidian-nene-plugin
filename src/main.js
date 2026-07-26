@@ -789,13 +789,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   }
 
   // 根据当前设置同步关系图谱增强模块的启停状态，供启动和设置切换共用。
+  // 始终先执行 stop() 清理可能残留的旧会话合成链接数据（如上次崩溃退出未正常卸载），再按需启动。
   syncAnchorGraphEnhancerState() {
+    this.anchorGraphLinkEnhancer.stop();
+
     if (this.isAnchorGraphEnabled()) {
       this.anchorGraphLinkEnhancer.start();
-      return;
     }
-
-    this.anchorGraphLinkEnhancer.stop();
   }
 
   // 根据当前设置同步状态栏增强模块的启停状态，并在启用时刷新当前活动文件路径。
@@ -805,18 +805,17 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
     if (this.isStatusBarEnhancerEnabled()) {
       this.statusBarEnhancerRuntime.start();
+      this.snippetsRuntime.start();
       if (this.organizerSpooler) {
         this.organizerSpooler.start();
       }
     } else {
       this.statusBarEnhancerRuntime.stop();
+      this.snippetsRuntime.stop();
       if (this.organizerSpooler) {
         this.organizerSpooler.stop();
       }
     }
-
-    // Snippets 管理独立启停，不受状态栏增强开关影响
-    this.snippetsRuntime.start();
   }
 
   // 根据当前设置同步标签栏增强模块的启停状态，并挂载或移除实验性 class。

@@ -4,7 +4,7 @@
 const DEFAULT_SNIPPETS_SETTINGS = {
   aestheticStyle: false,
   openSnippetFile: true,
-  snippetEnabledStatus: false,
+  snippetEnabledStatus: true,
   stylingTemplate: ''
 };
 

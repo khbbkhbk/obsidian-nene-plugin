@@ -4,7 +4,7 @@
 
 /* 状态栏按钮 */
 .nene-snippets-button {
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
 .nene-snippets-button .status-bar-item-icon svg {
