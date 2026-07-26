@@ -452,9 +452,13 @@ class PluginDataStore {
         : defaults.createdTimestampFormat,
       cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
       organizer: this.isPlainObject(source.organizer) ? {
-        elements: this.normalizeOrganizerElements(source.organizer.elements)
+        elements: this.normalizeOrganizerElements(source.organizer.elements),
+        deletedIds: Array.isArray(source.organizer.deletedIds)
+          ? source.organizer.deletedIds.filter(function (id) { return typeof id === 'string'; })
+          : []
       } : {
-        elements: {}
+        elements: {},
+        deletedIds: []
       },
       snippets: this.isPlainObject(source.snippets) ? source.snippets : {}
     };

@@ -113,17 +113,20 @@ function fixOrder(statusBar, elementStatus) {
 
 /**
  * Spooler — 使用 MutationObserver 监听状态栏子节点变化，自动调度排序修复。
+ * 排序修复后自动发现并持久化新出现的元素，实现跨界面元素管理。
  */
 class OrganizerSpooler {
   /**
    * @param {Element} statusBar - .status-bar 容器
    * @param {Function} elementStatusProvider - 返回当前元素状态对象 { id: { position, visible } }
    * @param {Function} onFix - 排序修复完成后的回调（可选）
+   * @param {Function} onSaveNewElements - 新元素发现后持久化的回调（可选），接收完整元素状态
    */
-  constructor(statusBar, elementStatusProvider, onFix) {
+  constructor(statusBar, elementStatusProvider, onFix, onSaveNewElements) {
     this.statusBar = statusBar;
     this.elementStatusProvider = elementStatusProvider;
     this.onFix = onFix || function () {};
+    this.onSaveNewElements = onSaveNewElements || function () {};
     this.mutex = false;
     this.spooler = null;
     this.observer = null;
@@ -142,10 +145,11 @@ class OrganizerSpooler {
   }
 
   /**
-   * 启动 MutationObserver 监听。
+   * 启动 MutationObserver 监听，并立即应用已保存的元素状态（排序与可见性）。
    */
   start() {
     this.observer.observe(this.statusBar, { childList: true });
+    this.scheduleFix(0);
   }
 
   /**
@@ -174,6 +178,7 @@ class OrganizerSpooler {
 
   /**
    * 安排一次排序修复，多次调用会合并为一次。
+   * 排序修复后自动检查当前状态栏中的新元素并持久化。
    *
    * @param {number} timeout - 延迟毫秒数，默认 1000
    */
@@ -192,12 +197,50 @@ class OrganizerSpooler {
 
         var elementStatus = _this.elementStatusProvider();
         fixOrder(_this.statusBar, elementStatus);
+
+        // 自动发现并持久化新出现的元素
+        _this.discoverAndSaveNewElements(elementStatus);
+
         _this.onFix();
 
         _this.enableObserver();
         _this.mutex = false;
       };
     })(this), timeout);
+  }
+
+  /**
+   * 对比当前状态栏元素与已保存状态，将新元素合并保存。
+   * 新元素的 position 继承 fixOrder 已分配的 CSS order 值。
+   *
+   * @param {object} existingStatus - 排序修复时使用的已保存元素状态
+   */
+  discoverAndSaveNewElements(existingStatus) {
+    var currentElements = getStatusBarElements(this.statusBar);
+    var newElements = {};
+
+    currentElements.forEach(function (el) {
+      if (!(el.id in existingStatus)) {
+        newElements[el.id] = {
+          position: parseInt(el.element.style.order || '1', 10),
+          visible: true
+        };
+      }
+    });
+
+    var newIds = Object.keys(newElements);
+    if (newIds.length === 0) return;
+
+    // 合并新旧状态
+    var merged = {};
+    Object.keys(existingStatus).forEach(function (id) {
+      merged[id] = existingStatus[id];
+    });
+    newIds.forEach(function (id) {
+      merged[id] = newElements[id];
+    });
+
+    this.onSaveNewElements(merged);
   }
 }
 

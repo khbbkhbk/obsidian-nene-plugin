@@ -122,11 +122,28 @@ class StatusBarEnhancerStore {
   // 更新 organizer 元素状态映射表并持久化。
   async setOrganizerElements(elements) {
     if (!this.settings.organizer) {
-      this.settings.organizer = { elements: {} };
+      this.settings.organizer = { elements: {}, deletedIds: [] };
     }
     this.settings.organizer.elements = this.normalizeOrganizerElements(elements);
     await this.save();
     return this.settings.organizer.elements;
+  }
+
+  // 返回已删除的孤儿条目 ID 列表。
+  getDeletedIds() {
+    return this.settings.organizer && Array.isArray(this.settings.organizer.deletedIds)
+      ? this.settings.organizer.deletedIds
+      : [];
+  }
+
+  // 更新已删除的孤儿条目 ID 列表并持久化。
+  async setDeletedIds(ids) {
+    if (!this.settings.organizer) {
+      this.settings.organizer = { elements: {}, deletedIds: [] };
+    }
+    this.settings.organizer.deletedIds = Array.isArray(ids) ? ids.filter(function (id) { return typeof id === 'string'; }) : [];
+    await this.save();
+    return this.settings.organizer.deletedIds;
   }
 
   // 归一化 organizer 元素状态映射表。
@@ -175,7 +192,10 @@ class StatusBarEnhancerStore {
       organizer: {
         elements: this.normalizeOrganizerElements(
           source.organizer ? source.organizer.elements : undefined
-        )
+        ),
+        deletedIds: source.organizer && Array.isArray(source.organizer.deletedIds)
+          ? source.organizer.deletedIds.filter(function (id) { return typeof id === 'string'; })
+          : []
       },
       snippets: snippetsConstants.normalizeSnippetsSettings(source.snippets)
     };

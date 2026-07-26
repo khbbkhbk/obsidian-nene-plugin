@@ -16,9 +16,11 @@ const DEFAULT_STATUS_BAR_ENHANCER_SETTINGS = {
 };
 
 // 定义状态栏元素管理（原 StatusBarOrganizer）的默认配置。
-// 使用扁平结构：elements 以元素 ID 为键，值为 { position, visible }。
+// 使用扁平结构：elements 以元素 ID 为键，值为 { position, visible }；
+// deletedIds 记录用户主动隐藏的孤儿条目 ID，可用于恢复。
 const DEFAULT_ORGANIZER_SETTINGS = {
-  elements: {}
+  elements: {},
+  deletedIds: []
 };
 
 module.exports = {

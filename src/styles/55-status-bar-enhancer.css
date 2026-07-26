@@ -1,0 +1,17 @@
+/* ========================================
+   55 - 状态栏增强模块运行时样式
+   ======================================== */
+
+/* 限制状态栏文件路径显示长度，防止长路径导致状态栏过长 */
+/* direction: rtl 使省略号出现在左侧，截断路径的开头部分（保留尾部文件名） */
+.nene-status-bar-enhancer {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9.5vw;
+  font-weight: bold;
+  padding-top: 5px;
+  direction: rtl;
+  text-align: left;
+}

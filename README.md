@@ -1,10 +1,8 @@
 Obsidian插件ねね，集成功能列表：
 - [x] 标签栏增强
   - 新增功能：标签栏滚轮循环切换（基于第三方插件“22-2/wheel-tab-switcher”）
-    - 需要汉化
 - [x] 状态栏增强
   - 新增功能：状态栏显示当前活动文件路径，支持点击复制（基于第三方插件“ravimashru/obsidian-show-file-path”）
-    - ⛔存在CSS修正
   - 新增功能：状态栏显示当前活动文件的时间元数据（基于第三方插件“yustynn/obsidian-last-modified-timestamp-in-status-bar”）
   - 新增功能：状态栏管理（基于第三方插件“Opisek/obsidian-statusbar-organizer”）
   - 新增功能：状态栏显示“Snippets管理”按钮（基于第三方插件“chetachiezikeuzor/MySnippets-Plugin”）

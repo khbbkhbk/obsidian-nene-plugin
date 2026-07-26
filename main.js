@@ -942,7 +942,8 @@ var require_constants5 = __commonJS({
       cycleOnClickEnabled: true
     };
     var DEFAULT_ORGANIZER_SETTINGS = {
-      elements: {}
+      elements: {},
+      deletedIds: []
     };
     module2.exports = {
       DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
@@ -1545,9 +1546,13 @@ var require_store2 = __commonJS({
           createdTimestampFormat: typeof source.createdTimestampFormat === "string" && source.createdTimestampFormat ? source.createdTimestampFormat : defaults.createdTimestampFormat,
           cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
           organizer: this.isPlainObject(source.organizer) ? {
-            elements: this.normalizeOrganizerElements(source.organizer.elements)
+            elements: this.normalizeOrganizerElements(source.organizer.elements),
+            deletedIds: Array.isArray(source.organizer.deletedIds) ? source.organizer.deletedIds.filter(function(id) {
+              return typeof id === "string";
+            }) : []
           } : {
-            elements: {}
+            elements: {},
+            deletedIds: []
           },
           snippets: this.isPlainObject(source.snippets) ? source.snippets : {}
         };
@@ -3326,11 +3331,26 @@ var require_store5 = __commonJS({
       // 更新 organizer 元素状态映射表并持久化。
       async setOrganizerElements(elements) {
         if (!this.settings.organizer) {
-          this.settings.organizer = { elements: {} };
+          this.settings.organizer = { elements: {}, deletedIds: [] };
         }
         this.settings.organizer.elements = this.normalizeOrganizerElements(elements);
         await this.save();
         return this.settings.organizer.elements;
+      }
+      // 返回已删除的孤儿条目 ID 列表。
+      getDeletedIds() {
+        return this.settings.organizer && Array.isArray(this.settings.organizer.deletedIds) ? this.settings.organizer.deletedIds : [];
+      }
+      // 更新已删除的孤儿条目 ID 列表并持久化。
+      async setDeletedIds(ids) {
+        if (!this.settings.organizer) {
+          this.settings.organizer = { elements: {}, deletedIds: [] };
+        }
+        this.settings.organizer.deletedIds = Array.isArray(ids) ? ids.filter(function(id) {
+          return typeof id === "string";
+        }) : [];
+        await this.save();
+        return this.settings.organizer.deletedIds;
       }
       // 归一化 organizer 元素状态映射表。
       normalizeOrganizerElements(elements) {
@@ -3366,7 +3386,10 @@ var require_store5 = __commonJS({
           organizer: {
             elements: this.normalizeOrganizerElements(
               source.organizer ? source.organizer.elements : void 0
-            )
+            ),
+            deletedIds: source.organizer && Array.isArray(source.organizer.deletedIds) ? source.organizer.deletedIds.filter(function(id) {
+              return typeof id === "string";
+            }) : []
           },
           snippets: snippetsConstants.normalizeSnippetsSettings(source.snippets)
         };
@@ -3456,11 +3479,14 @@ var require_organizer_runtime = __commonJS({
        * @param {Element} statusBar - .status-bar 容器
        * @param {Function} elementStatusProvider - 返回当前元素状态对象 { id: { position, visible } }
        * @param {Function} onFix - 排序修复完成后的回调（可选）
+       * @param {Function} onSaveNewElements - 新元素发现后持久化的回调（可选），接收完整元素状态
        */
-      constructor(statusBar, elementStatusProvider, onFix) {
+      constructor(statusBar, elementStatusProvider, onFix, onSaveNewElements) {
         this.statusBar = statusBar;
         this.elementStatusProvider = elementStatusProvider;
         this.onFix = onFix || function() {
+        };
+        this.onSaveNewElements = onSaveNewElements || function() {
         };
         this.mutex = false;
         this.spooler = null;
@@ -3478,10 +3504,11 @@ var require_organizer_runtime = __commonJS({
         })(this));
       }
       /**
-       * 启动 MutationObserver 监听。
+       * 启动 MutationObserver 监听，并立即应用已保存的元素状态（排序与可见性）。
        */
       start() {
         this.observer.observe(this.statusBar, { childList: true });
+        this.scheduleFix(0);
       }
       /**
        * 停止监听并清除待执行的排序任务。
@@ -3506,6 +3533,7 @@ var require_organizer_runtime = __commonJS({
       }
       /**
        * 安排一次排序修复，多次调用会合并为一次。
+       * 排序修复后自动检查当前状态栏中的新元素并持久化。
        *
        * @param {number} timeout - 延迟毫秒数，默认 1000
        */
@@ -3522,11 +3550,40 @@ var require_organizer_runtime = __commonJS({
             _this.disableObserver();
             var elementStatus = _this.elementStatusProvider();
             fixOrder(_this.statusBar, elementStatus);
+            _this.discoverAndSaveNewElements(elementStatus);
             _this.onFix();
             _this.enableObserver();
             _this.mutex = false;
           };
         })(this), timeout);
+      }
+      /**
+       * 对比当前状态栏元素与已保存状态，将新元素合并保存。
+       * 新元素的 position 继承 fixOrder 已分配的 CSS order 值。
+       *
+       * @param {object} existingStatus - 排序修复时使用的已保存元素状态
+       */
+      discoverAndSaveNewElements(existingStatus) {
+        var currentElements = getStatusBarElements(this.statusBar);
+        var newElements = {};
+        currentElements.forEach(function(el) {
+          if (!(el.id in existingStatus)) {
+            newElements[el.id] = {
+              position: parseInt(el.element.style.order || "1", 10),
+              visible: true
+            };
+          }
+        });
+        var newIds = Object.keys(newElements);
+        if (newIds.length === 0) return;
+        var merged = {};
+        Object.keys(existingStatus).forEach(function(id) {
+          merged[id] = existingStatus[id];
+        });
+        newIds.forEach(function(id) {
+          merged[id] = newElements[id];
+        });
+        this.onSaveNewElements(merged);
       }
     };
     module2.exports = {
@@ -3576,10 +3633,11 @@ var require_organizer_view = __commonJS({
         renderModalHeader(
           contentEl,
           "状态栏元素管理",
-          "拖动行左侧手柄可调整元素顺序，点击眼睛图标切换显示/隐藏。"
+          '拖动行左侧手柄可调整元素顺序，点击眼睛图标切换显示/隐藏。红色条目表示对应插件已卸载或元素已不存在，可点击垃圾桶删除，之后可通过底部"恢复"按钮还原。'
         );
         var statusBar = this.plugin.getStatusBarElement();
         var savedElements = this.plugin.getOrganizerSettings();
+        var deletedIds = this.plugin.getOrganizerDeletedIds();
         if (!statusBar) {
           contentEl.createEl("p", {
             cls: "nene-organizer-empty",
@@ -3587,7 +3645,7 @@ var require_organizer_view = __commonJS({
           });
           return;
         }
-        var consolidated = this.consolidateElements(statusBar, savedElements);
+        var consolidated = this.consolidateElements(statusBar, savedElements, deletedIds);
         var rowsWrapper = contentEl.createDiv({ cls: "nene-organizer-rows-wrapper" });
         var rowsContainer = rowsWrapper.createDiv({ cls: "nene-organizer-rows-container" });
         var nameCollisions = {};
@@ -3601,8 +3659,10 @@ var require_organizer_view = __commonJS({
         var self = this;
         consolidated.rows.forEach(function(row) {
           var currentStatus = consolidated.barStatus[row.id];
+          var currentExists = consolidated.existsStatus[row.id];
           var entry = document.createElement("div");
           entry.addClass("nene-organizer-row");
+          if (!currentExists) entry.addClass("nene-organizer-row-disabled");
           if (!currentStatus.visible) entry.addClass("nene-organizer-row-hidden");
           entry.setAttribute("data-nene-organizer-row-id", row.id);
           row.entry = entry;
@@ -3610,7 +3670,7 @@ var require_organizer_view = __commonJS({
           var handle = document.createElement("span");
           handle.addClass("nene-organizer-row-handle");
           handle.addEventListener("mousedown", function(event) {
-            handleMouseDown(event, self.plugin, consolidated.barStatus, rowsWrapper, rowsContainer, consolidated.rows, row);
+            handleMouseDown(event, self.plugin, consolidated.barStatus, consolidated.existsStatus, rowsWrapper, rowsContainer, consolidated.rows, row);
           });
           entry.appendChild(handle);
           var displayName = row.name.replace(/^plugin-(obsidian-)?/, "").split("-").map(function(x) {
@@ -3622,53 +3682,109 @@ var require_organizer_view = __commonJS({
           entry.appendChild(titleSpan);
           var previewSpan = document.createElement("span");
           previewSpan.addClass("nene-organizer-row-preview");
-          if (row.element) {
+          if (currentExists && row.element) {
             previewSpan.innerHTML = row.element.innerHTML;
           }
           entry.appendChild(previewSpan);
           var actionSpan = document.createElement("span");
           actionSpan.addClass("nene-organizer-row-action");
           actionSpan.onclick = function() {
-            toggleVisibility(self.plugin, consolidated.barStatus, row);
+            if (currentExists) {
+              toggleVisibility(self.plugin, consolidated.barStatus, row);
+            } else {
+              deleteOrphan(self.plugin, deletedIds, row, self);
+            }
           };
-          obsidian2.setIcon(actionSpan, currentStatus.visible ? "eye" : "eye-off");
+          obsidian2.setIcon(actionSpan, currentExists ? currentStatus.visible ? "eye" : "eye-off" : "trash-2");
           entry.appendChild(actionSpan);
         });
+        if (consolidated.hasDeleted) {
+          contentEl.createDiv({ cls: "nene-organizer-restore-area" });
+          consolidated.deletedOrphanList.forEach(function(orphan) {
+            var displayName = orphan.name.replace(/^plugin-(obsidian-)?/, "").split("-").map(function(x) {
+              return x.charAt(0).toUpperCase() + x.slice(1);
+            }).join(" ") + (nameCollisions[orphan.name] ? " (" + orphan.index + ")" : "");
+            new obsidian2.Setting(contentEl).setName(displayName).setDesc("已删除，对应插件已卸载或元素已不存在").addButton(function(button) {
+              button.setButtonText("恢复").onClick(async function() {
+                var newDeletedIds = self.plugin.getOrganizerDeletedIds().filter(function(id) {
+                  return id !== orphan.id;
+                });
+                self.plugin.setOrganizerDeletedIds(newDeletedIds);
+                new obsidian2.Notice("已恢复：" + displayName);
+                await self.render();
+              });
+            });
+          });
+          new obsidian2.Setting(contentEl).setName("全部恢复").setDesc("将以上所有删除条目重新显示").addButton(function(button) {
+            button.setButtonText("恢复全部").setCta().onClick(async function() {
+              self.plugin.setOrganizerDeletedIds([]);
+              new obsidian2.Notice("已恢复所有删除的条目");
+              await self.render();
+            });
+          });
+        }
       }
       /**
        * 合并已保存设置与实际状态栏元素状态。
-       * 新元素自动追加到末尾；已不存在的元素自动从已保存数据中清理。
+       * 新元素自动追加到末尾；已保存但不存在的元素显示为孤儿条目；
+       * 被删除（deletedIds）的孤儿条目不显示。
        *
        * @param {Element} statusBar - .status-bar 容器
        * @param {object} savedElements - 已保存的元素状态 { [id]: { position, visible } }
-       * @returns {{ rows: Array, barStatus: object }}
+       * @param {string[]} deletedIds - 已被用户删除的条目 ID 列表
+       * @returns {{ rows: Array, barStatus: object, existsStatus: object, hasDeleted: boolean }}
        */
-      consolidateElements(statusBar, savedElements) {
+      consolidateElements(statusBar, savedElements, deletedIds) {
         var unorderedElements = organizerRuntime.getStatusBarElements(statusBar);
         var currentIds = unorderedElements.map(function(e) {
           return e.id;
         });
         var barStatus = {};
-        var rows = unorderedElements.slice();
-        var insertPosition = rows.length + 1;
-        rows.forEach(function(element, index) {
-          var saved = savedElements[element.id];
-          barStatus[element.id] = saved || { position: index, visible: true };
-        });
+        var existsStatus = {};
         Object.keys(savedElements).forEach(function(id) {
-          if (currentIds.indexOf(id) === -1) return;
-          if (id in barStatus) return;
-          var status = savedElements[id];
-          status.position = insertPosition++;
-          barStatus[id] = status;
+          barStatus[id] = savedElements[id];
+          existsStatus[id] = currentIds.indexOf(id) !== -1;
         });
+        var newElementsSaved = false;
+        unorderedElements.forEach(function(element) {
+          if (element.id in barStatus) return;
+          var insertPosition = Object.keys(barStatus).length + 1;
+          barStatus[element.id] = { position: insertPosition, visible: true };
+          existsStatus[element.id] = true;
+          newElementsSaved = true;
+        });
+        if (newElementsSaved) {
+          this.plugin.setOrganizerElementStatus(barStatus);
+        }
+        var visibleOrphans = Object.keys(savedElements).filter(function(id) {
+          return !existsStatus[id] && deletedIds.indexOf(id) === -1;
+        }).map(function(id) {
+          var parsed = organizerRuntime.parseElementId(id);
+          return { name: parsed.name, index: parsed.index, id };
+        });
+        var rows = unorderedElements.concat(visibleOrphans);
         rows.sort(function(a, b) {
           return barStatus[a.id].position - barStatus[b.id].position;
         });
-        this.plugin.setOrganizerElementStatus(barStatus);
+        var deletedOrphanList = Object.keys(savedElements).filter(function(id) {
+          return !existsStatus[id] && deletedIds.indexOf(id) !== -1;
+        }).map(function(id) {
+          var parsed = organizerRuntime.parseElementId(id);
+          var status = barStatus[id];
+          return {
+            name: parsed.name,
+            index: parsed.index,
+            id,
+            position: status ? status.position : 0,
+            visible: status ? status.visible : true
+          };
+        });
         return {
           rows,
-          barStatus
+          barStatus,
+          existsStatus,
+          hasDeleted: deletedIds.length > 0,
+          deletedOrphanList
         };
       }
       onClose() {
@@ -3689,12 +3805,19 @@ var require_organizer_view = __commonJS({
       }
       plugin.setOrganizerElementStatus(barStatus);
     }
-    function cloneRow(rowsWrapper, barStatus, rowsContainer, event, row) {
+    function deleteOrphan(plugin, deletedIds, row, modalInstance) {
+      deletedIds.push(row.id);
+      plugin.setOrganizerDeletedIds(deletedIds);
+      new obsidian2.Notice("已删除该条目，可通过底部的「恢复」按钮重新显示");
+      modalInstance.render();
+    }
+    function cloneRow(rowsWrapper, barStatus, existsStatus, rowsContainer, event, row) {
       var realEntry = row.entry;
       realEntry.addClass("nene-organizer-row-clone");
       var fauxEntry = document.createElement("div");
       fauxEntry.addClass("nene-organizer-row");
       fauxEntry.addClass("nene-organizer-row-drag");
+      if (!existsStatus[row.id]) fauxEntry.addClass("nene-organizer-row-disabled");
       if (!barStatus[row.id].visible) fauxEntry.addClass("nene-organizer-row-hidden");
       rowsWrapper.appendChild(fauxEntry);
       var containerRect = rowsWrapper.getBoundingClientRect();
@@ -3722,115 +3845,67 @@ var require_organizer_view = __commonJS({
       stationaryRow.removeClass("nene-organizer-row-clone");
       rowsWrapper.removeChild(movableRow);
     }
-    function calculateTargetIndex(event, rowsContainer) {
-      var children = Array.from(rowsContainer.children);
-      var mouseY = event.clientY;
-      var nonCloneCount = 0;
-      for (var i = 0; i < children.length; i++) {
-        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
-        var rect = children[i].getBoundingClientRect();
-        nonCloneCount++;
-        if (mouseY < rect.top + rect.height / 2) {
-          return nonCloneCount - 1;
-        }
+    function calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
+      movableRow.style.left = event.clientX - offsetX + "px";
+      movableRow.style.top = event.clientY - offsetY + "px";
+      var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
+      if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
+        var dir = dist > 0 ? 1 : -1;
+        var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
+        return newIndex;
       }
-      return nonCloneCount;
+      return index;
     }
-    function clearDropIndicator(rowsContainer) {
-      Array.from(rowsContainer.children).forEach(function(entry) {
-        entry.removeClass("nene-organizer-row-drop-target");
-      });
-    }
-    function updateDropIndicator(rowsContainer, targetIndex) {
-      clearDropIndicator(rowsContainer);
-      var children = Array.from(rowsContainer.children);
-      var nonCloneIdx = -1;
-      for (var i = 0; i < children.length; i++) {
-        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
-        nonCloneIdx++;
-        if (nonCloneIdx === targetIndex) {
-          children[i].addClass("nene-organizer-row-drop-target");
-          break;
-        }
+    function handlePositionChange(barStatus, existsStatus, rowsContainer, rows, row, stationaryRow, newIndex) {
+      var passedEntry = rowsContainer.children[newIndex];
+      var passedId = passedEntry.getAttribute("data-nene-organizer-row-id");
+      var statusBarChangeRequired = existsStatus[row.id] && existsStatus[passedId];
+      if (statusBarChangeRequired && row.element) {
+        var passedElement = rows.filter(function(x) {
+          return x.id === passedId;
+        })[0].element;
+        var temp = passedElement.style.order;
+        passedElement.style.order = row.element.style.order;
+        row.element.style.order = temp;
       }
-    }
-    function toAbsoluteIndex(rowsContainer, nonCloneIndex) {
-      var children = rowsContainer.children;
-      var nonCloneIdx = -1;
-      for (var i = 0; i < children.length; i++) {
-        if (children[i].classList.contains("nene-organizer-row-clone")) continue;
-        nonCloneIdx++;
-        if (nonCloneIdx === nonCloneIndex) {
-          return i;
-        }
-      }
-      return children.length;
-    }
-    function applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, stationaryRow, targetNonCloneIndex) {
-      var absIndex = toAbsoluteIndex(rowsContainer, targetNonCloneIndex);
-      var currentAbsIndex = Array.from(rowsContainer.children).indexOf(stationaryRow);
-      if (absIndex === currentAbsIndex) return;
       rowsContainer.removeChild(stationaryRow);
-      if (absIndex !== rowsContainer.children.length) {
-        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[absIndex]);
+      if (newIndex !== rowsContainer.children.length) {
+        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
       } else {
         rowsContainer.appendChild(stationaryRow);
       }
       Array.from(rowsContainer.children).forEach(function(entry, idx) {
         var id = entry.getAttribute("data-nene-organizer-row-id");
-        barStatus[id].position = idx;
-        var rowData = rows.filter(function(r) {
-          return r.id === id;
-        })[0];
-        if (rowData && rowData.element) {
-          rowData.element.style.order = (idx + 1).toString();
+        if (barStatus[id]) {
+          barStatus[id].position = idx;
         }
       });
-      plugin.setOrganizerElementStatus(barStatus);
     }
-    function cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData) {
-      clearDropIndicator(rowsContainer);
-      if (cloneData) {
-        deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
-      }
-      dragging = false;
-      plugin.getOrganizerSpooler().enableObserver();
-    }
-    function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, rows, row) {
+    function handleMouseDown(event, plugin, barStatus, existsStatus, rowsWrapper, rowsContainer, rows, row) {
       if (dragging) return;
       dragging = true;
       event.preventDefault();
-      var cloneData = cloneRow(rowsWrapper, barStatus, rowsContainer, event, row);
-      var targetIndex = barStatus[row.id].position;
-      plugin.getOrganizerSpooler().disableObserver();
-      updateDropIndicator(rowsContainer, targetIndex);
+      var cloneData = cloneRow(rowsWrapper, barStatus, existsStatus, rowsContainer, event, row);
+      var index = cloneData.index;
       function onMouseMove(moveEvent) {
         moveEvent.preventDefault();
-        cloneData.movableRow.style.left = moveEvent.clientX - cloneData.offsetX + "px";
-        cloneData.movableRow.style.top = moveEvent.clientY - cloneData.offsetY + "px";
-        var newTarget = calculateTargetIndex(moveEvent, rowsContainer);
-        if (newTarget !== targetIndex) {
-          targetIndex = newTarget;
-          updateDropIndicator(rowsContainer, targetIndex);
+        plugin.getOrganizerSpooler().disableObserver();
+        var newIndex = calculateRowIndex(moveEvent, rowsContainer, cloneData.movableRow, cloneData.stationaryRow, cloneData.offsetX, cloneData.offsetY, index);
+        if (newIndex !== index) {
+          handlePositionChange(barStatus, existsStatus, rowsContainer, rows, row, cloneData.stationaryRow, newIndex);
+          index = newIndex;
         }
+        plugin.getOrganizerSpooler().enableObserver();
       }
       function onMouseUp() {
-        cleanupMouseDownListeners();
-        applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, cloneData.stationaryRow, targetIndex);
-        cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
-      }
-      function cleanupMouseDownListeners() {
+        deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
+        dragging = false;
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
-        window.removeEventListener("blur", onWindowBlur);
-      }
-      function onWindowBlur() {
-        cleanupMouseDownListeners();
-        cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
+        plugin.setOrganizerElementStatus(barStatus);
       }
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
-      window.addEventListener("blur", onWindowBlur);
     }
     module2.exports = {
       StatusBarOrganizerModal
@@ -8540,6 +8615,9 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
         return self.statusBarEnhancerStore.getOrganizerElements();
       },
       function() {
+      },
+      function(allElements) {
+        self.statusBarEnhancerStore.setOrganizerElements(allElements);
       }
     );
   }
@@ -8558,6 +8636,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   // 返回 organizer Spooler 实例。
   getOrganizerSpooler() {
     return this.organizerSpooler;
+  }
+  // 返回已删除的孤儿条目 ID 列表。
+  getOrganizerDeletedIds() {
+    return this.statusBarEnhancerStore.getDeletedIds();
+  }
+  // 保存已删除的孤儿条目 ID 列表。
+  async setOrganizerDeletedIds(ids) {
+    return this.statusBarEnhancerStore.setDeletedIds(ids);
   }
   // 更新标签栏增强模块开关，并立即同步实验性 class 的挂载状态。
   async updateTabBarEnhancerEnabled(enabled) {

@@ -21,20 +21,8 @@ function renderModalHeader(containerEl, title, description) {
 }
 
 /**
- * 渲染信息行。
- */
-function renderDetailItem(containerEl, label, value, codeStyle) {
-  var itemEl = containerEl.createDiv({ cls: 'nene-settings-detail-item' });
-  itemEl.createDiv({ cls: 'nene-settings-detail-label', text: label });
-  itemEl.createEl(codeStyle ? 'code' : 'div', {
-    cls: 'nene-settings-detail-value',
-    text: value
-  });
-}
-
-/**
  * 状态栏元素管理弹窗。
- * 提供拖拽排序、显示/隐藏切换、删除僵死元素等功能。
+ * 提供拖拽排序、显示/隐藏切换、孤儿条目删除与恢复。
  */
 class StatusBarOrganizerModal extends obsidian.Modal {
   constructor(app, plugin, onSettingsChanged) {
@@ -60,12 +48,12 @@ class StatusBarOrganizerModal extends obsidian.Modal {
     renderModalHeader(
       contentEl,
       '状态栏元素管理',
-      '拖动行左侧手柄可调整元素顺序，点击眼睛图标切换显示/隐藏。'
+      '拖动行左侧手柄可调整元素顺序，点击眼睛图标切换显示/隐藏。红色条目表示对应插件已卸载或元素已不存在，可点击垃圾桶删除，之后可通过底部"恢复"按钮还原。'
     );
 
-    // 获取状态栏元素列表和已保存元素状态
     var statusBar = this.plugin.getStatusBarElement();
     var savedElements = this.plugin.getOrganizerSettings();
+    var deletedIds = this.plugin.getOrganizerDeletedIds();
 
     if (!statusBar) {
       contentEl.createEl('p', {
@@ -75,10 +63,10 @@ class StatusBarOrganizerModal extends obsidian.Modal {
       return;
     }
 
-    // 整理元素数据（savedElements 即为 elements 对象，不需要再取 .elements）
-    var consolidated = this.consolidateElements(statusBar, savedElements);
+    // 整理元素数据
+    var consolidated = this.consolidateElements(statusBar, savedElements, deletedIds);
 
-    // 设置容器
+    // 设定容器
     var rowsWrapper = contentEl.createDiv({ cls: 'nene-organizer-rows-wrapper' });
     var rowsContainer = rowsWrapper.createDiv({ cls: 'nene-organizer-rows-container' });
 
@@ -96,9 +84,11 @@ class StatusBarOrganizerModal extends obsidian.Modal {
     var self = this;
     consolidated.rows.forEach(function (row) {
       var currentStatus = consolidated.barStatus[row.id];
+      var currentExists = consolidated.existsStatus[row.id];
 
       var entry = document.createElement('div');
       entry.addClass('nene-organizer-row');
+      if (!currentExists) entry.addClass('nene-organizer-row-disabled');
       if (!currentStatus.visible) entry.addClass('nene-organizer-row-hidden');
       entry.setAttribute('data-nene-organizer-row-id', row.id);
       row.entry = entry;
@@ -108,7 +98,7 @@ class StatusBarOrganizerModal extends obsidian.Modal {
       var handle = document.createElement('span');
       handle.addClass('nene-organizer-row-handle');
       handle.addEventListener('mousedown', function (event) {
-        handleMouseDown(event, self.plugin, consolidated.barStatus, rowsWrapper, rowsContainer, consolidated.rows, row);
+        handleMouseDown(event, self.plugin, consolidated.barStatus, consolidated.existsStatus, rowsWrapper, rowsContainer, consolidated.rows, row);
       });
       entry.appendChild(handle);
 
@@ -129,66 +119,151 @@ class StatusBarOrganizerModal extends obsidian.Modal {
       titleSpan.textContent = displayName;
       entry.appendChild(titleSpan);
 
-      // 内容预览
+      // 内容预览（仅当前存在的元素有预览）
       var previewSpan = document.createElement('span');
       previewSpan.addClass('nene-organizer-row-preview');
-      if (row.element) {
+      if (currentExists && row.element) {
         previewSpan.innerHTML = row.element.innerHTML;
       }
       entry.appendChild(previewSpan);
 
-      // 可见性切换按钮
+      // 操作按钮：当前存在 → 眼睛切换可见性；孤儿 → 垃圾桶删除
       var actionSpan = document.createElement('span');
       actionSpan.addClass('nene-organizer-row-action');
       actionSpan.onclick = function () {
-        toggleVisibility(self.plugin, consolidated.barStatus, row);
+        if (currentExists) {
+          toggleVisibility(self.plugin, consolidated.barStatus, row);
+        } else {
+          deleteOrphan(self.plugin, deletedIds, row, self);
+        }
       };
-      obsidian.setIcon(actionSpan, currentStatus.visible ? 'eye' : 'eye-off');
+      obsidian.setIcon(actionSpan, currentExists ? (currentStatus.visible ? 'eye' : 'eye-off') : 'trash-2');
       entry.appendChild(actionSpan);
     });
+
+    // 已删除条目：逐条恢复 + 全部恢复
+    if (consolidated.hasDeleted) {
+      contentEl.createDiv({ cls: 'nene-organizer-restore-area' });
+
+      // 逐个已删除条目
+      consolidated.deletedOrphanList.forEach(function (orphan) {
+        var displayName = orphan.name
+          .replace(/^plugin-(obsidian-)?/, '')
+          .split('-')
+          .map(function (x) { return x.charAt(0).toUpperCase() + x.slice(1); })
+          .join(' ') + (
+            nameCollisions[orphan.name]
+              ? ' (' + orphan.index + ')'
+              : ''
+          );
+
+        new obsidian.Setting(contentEl)
+          .setName(displayName)
+          .setDesc('已删除，对应插件已卸载或元素已不存在')
+          .addButton(function (button) {
+            button
+              .setButtonText('恢复')
+              .onClick(async function () {
+                var newDeletedIds = self.plugin.getOrganizerDeletedIds().filter(function (id) { return id !== orphan.id; });
+                self.plugin.setOrganizerDeletedIds(newDeletedIds);
+                new obsidian.Notice('已恢复：' + displayName);
+                await self.render();
+              });
+          });
+      });
+
+      // 恢复全部按钮
+      new obsidian.Setting(contentEl)
+        .setName('全部恢复')
+        .setDesc('将以上所有删除条目重新显示')
+        .addButton(function (button) {
+          button
+            .setButtonText('恢复全部')
+            .setCta()
+            .onClick(async function () {
+              self.plugin.setOrganizerDeletedIds([]);
+              new obsidian.Notice('已恢复所有删除的条目');
+              await self.render();
+            });
+        });
+    }
   }
 
   /**
    * 合并已保存设置与实际状态栏元素状态。
-   * 新元素自动追加到末尾；已不存在的元素自动从已保存数据中清理。
+   * 新元素自动追加到末尾；已保存但不存在的元素显示为孤儿条目；
+   * 被删除（deletedIds）的孤儿条目不显示。
    *
    * @param {Element} statusBar - .status-bar 容器
    * @param {object} savedElements - 已保存的元素状态 { [id]: { position, visible } }
-   * @returns {{ rows: Array, barStatus: object }}
+   * @param {string[]} deletedIds - 已被用户删除的条目 ID 列表
+   * @returns {{ rows: Array, barStatus: object, existsStatus: object, hasDeleted: boolean }}
    */
-  consolidateElements(statusBar, savedElements) {
+  consolidateElements(statusBar, savedElements, deletedIds) {
     var unorderedElements = organizerRuntime.getStatusBarElements(statusBar);
     var currentIds = unorderedElements.map(function (e) { return e.id; });
 
     var barStatus = {};
-    var rows = unorderedElements.slice();
-    var insertPosition = rows.length + 1;
+    var existsStatus = {};
 
-    // 仅保留尚存在的元素，清理已不存在的孤儿数据
-    rows.forEach(function (element, index) {
-      var saved = savedElements[element.id];
-      barStatus[element.id] = saved || { position: index, visible: true };
-    });
-
-    // 追加已保存但之前未捕获的新元素
+    // 遍历保存的元素，标记状态
     Object.keys(savedElements).forEach(function (id) {
-      if (currentIds.indexOf(id) === -1) return; // 已不存在，跳过
-      if (id in barStatus) return;
-
-      var status = savedElements[id];
-      status.position = insertPosition++;
-      barStatus[id] = status;
+      barStatus[id] = savedElements[id];
+      existsStatus[id] = currentIds.indexOf(id) !== -1;
     });
 
-    // 按已保存位置排序
+    // 追加新元素（从未保存的），并自动保存以确保后续可管理
+    var newElementsSaved = false;
+    unorderedElements.forEach(function (element) {
+      if (element.id in barStatus) return;
+
+      var insertPosition = Object.keys(barStatus).length + 1;
+      barStatus[element.id] = { position: insertPosition, visible: true };
+      existsStatus[element.id] = true;
+      newElementsSaved = true;
+    });
+
+    // 自动持久化新发现的元素，避免用户进入某些界面后元素消失无法管理
+    if (newElementsSaved) {
+      this.plugin.setOrganizerElementStatus(barStatus);
+    }
+
+    // 构建行：当前元素 + 未删除的孤儿
+    var visibleOrphans = Object.keys(savedElements)
+      .filter(function (id) {
+        return !existsStatus[id] && deletedIds.indexOf(id) === -1;
+      })
+      .map(function (id) {
+        var parsed = organizerRuntime.parseElementId(id);
+        return { name: parsed.name, index: parsed.index, id: id };
+      });
+
+    var rows = unorderedElements.concat(visibleOrphans);
     rows.sort(function (a, b) { return barStatus[a.id].position - barStatus[b.id].position; });
 
-    // 保存并清理孤儿数据
-    this.plugin.setOrganizerElementStatus(barStatus);
+    // 构建已删除的孤儿条目列表（用于逐条恢复）
+    var deletedOrphanList = Object.keys(savedElements)
+      .filter(function (id) {
+        return !existsStatus[id] && deletedIds.indexOf(id) !== -1;
+      })
+      .map(function (id) {
+        var parsed = organizerRuntime.parseElementId(id);
+        var status = barStatus[id];
+        return {
+          name: parsed.name,
+          index: parsed.index,
+          id: id,
+          position: status ? status.position : 0,
+          visible: status ? status.visible : true
+        };
+      });
 
     return {
       rows: rows,
-      barStatus: barStatus
+      barStatus: barStatus,
+      existsStatus: existsStatus,
+      hasDeleted: deletedIds.length > 0,
+      deletedOrphanList: deletedOrphanList
     };
   }
 
@@ -217,15 +292,27 @@ function toggleVisibility(plugin, barStatus, row) {
   plugin.setOrganizerElementStatus(barStatus);
 }
 
+/**
+ * 将孤儿条目标记为已删除（隐藏），数据仍保留在存储中以便恢复。
+ * 删除后重新渲染弹窗以显示恢复入口。
+ */
+function deleteOrphan(plugin, deletedIds, row, modalInstance) {
+  deletedIds.push(row.id);
+  plugin.setOrganizerDeletedIds(deletedIds);
+  new obsidian.Notice('已删除该条目，可通过底部的「恢复」按钮重新显示');
+  modalInstance.render();
+}
+
 /* ---------- 拖拽排序逻辑 ---------- */
 
-function cloneRow(rowsWrapper, barStatus, rowsContainer, event, row) {
+function cloneRow(rowsWrapper, barStatus, existsStatus, rowsContainer, event, row) {
   var realEntry = row.entry;
   realEntry.addClass('nene-organizer-row-clone');
 
   var fauxEntry = document.createElement('div');
   fauxEntry.addClass('nene-organizer-row');
   fauxEntry.addClass('nene-organizer-row-drag');
+  if (!existsStatus[row.id]) fauxEntry.addClass('nene-organizer-row-disabled');
   if (!barStatus[row.id].visible) fauxEntry.addClass('nene-organizer-row-hidden');
 
   rowsWrapper.appendChild(fauxEntry);
@@ -235,7 +322,6 @@ function cloneRow(rowsWrapper, barStatus, rowsContainer, event, row) {
   fauxEntry.style.top = (realEntry.getBoundingClientRect().top - containerRect.top) + 'px';
   fauxEntry.style.width = realEntry.offsetWidth + 'px';
 
-  // 复制子元素
   Array.from(realEntry.children).forEach(function (child) {
     var fauxSpan = document.createElement('span');
     fauxSpan.className = child.className;
@@ -261,169 +347,80 @@ function deleteRowClone(rowsWrapper, stationaryRow, movableRow) {
   rowsWrapper.removeChild(movableRow);
 }
 
-/**
- * 计算鼠标当前位置对应的目标插入索引（基于各行中点，跳过被拖拽行）。
- * 返回值相对于非克隆行的顺序（0 = 最前，length = 末尾）。
- */
-function calculateTargetIndex(event, rowsContainer) {
-  var children = Array.from(rowsContainer.children);
-  var mouseY = event.clientY;
-  var nonCloneCount = 0;
+function calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
+  movableRow.style.left = (event.clientX - offsetX) + 'px';
+  movableRow.style.top = (event.clientY - offsetY) + 'px';
 
-  for (var i = 0; i < children.length; i++) {
-    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
-    var rect = children[i].getBoundingClientRect();
-    nonCloneCount++;
+  var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
 
-    if (mouseY < rect.top + rect.height / 2) {
-      return nonCloneCount - 1;
-    }
+  if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
+    var dir = dist > 0 ? 1 : -1;
+    var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
+    return newIndex;
+  }
+  return index;
+}
+
+function handlePositionChange(barStatus, existsStatus, rowsContainer, rows, row, stationaryRow, newIndex) {
+  var passedEntry = rowsContainer.children[newIndex];
+  var passedId = passedEntry.getAttribute('data-nene-organizer-row-id');
+  var statusBarChangeRequired = existsStatus[row.id] && existsStatus[passedId];
+
+  if (statusBarChangeRequired && row.element) {
+    var passedElement = rows.filter(function (x) { return x.id === passedId; })[0].element;
+    var temp = passedElement.style.order;
+    passedElement.style.order = row.element.style.order;
+    row.element.style.order = temp;
   }
 
-  return nonCloneCount;
-}
-
-/**
- * 清除所有行上的拖拽目标高亮。
- */
-function clearDropIndicator(rowsContainer) {
-  Array.from(rowsContainer.children).forEach(function (entry) {
-    entry.removeClass('nene-organizer-row-drop-target');
-  });
-}
-
-/**
- * 在目标位置的行上添加拖拽目标高亮。
- */
-function updateDropIndicator(rowsContainer, targetIndex) {
-  clearDropIndicator(rowsContainer);
-
-  var children = Array.from(rowsContainer.children);
-  var nonCloneIdx = -1;
-
-  for (var i = 0; i < children.length; i++) {
-    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
-    nonCloneIdx++;
-    if (nonCloneIdx === targetIndex) {
-      children[i].addClass('nene-organizer-row-drop-target');
-      break;
-    }
-  }
-}
-
-/**
- * 将非克隆索引转换为 rowsContainer 中的绝对索引。
- */
-function toAbsoluteIndex(rowsContainer, nonCloneIndex) {
-  var children = rowsContainer.children;
-  var nonCloneIdx = -1;
-
-  for (var i = 0; i < children.length; i++) {
-    if (children[i].classList.contains('nene-organizer-row-clone')) continue;
-    nonCloneIdx++;
-    if (nonCloneIdx === nonCloneIndex) {
-      return i;
-    }
-  }
-
-  return children.length;
-}
-
-/**
- * 拖拽结束时执行最终 DOM 重排 + 状态栏 CSS order 同步 + 保存。
- */
-function applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, stationaryRow, targetNonCloneIndex) {
-  var absIndex = toAbsoluteIndex(rowsContainer, targetNonCloneIndex);
-  var currentAbsIndex = Array.from(rowsContainer.children).indexOf(stationaryRow);
-
-  if (absIndex === currentAbsIndex) return;
-
-  // 重排行容器 DOM
   rowsContainer.removeChild(stationaryRow);
-  if (absIndex !== rowsContainer.children.length) {
-    rowsContainer.insertBefore(stationaryRow, rowsContainer.children[absIndex]);
+  if (newIndex !== rowsContainer.children.length) {
+    rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
   } else {
     rowsContainer.appendChild(stationaryRow);
   }
 
-  // 更新 barStatus 中所有行的 position，并立即同步状态栏元素的 CSS order
   Array.from(rowsContainer.children).forEach(function (entry, idx) {
     var id = entry.getAttribute('data-nene-organizer-row-id');
-    barStatus[id].position = idx;
-    var rowData = rows.filter(function (r) { return r.id === id; })[0];
-    if (rowData && rowData.element) {
-      rowData.element.style.order = (idx + 1).toString();
+    if (barStatus[id]) {
+      barStatus[id].position = idx;
     }
   });
-
-  // 持久化
-  plugin.setOrganizerElementStatus(barStatus);
 }
 
-/**
- * 清理拖拽视觉状态：移除监听、还原克隆、清除高亮、释放锁、恢复 Observer。
- * 注意：此函数不保存 barStatus，调用方需自行决定是否保存。
- */
-function cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData) {
-  clearDropIndicator(rowsContainer);
-  if (cloneData) {
-    deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
-  }
-  dragging = false;
-  plugin.getOrganizerSpooler().enableObserver();
-}
-
-function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, rows, row) {
+function handleMouseDown(event, plugin, barStatus, existsStatus, rowsWrapper, rowsContainer, rows, row) {
   if (dragging) return;
   dragging = true;
   event.preventDefault();
 
-  var cloneData = cloneRow(rowsWrapper, barStatus, rowsContainer, event, row);
-  // 被拖拽行在非克隆行中的起始索引（用 barStatus 中已保存的 position，不受 cloneRow 添加的 class 影响）
-  var targetIndex = barStatus[row.id].position;
-
-  // 拖拽期间禁用 Observer，避免干扰
-  plugin.getOrganizerSpooler().disableObserver();
-
-  // 初始化目标行高亮
-  updateDropIndicator(rowsContainer, targetIndex);
+  var cloneData = cloneRow(rowsWrapper, barStatus, existsStatus, rowsContainer, event, row);
+  var index = cloneData.index;
 
   function onMouseMove(moveEvent) {
     moveEvent.preventDefault();
+    plugin.getOrganizerSpooler().disableObserver();
 
-    // 更新克隆体跟随鼠标
-    cloneData.movableRow.style.left = (moveEvent.clientX - cloneData.offsetX) + 'px';
-    cloneData.movableRow.style.top = (moveEvent.clientY - cloneData.offsetY) + 'px';
-
-    // 基于行中点计算新目标位置，只更新高亮，不动 DOM
-    var newTarget = calculateTargetIndex(moveEvent, rowsContainer);
-    if (newTarget !== targetIndex) {
-      targetIndex = newTarget;
-      updateDropIndicator(rowsContainer, targetIndex);
+    var newIndex = calculateRowIndex(moveEvent, rowsContainer, cloneData.movableRow, cloneData.stationaryRow, cloneData.offsetX, cloneData.offsetY, index);
+    if (newIndex !== index) {
+      handlePositionChange(barStatus, existsStatus, rowsContainer, rows, row, cloneData.stationaryRow, newIndex);
+      index = newIndex;
     }
+
+    plugin.getOrganizerSpooler().enableObserver();
   }
 
   function onMouseUp() {
-    cleanupMouseDownListeners();
-    applyFinalReorder(plugin, barStatus, rowsContainer, rows, row, cloneData.stationaryRow, targetIndex);
-    cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
-  }
+    deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
+    dragging = false;
 
-  function cleanupMouseDownListeners() {
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
-    window.removeEventListener('blur', onWindowBlur);
-  }
 
-  // 兜底：窗口失去焦点时释放拖拽锁（如鼠标在浏览器外释放），不做任何重排
-  function onWindowBlur() {
-    cleanupMouseDownListeners();
-    cleanupDragVisuals(plugin, rowsWrapper, rowsContainer, cloneData);
+    plugin.setOrganizerElementStatus(barStatus);
   }
 
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
-  window.addEventListener('blur', onWindowBlur);
 }
 
 module.exports = {

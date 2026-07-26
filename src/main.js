@@ -635,6 +635,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       },
       function () {
         // 排序修复完成后的回调
+      },
+      function (allElements) {
+        // 自动发现新元素后，立即写入配置文件跨界面持久化
+        self.statusBarEnhancerStore.setOrganizerElements(allElements);
       }
     );
   }
@@ -657,6 +661,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   // 返回 organizer Spooler 实例。
   getOrganizerSpooler() {
     return this.organizerSpooler;
+  }
+
+  // 返回已删除的孤儿条目 ID 列表。
+  getOrganizerDeletedIds() {
+    return this.statusBarEnhancerStore.getDeletedIds();
+  }
+
+  // 保存已删除的孤儿条目 ID 列表。
+  async setOrganizerDeletedIds(ids) {
+    return this.statusBarEnhancerStore.setDeletedIds(ids);
   }
 
   // 更新标签栏增强模块开关，并立即同步实验性 class 的挂载状态。

@@ -1308,6 +1308,24 @@ body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
   background-color: red !important;
 }
 
+/* ========================================
+   55 - 状态栏增强模块运行时样式
+   ======================================== */
+
+/* 限制状态栏文件路径显示长度，防止长路径导致状态栏过长 */
+/* direction: rtl 使省略号出现在左侧，截断路径的开头部分（保留尾部文件名） */
+.nene-status-bar-enhancer {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9.5vw;
+  font-weight: bold;
+  padding-top: 5px;
+  direction: rtl;
+  text-align: left;
+}
+
 /* ------------------------------ */
 /* 状态栏元素管理弹窗样式 */
 /* ------------------------------ */
@@ -1429,6 +1447,12 @@ body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
   visibility: hidden !important;
 }
 
+/* 僵死元素（插件已卸载） */
+.nene-organizer-row-disabled {
+  color: var(--color-red);
+  opacity: 0.55;
+}
+
 /* 隐藏的元素 */
 .nene-organizer-row-hidden {
   color: var(--text-faint);
@@ -1444,6 +1468,13 @@ body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
   visibility: hidden;
   width: 0;
   display: none !important;
+}
+
+/* 恢复区域顶部分隔线 */
+.nene-organizer-restore-area {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 8px;
+  margin-top: 4px;
 }
 
 /* 空状态说明 */

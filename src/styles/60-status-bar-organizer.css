@@ -119,6 +119,12 @@
   visibility: hidden !important;
 }
 
+/* 僵死元素（插件已卸载） */
+.nene-organizer-row-disabled {
+  color: var(--color-red);
+  opacity: 0.55;
+}
+
 /* 隐藏的元素 */
 .nene-organizer-row-hidden {
   color: var(--text-faint);
@@ -134,6 +140,13 @@
   visibility: hidden;
   width: 0;
   display: none !important;
+}
+
+/* 恢复区域顶部分隔线 */
+.nene-organizer-restore-area {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 8px;
+  margin-top: 4px;
 }
 
 /* 空状态说明 */
