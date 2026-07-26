@@ -5,6 +5,7 @@ var copyPathConstants = require('../copy-path/constants');
 var fileMarkerConstants = require('../file-marker/constants');
 var menuCustomizerConstants = require('../context-menu-enhancer/constants');
 var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
+var snippetsConstants = require('../status-bar-enhancer/snippets-constants');
 var tabBarEnhancerConstants = require('../tab-bar-enhancer/constants');
 
 // 定义独立功能配置目录名称，统一由功能配置管理器复用。
@@ -53,7 +54,10 @@ const DEFAULT_FEATURE_DATA = {
   anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
   menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
   copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
-  statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
+  statusBarEnhancer: Object.assign({}, statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS, {
+    organizer: statusBarEnhancerConstants.DEFAULT_ORGANIZER_SETTINGS,
+    snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
+  }),
   tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS
 };
 

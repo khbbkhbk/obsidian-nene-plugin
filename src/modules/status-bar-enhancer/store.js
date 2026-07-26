@@ -1,6 +1,7 @@
 'use strict';
 
 var constants = require('./constants');
+var snippetsConstants = require('./snippets-constants');
 
 // 定义状态栏增强配置仓库，负责独立配置文件的归一化与持久化。
 class StatusBarEnhancerStore {
@@ -113,7 +114,41 @@ class StatusBarEnhancerStore {
     };
   }
 
-  // 归一化状态栏增强模块配置结构。
+  // 返回当前 organizer 元素状态映射表。
+  getOrganizerElements() {
+    return this.settings.organizer ? this.settings.organizer.elements : {};
+  }
+
+  // 更新 organizer 元素状态映射表并持久化。
+  async setOrganizerElements(elements) {
+    if (!this.settings.organizer) {
+      this.settings.organizer = { elements: {} };
+    }
+    this.settings.organizer.elements = this.normalizeOrganizerElements(elements);
+    await this.save();
+    return this.settings.organizer.elements;
+  }
+
+  // 归一化 organizer 元素状态映射表。
+  normalizeOrganizerElements(elements) {
+    if (typeof elements !== 'object' || elements === null) {
+      return {};
+    }
+
+    var result = {};
+    Object.keys(elements).forEach(function (id) {
+      var status = elements[id];
+      if (typeof status !== 'object' || status === null) return;
+
+      result[id] = {
+        position: typeof status.position === 'number' ? status.position : 0,
+        visible: status.visible !== false
+      };
+    });
+    return result;
+  }
+
+  // 归一化状态栏增强模块配置结构（含 organizer 数据）。
   normalizeSettings(settings) {
     const source = settings || constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
     const defaults = constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
@@ -136,7 +171,13 @@ class StatusBarEnhancerStore {
       createdTimestampFormat: typeof source.createdTimestampFormat === 'string' && source.createdTimestampFormat
         ? source.createdTimestampFormat
         : defaults.createdTimestampFormat,
-      cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+      cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
+      organizer: {
+        elements: this.normalizeOrganizerElements(
+          source.organizer ? source.organizer.elements : undefined
+        )
+      },
+      snippets: snippetsConstants.normalizeSnippetsSettings(source.snippets)
     };
   }
 }

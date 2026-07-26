@@ -6,17 +6,8 @@ Obsidian插件ねね，集成功能列表：
   - 新增功能：状态栏显示当前活动文件路径，支持点击复制（基于第三方插件“ravimashru/obsidian-show-file-path”）
     - ⛔存在CSS修正
   - 新增功能：状态栏显示当前活动文件的时间元数据（基于第三方插件“yustynn/obsidian-last-modified-timestamp-in-status-bar”）
-  - ⛔新增功能：状态栏管理（基于第三方插件“Opisek/obsidian-statusbar-organizer”）
-    - 不保留预设功能
-    - 不保留Separate fullscreen and windowed mode
-    - 不保留注册命令
-    - 需要汉化
+  - 新增功能：状态栏管理（基于第三方插件“Opisek/obsidian-statusbar-organizer”）
   - 新增功能：状态栏显示“Snippets管理”按钮（基于第三方插件“chetachiezikeuzor/MySnippets-Plugin”）
-    - 需要汉化（有汉化main文件作为参考）
-    - 存在CSS修正
-    - 待修复：状态栏菜单按钮的提示位置默认为“底部”，但某些情况下会被遮挡，需修正为自动检测最佳位置
-    - 待修复：修改Snippets管理窗口中的刷新按钮图标，将其替换为“刷新”图标
-    - 新增功能：在弹出的Snippets管理窗口中，新增重命名Snippets的功能
 - [x] 关系图谱增强
   - 新增功能：支持额外实时识别a标签形式的正向链接（class包含internal-link，且带有data-href或href的HTML a标签，并排除特殊字符干扰）
 - [x] 命令增强
@@ -35,3 +26,4 @@ Obsidian插件ねね，集成功能列表：
       - [ ] 入链默认折叠，出链默认展开
       - [ ] 每个链接支持新建窗口模式下打开、新建标签页打开、当前标签页打开
     - [ ] 每个笔记窗口附带一个小窗口
+- [ ]  菜单定位有问题

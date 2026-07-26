@@ -7,7 +7,7 @@
       "enabled": true
     },
     "menuCustomizer": {
-      "enabled": true
+      "enabled": false
     },
     "copyPath": {
       "enabled": true

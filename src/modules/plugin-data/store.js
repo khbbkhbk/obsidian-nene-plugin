@@ -450,8 +450,32 @@ class PluginDataStore {
       createdTimestampFormat: typeof source.createdTimestampFormat === 'string' && source.createdTimestampFormat
         ? source.createdTimestampFormat
         : defaults.createdTimestampFormat,
-      cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+      cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
+      organizer: this.isPlainObject(source.organizer) ? {
+        elements: this.normalizeOrganizerElements(source.organizer.elements)
+      } : {
+        elements: {}
+      },
+      snippets: this.isPlainObject(source.snippets) ? source.snippets : {}
     };
+  }
+
+  // 归一化状态栏元素管理（organizer）的元素状态映射表。
+  normalizeOrganizerElements(elements) {
+    var source = this.isPlainObject(elements) ? elements : {};
+    var result = {};
+
+    Object.keys(source).forEach(function (id) {
+      var status = source[id];
+      if (typeof status !== 'object' || status === null) return;
+
+      result[id] = {
+        position: typeof status.position === 'number' ? status.position : 0,
+        visible: status.visible !== false
+      };
+    });
+
+    return result;
   }
 
   // 归一化标签栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。

@@ -25,10 +25,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.copyPathService = new copyPathModule.CopyPathService(this); // 管理复制路径命令执行逻辑
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
+    this.organizerSpooler = null; // 状态栏元素管理 Spooler，在 onload 中初始化
     this.tabBarEnhancerStore = new tabBarEnhancerModule.TabBarEnhancerStore(this); // 管理标签栏增强模块配置
     this.tabBarEnhancerRuntime = new tabBarEnhancerModule.TabBarEnhancerRuntime(this); // 管理标签栏增强运行时
     this.menuCustomizerStore = new contextMenuEnhancerModule.MenuCustomizerStore(this); // 管理右键菜单自定义配置
     this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
+    this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this); // 管理 Snippets 管理模块配置
+    this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this); // 管理 Snippets 运行时
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
@@ -47,6 +50,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData()); // 将复制路径配置切片挂载到业务仓库
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData()); // 将状态栏增强配置切片挂载到业务仓库
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData()); // 将标签栏增强配置切片挂载到业务仓库
+    this.snippetsStore.load(); // 从状态栏增强配置中提取 snippets 切片
+    this.initializeOrganizerSpooler(); // 初始化状态栏元素管理 Spooler
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
     this.setupFileMarkerView();
@@ -74,6 +79,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
     this.statusBarEnhancerRuntime.stop();
+    this.snippetsRuntime.stop();
+    if (this.organizerSpooler) {
+      this.organizerSpooler.stop();
+    }
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
 
@@ -408,6 +417,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       statusBarEnhancerCreatedPrepend: this.statusBarEnhancerStore.getSettings().createdPrepend,
       statusBarEnhancerCreatedTimestampFormat: this.statusBarEnhancerStore.getSettings().createdTimestampFormat,
       statusBarEnhancerCycleOnClick: this.statusBarEnhancerStore.getSettings().cycleOnClickEnabled !== false,
+      statusBarEnhancerOrganizerElementCount: Object.keys(this.statusBarEnhancerStore.getOrganizerElements()).length,
       tabBarEnhancerEnabled: this.isTabBarEnhancerEnabled(),
       tabBarEnhancerTopBarWheel: this.tabBarEnhancerStore.getSettings().topBarWheelTabSwitch === true,
       tabBarEnhancerSkipCssHiddenTabs: this.tabBarEnhancerStore.getSettings().skipCssHiddenTabs !== false,
@@ -605,6 +615,50 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextValue;
   }
 
+  /* ------------------------------ */
+  /* 状态栏元素管理代理 */
+  /* ------------------------------ */
+
+  // 初始化状态栏元素管理 Spooler，查找 .status-bar 容器并创建监听器。
+  initializeOrganizerSpooler() {
+    var statusBar = document.getElementsByClassName('status-bar')[0];
+    if (!statusBar) {
+      console.warn('[ねね] 未找到状态栏容器，状态栏元素管理不可用');
+      return;
+    }
+
+    var self = this;
+    this.organizerSpooler = new statusBarEnhancerModule.OrganizerSpooler(
+      statusBar,
+      function () {
+        return self.statusBarEnhancerStore.getOrganizerElements();
+      },
+      function () {
+        // 排序修复完成后的回调
+      }
+    );
+  }
+
+  // 返回 .status-bar 容器 DOM 元素。
+  getStatusBarElement() {
+    return document.getElementsByClassName('status-bar')[0] || null;
+  }
+
+  // 返回当前 organizer 元素状态映射表。
+  getOrganizerSettings() {
+    return this.statusBarEnhancerStore.getOrganizerElements();
+  }
+
+  // 保存 organizer 元素状态映射表。
+  async setOrganizerElementStatus(elements) {
+    return this.statusBarEnhancerStore.setOrganizerElements(elements);
+  }
+
+  // 返回 organizer Spooler 实例。
+  getOrganizerSpooler() {
+    return this.organizerSpooler;
+  }
+
   // 更新标签栏增强模块开关，并立即同步实验性 class 的挂载状态。
   async updateTabBarEnhancerEnabled(enabled) {
     const nextEnabled = await this.pluginSettingsStore.setTabBarEnhancerEnabled(enabled);
@@ -747,13 +801,22 @@ class ObsidianNenePlugin extends obsidian.Plugin {
   // 根据当前设置同步状态栏增强模块的启停状态，并在启用时刷新当前活动文件路径。
   syncStatusBarEnhancerState() {
     this.statusBarEnhancerRuntime.load(this.statusBarEnhancerStore.getSettings());
+    this.snippetsRuntime.load(this.snippetsStore.getSettings());
 
     if (this.isStatusBarEnhancerEnabled()) {
       this.statusBarEnhancerRuntime.start();
-      return;
+      if (this.organizerSpooler) {
+        this.organizerSpooler.start();
+      }
+    } else {
+      this.statusBarEnhancerRuntime.stop();
+      if (this.organizerSpooler) {
+        this.organizerSpooler.stop();
+      }
     }
 
-    this.statusBarEnhancerRuntime.stop();
+    // Snippets 管理独立启停，不受状态栏增强开关影响
+    this.snippetsRuntime.start();
   }
 
   // 根据当前设置同步标签栏增强模块的启停状态，并挂载或移除实验性 class。
@@ -788,6 +851,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
+    this.snippetsStore.load();
 
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();

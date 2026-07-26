@@ -1,6 +1,7 @@
 'use strict';
 
 var obsidian = require('obsidian');
+var organizerView = require('./organizer-view');
 
 // 渲染弹窗公共头部，统一标题与说明样式。
 function renderModalHeader(containerEl, title, description) {
@@ -226,6 +227,96 @@ class StatusBarEnhancerManagementModal extends obsidian.Modal {
             await this.render();
           });
       });
+
+    /* ---------- 状态栏元素管理入口 ---------- */
+
+    new obsidian.Setting(contentEl)
+      .setName('状态栏元素管理')
+      .setHeading();
+
+    new obsidian.Setting(contentEl)
+      .setName('排序与可见性')
+      .setDesc('管理状态栏各元素的位置和显示/隐藏状态，支持拖拽排序。')
+      .addButton((button) => {
+        button
+          .setButtonText('打开元素管理')
+          .onClick(() => {
+            var modal = new organizerView.StatusBarOrganizerModal(this.app, this.plugin, async () => {
+              await this.render();
+            });
+            modal.open();
+          });
+      });
+
+    /* ---------- Snippets 管理 ---------- */
+
+    new obsidian.Setting(contentEl)
+      .setName('Snippets 管理')
+      .setHeading();
+
+    const snippetsSettings = this.plugin.snippetsStore.getSettings();
+
+    new obsidian.Setting(contentEl)
+      .setName('玻璃菜单效果')
+      .setDesc('将菜单的背景由主题的次要背景色--background-secondary更改为玻璃背景，建议关闭')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(snippetsSettings.aestheticStyle)
+          .onChange(async (value) => {
+            await this.plugin.snippetsStore.setAestheticStyle(value);
+            new obsidian.Notice(value ? '已开启毛玻璃菜单效果' : '已关闭毛玻璃菜单效果');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('自动打开新建CSS片段')
+      .setDesc('是否在新建CSS代码片段文件后立即以默认应用程序将其打开，建议启用')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(snippetsSettings.openSnippetFile)
+          .onChange(async (value) => {
+            await this.plugin.snippetsStore.setOpenSnippetFile(value);
+            new obsidian.Notice(value ? '已开启自动打开新建CSS片段' : '已关闭自动打开新建CSS片段');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    new obsidian.Setting(contentEl)
+      .setName('设置新建CSS片段的状态')
+      .setDesc('是否自动启用新建CSS代码片段，建议启用')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(snippetsSettings.snippetEnabledStatus)
+          .onChange(async (value) => {
+            await this.plugin.snippetsStore.setSnippetEnabledStatus(value);
+            new obsidian.Notice(value ? '新建CSS片段将默认启用' : '新建CSS片段将默认关闭');
+            await this.onSettingsChanged();
+            await this.render();
+          });
+      });
+
+    const templateSetting = new obsidian.Setting(contentEl);
+    templateSetting.settingEl.setAttribute(
+      'style',
+      'display: grid; grid-template-columns: 1fr;'
+    );
+    templateSetting
+      .setName('CSS片段模板')
+      .setDesc('设置新建CSS代码片段的默认样式。');
+    templateSetting.addTextArea((textarea) => {
+      const debouncedSave = debounceSave(async (value) => {
+        await this.plugin.snippetsStore.setStylingTemplate(value);
+        await this.onSettingsChanged();
+      }, 500);
+      textarea.inputEl.setAttribute('style', 'margin-top: 12px; width: 100%; min-height: 32vh;');
+      textarea.inputEl.addClass('nene-css-editor');
+      textarea
+        .setValue(snippetsSettings.stylingTemplate)
+        .onChange(debouncedSave);
+    });
   }
 
   // 关闭弹窗时清理内容，避免重复挂载旧节点。

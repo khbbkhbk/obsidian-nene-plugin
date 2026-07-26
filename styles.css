@@ -1307,3 +1307,325 @@ body.nene-tab-bar-wheel-switch .workspace-tab-header-container-inner {
 .nene-tab-debug-highlight.nene-tab-debug-red {
   background-color: red !important;
 }
+
+/* ------------------------------ */
+/* 状态栏元素管理弹窗样式 */
+/* ------------------------------ */
+
+/* 弹窗整体宽度与高度适配内容 */
+.modal.mod-sidebar-layout.nene-organizer-modal {
+  width: min(92vw, 900px) !important;
+  max-width: min(92vw, 900px) !important;
+  height: min(88vh, 680px);
+}
+
+/* 拖拽行容器使用相对定位，供绝对定位的拖拽克隆体使用 */
+.nene-organizer-rows-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+/* 行列表纵向排列 */
+.nene-organizer-rows-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  width: 100%;
+}
+
+/* 单行采用四列网格：拖拽手柄、元素名称、内容预览、操作按钮 */
+.nene-organizer-row {
+  background: var(--background-primary-alt);
+  color: var(--text-normal);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: 1.5em 1fr 1fr 3em;
+  padding: 0.4em 0.8em;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+/* 行内所有 span 统一高度和内边距 */
+.nene-organizer-row>span {
+  display: inline-block;
+  height: 1.75em;
+  line-height: 0.7;
+  padding: 0.5em 0;
+}
+
+/* 拖拽手柄 */
+.nene-organizer-row-handle {
+  padding: 0 !important;
+  cursor: move;
+  user-select: none;
+}
+
+/* 拖拽手柄图案 */
+.nene-organizer-row-handle::after {
+  content: '·· ·· ·· ··';
+  display: inline-block;
+  height: 1.75em;
+  line-height: 0.25rem;
+  padding: 0.275em 0;
+  width: 1em;
+  word-wrap: normal;
+  font-size: 0.75em;
+  letter-spacing: 0.1em;
+}
+
+/* 元素名称，超长截断 */
+.nene-organizer-row-title {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-size: 0.9em;
+}
+
+/* 内容预览区 */
+.nene-organizer-row-preview {
+  border-radius: 4px;
+  margin-top: 0.1em;
+  padding: 0.4em !important;
+  font-size: 0.78rem;
+  background: var(--background-secondary-alt);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 操作按钮区 */
+.nene-organizer-row-action {
+  padding-top: 0.3em !important;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* 拖拽克隆体 — 绝对定位跟随鼠标 */
+.nene-organizer-row-drag {
+  position: absolute;
+  background: var(--background-modifier-active-hover);
+  opacity: 0.92;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.nene-organizer-row-drag>span.nene-organizer-row-preview {
+  opacity: 0.9;
+}
+
+/* 被拖拽的原行 — 透明化 */
+.nene-organizer-row-clone {
+  background: transparent !important;
+}
+
+.nene-organizer-row-clone>span {
+  visibility: hidden !important;
+}
+
+/* 隐藏的元素 */
+.nene-organizer-row-hidden {
+  color: var(--text-faint);
+  opacity: 0.65;
+}
+
+/* 状态栏中元素的隐藏 class */
+.nene-organizer-element-hidden {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  visibility: hidden;
+  width: 0;
+  display: none !important;
+}
+
+/* 空状态说明 */
+.nene-organizer-empty {
+  padding: 20px 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ========================================
+   70 - Snippets 管理（集成自 MySnippets）
+   ======================================== */
+
+/* 状态栏按钮 */
+.nene-snippets-button {
+  cursor: pointer;
+}
+
+.nene-snippets-button .status-bar-item-icon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+/* ── 片段菜单（沿用原 MySnippets 样式）── */
+
+.MySnippets-statusbar-menu {
+  width: 399px;
+  max-height: calc(100% - 90px);
+}
+
+.MySnippets-statusbar-menu .menu-item-icon {
+  display: none;
+}
+
+.MySnippets-statusbar-menu .menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+}
+
+.MySnippets-statusbar-menu .menu-item:hover,
+.MySnippets-statusbar-menu .menu-item .selected:hover,
+.MySnippets-statusbar-menu .menu-item.selected:not(.is-disabled):not(.is-label) {
+  background-color: transparent;
+}
+
+.MySnippets-statusbar-menu .menu-item-title {
+  margin-right: 10px;
+  width: 60%;
+  line-height: initial;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 打开片段按钮：始终显示强调色背景 */
+button.MS-OpenSnippet {
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-right: 0;
+  margin-left: 8px;
+  display: flex;
+  background-color: var(--interactive-accent) !important;
+  cursor: pointer;
+}
+
+.MS-OpenSnippet svg {
+  height: 1.35em;
+  width: 1.35em;
+  color: var(--text-on-accent);
+}
+
+.MS-OpenSnippet:hover {
+  background-color: var(--interactive-accent);
+}
+
+/* 底部操作栏按钮样式 */
+.MySnippetsButton {
+  width: auto;
+  padding: 5px 14px;
+  margin-right: 0;
+  margin-top: 4px;
+  border-radius: 6px;
+  display: flex;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.MySnippetsButton svg {
+  height: 1.35em;
+  margin: auto;
+  width: 1.35em;
+  color: var(--text-on-accent);
+}
+
+.MySnippetsButton.MS-Reload,
+.MySnippetsButton.MS-Reload:hover,
+.MySnippetsButton.MS-Folder,
+.MySnippetsButton.MS-Folder:hover {
+  background-color: var(--interactive-accent);
+}
+
+.menu.MySnippets-statusbar-menu {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.MySnippets-statusbar-menu .menu-scroll,
+.MySnippets-statusbar-menu .menu-scroll .menu-item,
+.MySnippets-statusbar-menu .menu-scroll .menu-item>* {
+  overflow: visible !important;
+}
+
+.MySnippets-statusbar-menu .menu-item button {
+  overflow: visible !important;
+}
+
+/* tooltip 在此上下文中确保不被裁剪 */
+.MySnippets-statusbar-menu .tooltip,
+.MySnippets-statusbar-menu+.tooltip,
+.MySnippets-statusbar-menu button+.tooltip {
+  z-index: 2147483647 !important;
+}
+
+body>.tooltip {
+  z-index: 2147483647 !important;
+  pointer-events: none;
+}
+
+/* 重命名按钮：与打开片段按钮相同的强调色背景 */
+.MySnippets-statusbar-menu .MS-RenameSnippet {
+  padding: 3px 7px;
+  border-radius: 6px;
+  margin-left: 2px;
+  display: flex;
+  background-color: var(--interactive-accent);
+  cursor: pointer;
+}
+
+.MySnippets-statusbar-menu .MS-RenameSnippet svg {
+  height: 1.35em;
+  width: 1.35em;
+  color: var(--text-on-accent);
+}
+
+.MySnippets-statusbar-menu .MS-RenameSnippet:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+/* ── CSS 编辑器文本域（创建片段弹窗）── */
+
+.nene-css-editor {
+  width: 100%;
+  min-height: 32vh;
+  margin-top: 12px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  resize: vertical;
+}
+
+/* ── 重命名弹窗输入框 ── */
+
+.nene-rename-input {
+  width: 100%;
+}
+
+/* ── 重命名弹窗信息行 ── */
+
+.nene-settings-detail-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  gap: 8px;
+}
+
+.nene-settings-detail-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.nene-settings-detail-value {
+  font-size: var(--font-ui-small);
+  word-break: break-all;
+}
+
+.MySnippets-statusbar-menu .checkbox-container {
+  cursor: pointer;
+}

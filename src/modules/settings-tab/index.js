@@ -713,6 +713,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
             `已启用，当前${summary.statusBarEnhancerShowFileName ? '显示文件名' : '不显示文件名'}、`
             + `${summary.statusBarEnhancerShowIcons ? '显示图标' : '不显示图标'}，`
             + `点击状态栏时复制${summary.statusBarEnhancerCopyAbsolutePath ? '绝对路径' : '库内相对路径'}。`
+            + `状态栏元素管理已记录 ${summary.statusBarEnhancerOrganizerElementCount} 个元素。`
           )
           : '未启用。启用后会在状态栏显示当前活动文件路径，并支持点击状态栏路径直接复制。'
       )

@@ -941,8 +941,38 @@ var require_constants5 = __commonJS({
       createdTimestampFormat: "YYYY-MM-DD",
       cycleOnClickEnabled: true
     };
+    var DEFAULT_ORGANIZER_SETTINGS = {
+      elements: {}
+    };
     module2.exports = {
-      DEFAULT_STATUS_BAR_ENHANCER_SETTINGS
+      DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
+      DEFAULT_ORGANIZER_SETTINGS
+    };
+  }
+});
+
+// src/modules/status-bar-enhancer/snippets-constants.js
+var require_snippets_constants = __commonJS({
+  "src/modules/status-bar-enhancer/snippets-constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_SNIPPETS_SETTINGS = {
+      aestheticStyle: false,
+      openSnippetFile: true,
+      snippetEnabledStatus: false,
+      stylingTemplate: ""
+    };
+    function normalizeSnippetsSettings(settings) {
+      const source = settings || DEFAULT_SNIPPETS_SETTINGS;
+      return {
+        aestheticStyle: source.aestheticStyle === true,
+        openSnippetFile: source.openSnippetFile !== false,
+        snippetEnabledStatus: source.snippetEnabledStatus === true,
+        stylingTemplate: typeof source.stylingTemplate === "string" ? source.stylingTemplate : DEFAULT_SNIPPETS_SETTINGS.stylingTemplate
+      };
+    }
+    module2.exports = {
+      DEFAULT_SNIPPETS_SETTINGS,
+      normalizeSnippetsSettings
     };
   }
 });
@@ -972,6 +1002,7 @@ var require_constants7 = __commonJS({
     var fileMarkerConstants = require_constants();
     var menuCustomizerConstants = require_constants4();
     var statusBarEnhancerConstants = require_constants5();
+    var snippetsConstants = require_snippets_constants();
     var tabBarEnhancerConstants = require_constants6();
     var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
     var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
@@ -1010,7 +1041,10 @@ var require_constants7 = __commonJS({
       anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
       menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
       copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
-      statusBarEnhancer: statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS,
+      statusBarEnhancer: Object.assign({}, statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS, {
+        organizer: statusBarEnhancerConstants.DEFAULT_ORGANIZER_SETTINGS,
+        snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
+      }),
       tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS
     };
     module2.exports = {
@@ -1509,8 +1543,28 @@ var require_store2 = __commonJS({
           createdEnabled: source.createdEnabled === true,
           createdPrepend: typeof source.createdPrepend === "string" ? source.createdPrepend : defaults.createdPrepend,
           createdTimestampFormat: typeof source.createdTimestampFormat === "string" && source.createdTimestampFormat ? source.createdTimestampFormat : defaults.createdTimestampFormat,
-          cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+          cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
+          organizer: this.isPlainObject(source.organizer) ? {
+            elements: this.normalizeOrganizerElements(source.organizer.elements)
+          } : {
+            elements: {}
+          },
+          snippets: this.isPlainObject(source.snippets) ? source.snippets : {}
         };
+      }
+      // 归一化状态栏元素管理（organizer）的元素状态映射表。
+      normalizeOrganizerElements(elements) {
+        var source = this.isPlainObject(elements) ? elements : {};
+        var result = {};
+        Object.keys(source).forEach(function(id) {
+          var status = source[id];
+          if (typeof status !== "object" || status === null) return;
+          result[id] = {
+            position: typeof status.position === "number" ? status.position : 0,
+            visible: status.visible !== false
+          };
+        });
+        return result;
       }
       // 归一化标签栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
       normalizeTabBarEnhancerData(tabBarEnhancerData) {
@@ -3173,6 +3227,7 @@ var require_store5 = __commonJS({
   "src/modules/status-bar-enhancer/store.js"(exports2, module2) {
     "use strict";
     var constants = require_constants5();
+    var snippetsConstants = require_snippets_constants();
     var StatusBarEnhancerStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -3264,7 +3319,36 @@ var require_store5 = __commonJS({
           createdEnabled: this.settings.createdEnabled
         };
       }
-      // 归一化状态栏增强模块配置结构。
+      // 返回当前 organizer 元素状态映射表。
+      getOrganizerElements() {
+        return this.settings.organizer ? this.settings.organizer.elements : {};
+      }
+      // 更新 organizer 元素状态映射表并持久化。
+      async setOrganizerElements(elements) {
+        if (!this.settings.organizer) {
+          this.settings.organizer = { elements: {} };
+        }
+        this.settings.organizer.elements = this.normalizeOrganizerElements(elements);
+        await this.save();
+        return this.settings.organizer.elements;
+      }
+      // 归一化 organizer 元素状态映射表。
+      normalizeOrganizerElements(elements) {
+        if (typeof elements !== "object" || elements === null) {
+          return {};
+        }
+        var result = {};
+        Object.keys(elements).forEach(function(id) {
+          var status = elements[id];
+          if (typeof status !== "object" || status === null) return;
+          result[id] = {
+            position: typeof status.position === "number" ? status.position : 0,
+            visible: status.visible !== false
+          };
+        });
+        return result;
+      }
+      // 归一化状态栏增强模块配置结构（含 organizer 数据）。
       normalizeSettings(settings) {
         const source = settings || constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
         const defaults = constants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS;
@@ -3278,7 +3362,13 @@ var require_store5 = __commonJS({
           createdEnabled: source.createdEnabled === true,
           createdPrepend: typeof source.createdPrepend === "string" ? source.createdPrepend : defaults.createdPrepend,
           createdTimestampFormat: typeof source.createdTimestampFormat === "string" && source.createdTimestampFormat ? source.createdTimestampFormat : defaults.createdTimestampFormat,
-          cycleOnClickEnabled: source.cycleOnClickEnabled !== false
+          cycleOnClickEnabled: source.cycleOnClickEnabled !== false,
+          organizer: {
+            elements: this.normalizeOrganizerElements(
+              source.organizer ? source.organizer.elements : void 0
+            )
+          },
+          snippets: snippetsConstants.normalizeSnippetsSettings(source.snippets)
         };
       }
     };
@@ -3288,11 +3378,424 @@ var require_store5 = __commonJS({
   }
 });
 
+// src/modules/status-bar-enhancer/organizer-runtime.js
+var require_organizer_runtime = __commonJS({
+  "src/modules/status-bar-enhancer/organizer-runtime.js"(exports2, module2) {
+    "use strict";
+    var IGNORED_CLASSES = [
+      "mod-clickable",
+      "status-bar-item",
+      "nene-status-bar-enhancer",
+      "nene-status-bar-timestamp"
+    ];
+    function getStatusBarElements(statusBar) {
+      var elements = [];
+      var nameCount = {};
+      Array.from(statusBar.children).forEach(function(element) {
+        var id = element.getAttribute("data-nene-organizer-id");
+        var name, index;
+        if (id == null) {
+          name = Array.from(element.classList).filter(function(cls) {
+            return IGNORED_CLASSES.indexOf(cls) === -1;
+          }).join("-");
+          index = name in nameCount ? nameCount[name] + 1 : 1;
+          id = name + ";" + index;
+          element.setAttribute("data-nene-organizer-id", id);
+        } else {
+          var parsed = parseElementId(id);
+          name = parsed.name;
+          index = parsed.index;
+        }
+        nameCount[name] = Math.max(index, name in nameCount ? nameCount[name] : 0);
+        elements.push({
+          name,
+          index,
+          id,
+          element
+        });
+      });
+      return elements;
+    }
+    function parseElementId(id) {
+      var parts = id.split(";");
+      var index = Number.parseInt(parts.pop(), 10);
+      var name = parts.join(";");
+      return { name, index };
+    }
+    function fixOrder(statusBar, elementStatus) {
+      var elements = getStatusBarElements(statusBar);
+      var known = [];
+      var orphans = [];
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        if (element.id in elementStatus) {
+          var status = elementStatus[element.id];
+          known.push([element, status.position]);
+          if (status.visible) {
+            element.element.removeClass("nene-organizer-element-hidden");
+          } else {
+            element.element.addClass("nene-organizer-element-hidden");
+          }
+        } else {
+          orphans.push(element.element);
+        }
+      }
+      known.sort(function(a, b) {
+        return a[1] - b[1];
+      });
+      var orderedElements = known.map(function(entry) {
+        return entry[0].element;
+      });
+      var allElements = orderedElements.concat(orphans);
+      allElements.forEach(function(element2, idx) {
+        element2.style.order = (idx + 1).toString();
+      });
+    }
+    var OrganizerSpooler = class {
+      /**
+       * @param {Element} statusBar - .status-bar 容器
+       * @param {Function} elementStatusProvider - 返回当前元素状态对象 { id: { position, visible } }
+       * @param {Function} onFix - 排序修复完成后的回调（可选）
+       */
+      constructor(statusBar, elementStatusProvider, onFix) {
+        this.statusBar = statusBar;
+        this.elementStatusProvider = elementStatusProvider;
+        this.onFix = onFix || function() {
+        };
+        this.mutex = false;
+        this.spooler = null;
+        this.observer = null;
+        this.observer = new MutationObserver(/* @__PURE__ */ (function(_this) {
+          return function(mutations) {
+            if (_this.mutex) return;
+            var hasAdded = mutations.some(function(m) {
+              return m.type === "childList" && m.addedNodes.length > 0;
+            });
+            if (hasAdded) {
+              _this.scheduleFix(0);
+            }
+          };
+        })(this));
+      }
+      /**
+       * 启动 MutationObserver 监听。
+       */
+      start() {
+        this.observer.observe(this.statusBar, { childList: true });
+      }
+      /**
+       * 停止监听并清除待执行的排序任务。
+       */
+      stop() {
+        if (this.observer) {
+          this.observer.disconnect();
+        }
+        clearTimeout(this.spooler);
+      }
+      /**
+       * 暂停监听（拖拽操作时调用，避免干扰）。
+       */
+      disableObserver() {
+        this.observer.disconnect();
+      }
+      /**
+       * 恢复监听（拖拽操作结束后调用）。
+       */
+      enableObserver() {
+        this.observer.observe(this.statusBar, { childList: true });
+      }
+      /**
+       * 安排一次排序修复，多次调用会合并为一次。
+       *
+       * @param {number} timeout - 延迟毫秒数，默认 1000
+       */
+      scheduleFix(timeout) {
+        clearTimeout(this.spooler);
+        if (typeof timeout !== "number") timeout = 1e3;
+        this.spooler = setTimeout(/* @__PURE__ */ (function(_this) {
+          return function() {
+            if (_this.mutex) {
+              _this.scheduleFix();
+              return;
+            }
+            _this.mutex = true;
+            _this.disableObserver();
+            var elementStatus = _this.elementStatusProvider();
+            fixOrder(_this.statusBar, elementStatus);
+            _this.onFix();
+            _this.enableObserver();
+            _this.mutex = false;
+          };
+        })(this), timeout);
+      }
+    };
+    module2.exports = {
+      getStatusBarElements,
+      parseElementId,
+      fixOrder,
+      OrganizerSpooler
+    };
+  }
+});
+
+// src/modules/status-bar-enhancer/organizer-view.js
+var require_organizer_view = __commonJS({
+  "src/modules/status-bar-enhancer/organizer-view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var organizerRuntime = require_organizer_runtime();
+    var dragging = false;
+    function renderModalHeader(containerEl, title, description) {
+      var headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    var StatusBarOrganizerModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal", "nene-organizer-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      /**
+       * 根据当前状态栏元素和已保存配置渲染界面。
+       */
+      async render() {
+        var contentEl = this.contentEl;
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "状态栏元素管理",
+          "拖动行左侧手柄可调整元素顺序，点击眼睛图标切换显示/隐藏。"
+        );
+        var statusBar = this.plugin.getStatusBarElement();
+        var savedElements = this.plugin.getOrganizerSettings();
+        if (!statusBar) {
+          contentEl.createEl("p", {
+            cls: "nene-organizer-empty",
+            text: "未检测到状态栏，该功能仅桌面端可用。"
+          });
+          return;
+        }
+        var consolidated = this.consolidateElements(statusBar, savedElements);
+        var rowsWrapper = contentEl.createDiv({ cls: "nene-organizer-rows-wrapper" });
+        var rowsContainer = rowsWrapper.createDiv({ cls: "nene-organizer-rows-container" });
+        var nameCollisions = {};
+        consolidated.rows.forEach(function(element) {
+          if (element.name in nameCollisions) {
+            nameCollisions[element.name]++;
+          } else {
+            nameCollisions[element.name] = 0;
+          }
+        });
+        var self = this;
+        consolidated.rows.forEach(function(row) {
+          var currentStatus = consolidated.barStatus[row.id];
+          var entry = document.createElement("div");
+          entry.addClass("nene-organizer-row");
+          if (!currentStatus.visible) entry.addClass("nene-organizer-row-hidden");
+          entry.setAttribute("data-nene-organizer-row-id", row.id);
+          row.entry = entry;
+          rowsContainer.appendChild(entry);
+          var handle = document.createElement("span");
+          handle.addClass("nene-organizer-row-handle");
+          handle.addEventListener("mousedown", function(event) {
+            handleMouseDown(event, self.plugin, consolidated.barStatus, rowsWrapper, rowsContainer, consolidated.rows, row);
+          });
+          entry.appendChild(handle);
+          var displayName = row.name.replace(/^plugin-(obsidian-)?/, "").split("-").map(function(x) {
+            return x.charAt(0).toUpperCase() + x.slice(1);
+          }).join(" ") + (nameCollisions[row.name] ? " (" + row.index + ")" : "");
+          var titleSpan = document.createElement("span");
+          titleSpan.addClass("nene-organizer-row-title");
+          titleSpan.textContent = displayName;
+          entry.appendChild(titleSpan);
+          var previewSpan = document.createElement("span");
+          previewSpan.addClass("nene-organizer-row-preview");
+          if (row.element) {
+            previewSpan.innerHTML = row.element.innerHTML;
+          }
+          entry.appendChild(previewSpan);
+          var actionSpan = document.createElement("span");
+          actionSpan.addClass("nene-organizer-row-action");
+          actionSpan.onclick = function() {
+            toggleVisibility(self.plugin, consolidated.barStatus, row);
+          };
+          obsidian2.setIcon(actionSpan, currentStatus.visible ? "eye" : "eye-off");
+          entry.appendChild(actionSpan);
+        });
+      }
+      /**
+       * 合并已保存设置与实际状态栏元素状态。
+       * 新元素自动追加到末尾；已不存在的元素自动从已保存数据中清理。
+       *
+       * @param {Element} statusBar - .status-bar 容器
+       * @param {object} savedElements - 已保存的元素状态 { [id]: { position, visible } }
+       * @returns {{ rows: Array, barStatus: object }}
+       */
+      consolidateElements(statusBar, savedElements) {
+        var unorderedElements = organizerRuntime.getStatusBarElements(statusBar);
+        var currentIds = unorderedElements.map(function(e) {
+          return e.id;
+        });
+        var barStatus = {};
+        var rows = unorderedElements.slice();
+        var insertPosition = rows.length + 1;
+        rows.forEach(function(element, index) {
+          var saved = savedElements[element.id];
+          barStatus[element.id] = saved || { position: index, visible: true };
+        });
+        Object.keys(savedElements).forEach(function(id) {
+          if (currentIds.indexOf(id) === -1) return;
+          if (id in barStatus) return;
+          var status = savedElements[id];
+          status.position = insertPosition++;
+          barStatus[id] = status;
+        });
+        rows.sort(function(a, b) {
+          return barStatus[a.id].position - barStatus[b.id].position;
+        });
+        this.plugin.setOrganizerElementStatus(barStatus);
+        return {
+          rows,
+          barStatus
+        };
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    function toggleVisibility(plugin, barStatus, row) {
+      var status = barStatus[row.id];
+      status.visible = !status.visible;
+      if (status.visible) {
+        if (row.element) row.element.removeClass("nene-organizer-element-hidden");
+        if (row.entry) row.entry.removeClass("nene-organizer-row-hidden");
+        obsidian2.setIcon(row.entry.children[3], "eye");
+      } else {
+        if (row.element) row.element.addClass("nene-organizer-element-hidden");
+        if (row.entry) row.entry.addClass("nene-organizer-row-hidden");
+        obsidian2.setIcon(row.entry.children[3], "eye-off");
+      }
+      plugin.setOrganizerElementStatus(barStatus);
+    }
+    function cloneRow(rowsWrapper, barStatus, rowsContainer, event, row) {
+      var realEntry = row.entry;
+      realEntry.addClass("nene-organizer-row-clone");
+      var fauxEntry = document.createElement("div");
+      fauxEntry.addClass("nene-organizer-row");
+      fauxEntry.addClass("nene-organizer-row-drag");
+      if (!barStatus[row.id].visible) fauxEntry.addClass("nene-organizer-row-hidden");
+      rowsWrapper.appendChild(fauxEntry);
+      var containerRect = rowsWrapper.getBoundingClientRect();
+      fauxEntry.style.left = realEntry.getBoundingClientRect().left - containerRect.left + "px";
+      fauxEntry.style.top = realEntry.getBoundingClientRect().top - containerRect.top + "px";
+      fauxEntry.style.width = realEntry.offsetWidth + "px";
+      Array.from(realEntry.children).forEach(function(child) {
+        var fauxSpan = document.createElement("span");
+        fauxSpan.className = child.className;
+        fauxSpan.innerHTML = child.innerHTML;
+        fauxEntry.appendChild(fauxSpan);
+      });
+      var offsetX = event.clientX - fauxEntry.getBoundingClientRect().left;
+      var offsetY = event.clientY - fauxEntry.getBoundingClientRect().top;
+      var index = Array.from(rowsContainer.children).indexOf(realEntry);
+      return {
+        stationaryRow: realEntry,
+        movableRow: fauxEntry,
+        offsetX: offsetX + containerRect.left,
+        offsetY: offsetY + containerRect.top,
+        index
+      };
+    }
+    function deleteRowClone(rowsWrapper, stationaryRow, movableRow) {
+      stationaryRow.removeClass("nene-organizer-row-clone");
+      rowsWrapper.removeChild(movableRow);
+    }
+    function calculateRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
+      movableRow.style.left = event.clientX - offsetX + "px";
+      movableRow.style.top = event.clientY - offsetY + "px";
+      var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
+      if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
+        var dir = dist > 0 ? 1 : -1;
+        var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
+        return newIndex;
+      }
+      return index;
+    }
+    function handlePositionChange(barStatus, rowsContainer, rows, row, stationaryRow, newIndex) {
+      var passedEntry = rowsContainer.children[newIndex];
+      var passedId = passedEntry.getAttribute("data-nene-organizer-row-id");
+      if (row.element) {
+        var statusBarChangeRequired = barStatus[passedId] != null;
+        if (statusBarChangeRequired) {
+          var passedElement = rows.filter(function(x) {
+            return x.id === passedId;
+          })[0].element;
+          var temp = passedElement.style.order;
+          passedElement.style.order = row.element.style.order;
+          row.element.style.order = temp;
+        }
+      }
+      rowsContainer.removeChild(stationaryRow);
+      if (newIndex !== rowsContainer.children.length) {
+        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
+      } else {
+        rowsContainer.appendChild(stationaryRow);
+      }
+      Array.from(rowsContainer.children).forEach(function(entry, idx) {
+        var id = entry.getAttribute("data-nene-organizer-row-id");
+        barStatus[id].position = idx;
+      });
+    }
+    function handleMouseDown(event, plugin, barStatus, rowsWrapper, rowsContainer, rows, row) {
+      if (dragging) return;
+      dragging = true;
+      event.preventDefault();
+      var cloneData = cloneRow(rowsWrapper, barStatus, rowsContainer, event, row);
+      var index = cloneData.index;
+      function onMouseMove(moveEvent) {
+        moveEvent.preventDefault();
+        plugin.getOrganizerSpooler().disableObserver();
+        var newIndex = calculateRowIndex(moveEvent, rowsContainer, cloneData.movableRow, cloneData.stationaryRow, cloneData.offsetX, cloneData.offsetY, index);
+        if (newIndex !== index) {
+          handlePositionChange(barStatus, rowsContainer, rows, row, cloneData.stationaryRow, newIndex);
+          index = newIndex;
+        }
+        plugin.getOrganizerSpooler().enableObserver();
+      }
+      function onMouseUp() {
+        deleteRowClone(rowsWrapper, cloneData.stationaryRow, cloneData.movableRow);
+        dragging = false;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        plugin.setOrganizerElementStatus(barStatus);
+      }
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+    module2.exports = {
+      StatusBarOrganizerModal
+    };
+  }
+});
+
 // src/modules/status-bar-enhancer/view.js
 var require_view3 = __commonJS({
   "src/modules/status-bar-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
+    var organizerView = require_organizer_view();
     function renderModalHeader(containerEl, title, description) {
       const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
       headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
@@ -3432,6 +3935,56 @@ var require_view3 = __commonJS({
             await this.render();
           });
         });
+        new obsidian2.Setting(contentEl).setName("状态栏元素管理").setHeading();
+        new obsidian2.Setting(contentEl).setName("排序与可见性").setDesc("管理状态栏各元素的位置和显示/隐藏状态，支持拖拽排序。").addButton((button) => {
+          button.setButtonText("打开元素管理").onClick(() => {
+            var modal = new organizerView.StatusBarOrganizerModal(this.app, this.plugin, async () => {
+              await this.render();
+            });
+            modal.open();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("Snippets 管理").setHeading();
+        const snippetsSettings = this.plugin.snippetsStore.getSettings();
+        new obsidian2.Setting(contentEl).setName("玻璃菜单效果").setDesc("将菜单的背景由主题的次要背景色--background-secondary更改为玻璃背景，建议关闭").addToggle((toggle) => {
+          toggle.setValue(snippetsSettings.aestheticStyle).onChange(async (value) => {
+            await this.plugin.snippetsStore.setAestheticStyle(value);
+            new obsidian2.Notice(value ? "已开启毛玻璃菜单效果" : "已关闭毛玻璃菜单效果");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("自动打开新建CSS片段").setDesc("是否在新建CSS代码片段文件后立即以默认应用程序将其打开，建议启用").addToggle((toggle) => {
+          toggle.setValue(snippetsSettings.openSnippetFile).onChange(async (value) => {
+            await this.plugin.snippetsStore.setOpenSnippetFile(value);
+            new obsidian2.Notice(value ? "已开启自动打开新建CSS片段" : "已关闭自动打开新建CSS片段");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("设置新建CSS片段的状态").setDesc("是否自动启用新建CSS代码片段，建议启用").addToggle((toggle) => {
+          toggle.setValue(snippetsSettings.snippetEnabledStatus).onChange(async (value) => {
+            await this.plugin.snippetsStore.setSnippetEnabledStatus(value);
+            new obsidian2.Notice(value ? "新建CSS片段将默认启用" : "新建CSS片段将默认关闭");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        const templateSetting = new obsidian2.Setting(contentEl);
+        templateSetting.settingEl.setAttribute(
+          "style",
+          "display: grid; grid-template-columns: 1fr;"
+        );
+        templateSetting.setName("CSS片段模板").setDesc("设置新建CSS代码片段的默认样式。");
+        templateSetting.addTextArea((textarea) => {
+          const debouncedSave = debounceSave(async (value) => {
+            await this.plugin.snippetsStore.setStylingTemplate(value);
+            await this.onSettingsChanged();
+          }, 500);
+          textarea.inputEl.setAttribute("style", "margin-top: 12px; width: 100%; min-height: 32vh;");
+          textarea.inputEl.addClass("nene-css-editor");
+          textarea.setValue(snippetsSettings.stylingTemplate).onChange(debouncedSave);
+        });
       }
       // 关闭弹窗时清理内容，避免重复挂载旧节点。
       onClose() {
@@ -3444,6 +3997,459 @@ var require_view3 = __commonJS({
   }
 });
 
+// src/modules/status-bar-enhancer/snippets-store.js
+var require_snippets_store = __commonJS({
+  "src/modules/status-bar-enhancer/snippets-store.js"(exports2, module2) {
+    "use strict";
+    var snippetsConstants = require_snippets_constants();
+    var SnippetsStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = snippetsConstants.normalizeSnippetsSettings();
+      }
+      // 从状态栏增强仓库中提取 snippets 配置切片。
+      load() {
+        const parentSettings = this.plugin.statusBarEnhancerStore.getSettings();
+        this.settings = snippetsConstants.normalizeSnippetsSettings(parentSettings.snippets);
+      }
+      // 返回当前完整配置。
+      getSettings() {
+        return this.settings;
+      }
+      // 持久化 snippets 配置到状态栏增强的独立配置文件。
+      async save() {
+        const parentStore = this.plugin.statusBarEnhancerStore;
+        const currentSettings = parentStore.getSettings();
+        currentSettings.snippets = snippetsConstants.normalizeSnippetsSettings(this.settings);
+        parentStore.settings = parentStore.normalizeSettings(currentSettings);
+        await parentStore.save();
+      }
+      // 更新「毛玻璃效果」开关。
+      async setAestheticStyle(enabled) {
+        this.settings.aestheticStyle = Boolean(enabled);
+        await this.save();
+        return this.settings.aestheticStyle;
+      }
+      // 更新「自动打开新建片段」开关。
+      async setOpenSnippetFile(enabled) {
+        this.settings.openSnippetFile = Boolean(enabled);
+        await this.save();
+        return this.settings.openSnippetFile;
+      }
+      // 更新「新建片段默认启用」开关。
+      async setSnippetEnabledStatus(enabled) {
+        this.settings.snippetEnabledStatus = Boolean(enabled);
+        await this.save();
+        return this.settings.snippetEnabledStatus;
+      }
+      // 更新 CSS 模板文本。
+      async setStylingTemplate(text) {
+        this.settings.stylingTemplate = typeof text === "string" ? text : "";
+        await this.save();
+        return this.settings.stylingTemplate;
+      }
+    };
+    module2.exports = {
+      SnippetsStore
+    };
+  }
+});
+
+// src/modules/status-bar-enhancer/snippets-runtime.js
+var require_snippets_runtime = __commonJS({
+  "src/modules/status-bar-enhancer/snippets-runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    function registerPantoneIcon() {
+      const pantoneIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M5.764 8l-.295-.73a1 1 0 0 1 .553-1.302l9.272-3.746a1 1 0 0 1 1.301.552l5.62 13.908a1 1 0 0 1-.553 1.302L12.39 21.73a1 1 0 0 1-1.302-.553L11 20.96V21H7a1 1 0 0 1-1-1v-.27l-3.35-1.353a1 1 0 0 1-.552-1.302L5.764 8zM8 19h2.209L8 13.533V19zm-2-6.244l-1.673 4.141L6 17.608v-4.852zm1.698-5.309l4.87 12.054l7.418-2.997l-4.87-12.053l-7.418 2.996zm2.978 2.033a1 1 0 1 1-.749-1.855a1 1 0 0 1 .75 1.855z" fill="currentColor"/></svg>`;
+      obsidian2.addIcon("nene-pantone", pantoneIconSvg);
+      obsidian2.addIcon("ms-snippet", '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path d="M7.375 16.781l1.25-1.562L4.601 12l4.024-3.219l-1.25-1.562l-5 4a1 1 0 0 0 0 1.562l5 4zm9.25-9.562l-1.25 1.562L19.399 12l-4.024 3.219l1.25 1.562l5-4a1 1 0 0 0 0-1.562l-5-4zm-1.649-4.003l-4 18l-1.953-.434l4-18z" fill="currentColor"/></svg>');
+    }
+    function isSnippetEnabled(app, snippet) {
+      try {
+        if (app.customCss && typeof app.customCss.enabledSnippets !== "undefined") {
+          if (app.customCss.enabledSnippets instanceof Set) {
+            return app.customCss.enabledSnippets.has(snippet);
+          }
+          if (Array.isArray(app.customCss.enabledSnippets)) {
+            return app.customCss.enabledSnippets.includes(snippet);
+          }
+        }
+        return false;
+      } catch (_e) {
+        return false;
+      }
+    }
+    function getSnippets(app) {
+      try {
+        if (app.customCss && Array.isArray(app.customCss.snippets)) {
+          return app.customCss.snippets.slice();
+        }
+        return [];
+      } catch (_e) {
+        return [];
+      }
+    }
+    function getSnippetPath(app, snippet) {
+      try {
+        if (app.customCss && typeof app.customCss.getSnippetPath === "function") {
+          return app.customCss.getSnippetPath(snippet);
+        }
+        return "";
+      } catch (_e) {
+        return "";
+      }
+    }
+    function customCssEnabled(app, snippet) {
+      try {
+        if (app.customCss && app.customCss.enabledSnippets) {
+          if (app.customCss.enabledSnippets instanceof Set) {
+            return app.customCss.enabledSnippets.has(snippet);
+          }
+          return app.customCss.enabledSnippets.includes(snippet);
+        }
+        return false;
+      } catch (_e) {
+        return false;
+      }
+    }
+    function getSnippetsFolder(app) {
+      try {
+        if (app.customCss && typeof app.customCss.getSnippetsFolder === "function") {
+          return app.customCss.getSnippetsFolder();
+        }
+        return "";
+      } catch (_e) {
+        return "";
+      }
+    }
+    function setCssEnabledStatus(app, snippet, enabled) {
+      try {
+        if (app.customCss && typeof app.customCss.setCssEnabledStatus === "function") {
+          app.customCss.setCssEnabledStatus(snippet, enabled);
+        }
+      } catch (_e) {
+      }
+    }
+    function requestLoadSnippets(app) {
+      try {
+        if (app.customCss && typeof app.customCss.requestLoadSnippets === "function") {
+          app.customCss.requestLoadSnippets();
+        }
+      } catch (_e) {
+      }
+    }
+    var CreateSnippetModal = class extends obsidian2.Modal {
+      constructor(app, plugin, settings) {
+        super(app);
+        this.plugin = plugin;
+        this.settings = settings;
+      }
+      onOpen() {
+        this.render();
+      }
+      render() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl("h2", { text: "创建 CSS 片段" });
+        var fileNameSetting = new obsidian2.Setting(contentEl);
+        var fileNameInput = new obsidian2.TextComponent(fileNameSetting.controlEl);
+        fileNameSetting.setName("CSS 片段名称").setDesc("输入新的 CSS 片段文件名（不含 .css 后缀）。");
+        var cssContentSetting = new obsidian2.Setting(contentEl);
+        cssContentSetting.settingEl.addClass("nene-css-editor-setting");
+        var cssContentInput = new obsidian2.TextAreaComponent(cssContentSetting.controlEl);
+        cssContentInput.inputEl.addClass("nene-css-editor");
+        cssContentSetting.setName("CSS 内容").setDesc("输入 CSS 样式内容。");
+        cssContentInput.setValue(this.settings.stylingTemplate || "");
+        var selfModal = this;
+        new obsidian2.Setting(contentEl).addButton(function(btn) {
+          btn.setButtonText("创建片段").onClick(async function() {
+            var fileName = fileNameInput.getValue().trim();
+            var fileContents = cssContentInput.getValue();
+            if (!fileName) {
+              new obsidian2.Notice("请输入片段名称");
+              return;
+            }
+            try {
+              if (!selfModal.app.customCss) {
+                new obsidian2.Notice("无法获取 CSS 片段管理");
+                return;
+              }
+              var snippetsFolder = getSnippetsFolder(selfModal.app);
+              if (!snippetsFolder) {
+                new obsidian2.Notice("无法获取片段文件夹路径");
+                return;
+              }
+              var existingSnippets = getSnippets(selfModal.app);
+              if (existingSnippets.includes(fileName + ".css")) {
+                new obsidian2.Notice('"' + fileName + '.css" 已存在。');
+                return;
+              }
+              await selfModal.app.vault.create(
+                snippetsFolder + "/" + fileName + ".css",
+                fileContents
+              );
+              if (selfModal.settings?.openSnippetFile !== false) {
+                var snippetPath = getSnippetPath(selfModal.app, fileName + ".css");
+                if (snippetPath && typeof selfModal.app.openWithDefaultApp === "function") {
+                  selfModal.app.openWithDefaultApp(snippetPath);
+                }
+              }
+              if (selfModal.settings?.snippetEnabledStatus) {
+                setCssEnabledStatus(selfModal.app, fileName + ".css", true);
+              }
+              requestLoadSnippets(selfModal.app);
+              new obsidian2.Notice('片段 "' + fileName + '.css" 已创建');
+              selfModal.close();
+            } catch (error) {
+              console.error("[ねね] 创建 CSS 片段失败", error);
+              new obsidian2.Notice("创建失败：" + (error.message || "未知错误"));
+            }
+          });
+        });
+        fileNameInput.inputEl.focus();
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var SnippetsRenameModal = class extends obsidian2.Modal {
+      constructor(app, plugin, oldSnippet, onRenamed) {
+        super(app);
+        this.plugin = plugin;
+        this.oldSnippet = oldSnippet;
+        this.onRenamed = onRenamed;
+        this.oldBaseName = oldSnippet.replace(/\.css$/i, "");
+      }
+      onOpen() {
+        this.render();
+      }
+      render() {
+        var self = this;
+        var contentEl = this.contentEl;
+        contentEl.empty();
+        contentEl.createEl("h5", { text: "重命名 CSS 片段" });
+        var nameInput = new obsidian2.TextComponent(contentEl);
+        nameInput.inputEl.addClass("nene-rename-input");
+        nameInput.setValue(this.oldBaseName);
+        nameInput.inputEl.focus();
+        nameInput.inputEl.select();
+        var btnContainer = contentEl.createDiv({ cls: "modal-button-container" });
+        new obsidian2.ButtonComponent(btnContainer).setButtonText("确定").setCta().onClick(async function() {
+          var newName = nameInput.getValue().trim();
+          if (!newName) {
+            new obsidian2.Notice("请输入新名称");
+            return;
+          }
+          var newSnippet = newName.endsWith(".css") ? newName : newName + ".css";
+          if (newSnippet === self.oldSnippet) {
+            new obsidian2.Notice("新名称与原名相同");
+            return;
+          }
+          var existingSnippets = getSnippets(self.app);
+          if (existingSnippets.includes(newSnippet)) {
+            new obsidian2.Notice('"' + newSnippet + '" 已存在。');
+            return;
+          }
+          try {
+            var snippetsFolder = getSnippetsFolder(self.app);
+            var oldPath = snippetsFolder + "/" + self.oldSnippet;
+            var newPath = snippetsFolder + "/" + newSnippet;
+            var content = await self.app.vault.adapter.read(oldPath);
+            await self.app.vault.adapter.write(newPath, content);
+            await self.app.vault.adapter.remove(oldPath);
+            var wasEnabled = isSnippetEnabled(self.app, self.oldSnippet);
+            if (wasEnabled) {
+              setCssEnabledStatus(self.app, self.oldSnippet, false);
+            }
+            setCssEnabledStatus(self.app, newSnippet, wasEnabled);
+            requestLoadSnippets(self.app);
+            new obsidian2.Notice('片段已重命名为 "' + newSnippet + '"');
+            if (typeof self.onRenamed === "function") {
+              self.onRenamed();
+            }
+            self.close();
+          } catch (error) {
+            console.error("[ねね] 重命名 CSS 片段失败", error);
+            new obsidian2.Notice("重命名失败：" + (error.message || "未知错误"));
+          }
+        });
+        new obsidian2.ButtonComponent(btnContainer).setButtonText("取消").onClick(function() {
+          self.close();
+        });
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    var SnippetsRuntime = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = null;
+        this.statusBarItem = null;
+        this.menuEl = null;
+        this.pantoneIconRegistered = false;
+      }
+      // 挂载最新配置。
+      load(settings) {
+        this.settings = settings || {};
+      }
+      // 启动：注册图标 + 创建状态栏按钮。
+      start() {
+        if (!this.pantoneIconRegistered) {
+          registerPantoneIcon();
+          this.pantoneIconRegistered = true;
+        }
+        this.ensureStatusBarItem();
+      }
+      // 停止：移除状态栏按钮和相关事件。
+      stop() {
+        if (this.statusBarItem) {
+          this.statusBarItem.remove();
+          this.statusBarItem = null;
+        }
+        this.closeMenu();
+      }
+      // 创建状态栏按钮，确保只创建一次。
+      ensureStatusBarItem() {
+        if (this.statusBarItem) return;
+        this.statusBarItem = this.plugin.addStatusBarItem();
+        this.statusBarItem.addClass("mod-clickable");
+        this.statusBarItem.addClass("nene-snippets-button");
+        this.statusBarItem.setAttribute("aria-label", "CSS代码片段管理");
+        this.statusBarItem.setAttribute("data-tooltip-position", "top");
+        this.statusBarItem.onClickEvent(function(e) {
+          this.toggleMenu();
+        }.bind(this));
+        var iconEl = this.statusBarItem.querySelector(".status-bar-item-icon");
+        if (!iconEl) {
+          var iconContainer = this.statusBarItem.createSpan({ cls: "status-bar-item-icon" });
+          obsidian2.setIcon(iconContainer, "nene-pantone");
+        }
+      }
+      // 切换菜单显示状态。
+      toggleMenu() {
+        if (this.menuEl && this.menuEl.parentNode) {
+          this.closeMenu();
+          return;
+        }
+        this.showMenu();
+      }
+      // 显示 Snippets 管理菜单，沿用原 MySnippets Menu API + 样式排版。
+      showMenu() {
+        var app = this.plugin.app;
+        var self = this;
+        var currentSnippets = getSnippets(app);
+        var snippetsFolder = getSnippetsFolder(app);
+        var menu = new obsidian2.Menu();
+        menu.setUseNativeMenu(false);
+        var menuDom = menu.dom;
+        menuDom.addClass("MySnippets-statusbar-menu");
+        menuDom.style.zIndex = "var(--layer-menu)";
+        if (this.settings.aestheticStyle) {
+          menuDom.style.backgroundColor = "transparent";
+          menuDom.style.backdropFilter = "blur(8px)";
+          menuDom.style.webkitBackdropFilter = "blur(8px)";
+        }
+        currentSnippets.forEach(function(snippet) {
+          var snippetPath = getSnippetPath(app, snippet);
+          var enabled = isSnippetEnabled(app, snippet);
+          menu.addItem(function(item) {
+            item.setTitle(snippet);
+            var itemDom = item.dom;
+            var toggle = new obsidian2.ToggleComponent(itemDom);
+            var openBtn = new obsidian2.ButtonComponent(itemDom);
+            var renameBtn = new obsidian2.ButtonComponent(itemDom);
+            toggle.setValue(enabled).onChange(function() {
+              var isOn = customCssEnabled(app, snippet);
+              setCssEnabledStatus(app, snippet, !isOn);
+            });
+            openBtn.setIcon("ms-snippet").setClass("MS-OpenSnippet").onClick(function() {
+              app.openWithDefaultApp(snippetPath);
+            });
+            openBtn.buttonEl.setAttribute("aria-label", "打开CSS代码片段文件");
+            openBtn.buttonEl.setAttribute("data-tooltip-position", "top");
+            renameBtn.setIcon("pencil").setClass("MS-RenameSnippet").onClick(function() {
+              new SnippetsRenameModal(app, self, snippet, function() {
+              }).open();
+            });
+            renameBtn.buttonEl.setAttribute("aria-label", "重命名CSS代码片段");
+            renameBtn.buttonEl.setAttribute("data-tooltip-position", "top");
+            item.onClick(function(e) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+            });
+          });
+        });
+        menu.addSeparator();
+        menu.addItem(function(actions) {
+          actions.setIcon(null);
+          actions.setTitle("功能");
+          actions.titleEl.style.fontWeight = "700";
+          var actionsDom = actions.dom;
+          var reloadBtn = new obsidian2.ButtonComponent(actionsDom);
+          reloadBtn.setIcon("refresh-cw").setClass("MySnippetsButton").setClass("MS-Reload").onClick(function() {
+            requestLoadSnippets(app);
+            new obsidian2.Notice("CSS代码片段已重新加载");
+          });
+          reloadBtn.buttonEl.setAttribute("aria-label", "重载CSS代码片段");
+          reloadBtn.buttonEl.setAttribute("data-tooltip-position", "top");
+          var folderBtn = new obsidian2.ButtonComponent(actionsDom);
+          folderBtn.setIcon("folder-open").setClass("MySnippetsButton").setClass("MS-Folder").onClick(function() {
+            if (snippetsFolder && typeof app.openWithDefaultApp === "function") {
+              app.openWithDefaultApp(snippetsFolder);
+            }
+          });
+          folderBtn.buttonEl.setAttribute("aria-label", "打开CSS代码片段所在文件夹");
+          folderBtn.buttonEl.setAttribute("data-tooltip-position", "top");
+          var addBtn = new obsidian2.ButtonComponent(actionsDom);
+          addBtn.setIcon("plus-circle").setClass("MySnippetsButton").setClass("MS-Folder").onClick(function() {
+            new CreateSnippetModal(app, self, self.settings).open();
+          });
+          addBtn.buttonEl.setAttribute("aria-label", "新建CSS代码片段");
+          addBtn.buttonEl.setAttribute("data-tooltip-position", "top");
+        });
+        menu.showAtPosition({
+          x: window.innerWidth - 15,
+          y: window.innerHeight - 37
+        });
+        this.menuEl = menuDom;
+        this._menu = menu;
+        setTimeout(function() {
+          if (self.menuEl && self.menuEl.parentNode) {
+            self._closeHandler = function(e) {
+              if (self.menuEl && !self.menuEl.contains(e.target)) {
+                self.closeMenu();
+              }
+            };
+            document.addEventListener("mousedown", self._closeHandler, { once: true });
+          }
+        }, 10);
+      }
+      // 关闭菜单（利用 Obsidian Menu.close 或手动移除 DOM）。
+      closeMenu() {
+        if (this._menu && typeof this._menu.close === "function") {
+          this._menu.close();
+        }
+        this._menu = null;
+        if (this.menuEl && this.menuEl.parentNode) {
+          this.menuEl.parentNode.removeChild(this.menuEl);
+        }
+        this.menuEl = null;
+        if (this._closeHandler) {
+          document.removeEventListener("mousedown", this._closeHandler);
+          this._closeHandler = null;
+        }
+      }
+    };
+    module2.exports = {
+      SnippetsRuntime,
+      CreateSnippetModal,
+      SnippetsRenameModal
+    };
+  }
+});
+
 // src/modules/status-bar-enhancer/index.js
 var require_status_bar_enhancer = __commonJS({
   "src/modules/status-bar-enhancer/index.js"(exports2, module2) {
@@ -3452,7 +4458,12 @@ var require_status_bar_enhancer = __commonJS({
     var runtime = require_runtime();
     var store = require_store5();
     var view = require_view3();
-    module2.exports = Object.assign({}, constants, runtime, store, view);
+    var organizerRuntime = require_organizer_runtime();
+    var organizerView = require_organizer_view();
+    var snippetsConstants = require_snippets_constants();
+    var snippetsStore = require_snippets_store();
+    var snippetsRuntime = require_snippets_runtime();
+    module2.exports = Object.assign({}, constants, runtime, store, view, organizerRuntime, organizerView, snippetsConstants, snippetsStore, snippetsRuntime);
   }
 });
 
@@ -6873,7 +7884,7 @@ var require_settings_tab = __commonJS({
       // 渲染状态栏增强模块分区，仅保留状态概览、开关与弹窗入口。
       renderStatusBarEnhancerSection(containerEl, summary) {
         new obsidian2.Setting(containerEl).setName("状态栏增强").setDesc(
-          summary.statusBarEnhancerEnabled ? `已启用，当前${summary.statusBarEnhancerShowFileName ? "显示文件名" : "不显示文件名"}、${summary.statusBarEnhancerShowIcons ? "显示图标" : "不显示图标"}，点击状态栏时复制${summary.statusBarEnhancerCopyAbsolutePath ? "绝对路径" : "库内相对路径"}。` : "未启用。启用后会在状态栏显示当前活动文件路径，并支持点击状态栏路径直接复制。"
+          summary.statusBarEnhancerEnabled ? `已启用，当前${summary.statusBarEnhancerShowFileName ? "显示文件名" : "不显示文件名"}、${summary.statusBarEnhancerShowIcons ? "显示图标" : "不显示图标"}，点击状态栏时复制${summary.statusBarEnhancerCopyAbsolutePath ? "绝对路径" : "库内相对路径"}。状态栏元素管理已记录 ${summary.statusBarEnhancerOrganizerElementCount} 个元素。` : "未启用。启用后会在状态栏显示当前活动文件路径，并支持点击状态栏路径直接复制。"
         ).addToggle((toggle) => {
           toggle.setValue(summary.statusBarEnhancerEnabled).onChange(async (value) => {
             await this.plugin.updateStatusBarEnhancerEnabled(value);
@@ -6968,10 +7979,13 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.copyPathService = new copyPathModule.CopyPathService(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
+    this.organizerSpooler = null;
     this.tabBarEnhancerStore = new tabBarEnhancerModule.TabBarEnhancerStore(this);
     this.tabBarEnhancerRuntime = new tabBarEnhancerModule.TabBarEnhancerRuntime(this);
     this.menuCustomizerStore = new contextMenuEnhancerModule.MenuCustomizerStore(this);
     this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this);
+    this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this);
+    this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this);
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
@@ -6987,6 +8001,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
+    this.snippetsStore.load();
+    this.initializeOrganizerSpooler();
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
     this.setupFileMenu();
@@ -7011,6 +8027,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
     this.statusBarEnhancerRuntime.stop();
+    this.snippetsRuntime.stop();
+    if (this.organizerSpooler) {
+      this.organizerSpooler.stop();
+    }
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
@@ -7290,6 +8310,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       statusBarEnhancerCreatedPrepend: this.statusBarEnhancerStore.getSettings().createdPrepend,
       statusBarEnhancerCreatedTimestampFormat: this.statusBarEnhancerStore.getSettings().createdTimestampFormat,
       statusBarEnhancerCycleOnClick: this.statusBarEnhancerStore.getSettings().cycleOnClickEnabled !== false,
+      statusBarEnhancerOrganizerElementCount: Object.keys(this.statusBarEnhancerStore.getOrganizerElements()).length,
       tabBarEnhancerEnabled: this.isTabBarEnhancerEnabled(),
       tabBarEnhancerTopBarWheel: this.tabBarEnhancerStore.getSettings().topBarWheelTabSwitch === true,
       tabBarEnhancerSkipCssHiddenTabs: this.tabBarEnhancerStore.getSettings().skipCssHiddenTabs !== false,
@@ -7454,6 +8475,42 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncStatusBarEnhancerState();
     return nextValue;
   }
+  /* ------------------------------ */
+  /* 状态栏元素管理代理 */
+  /* ------------------------------ */
+  // 初始化状态栏元素管理 Spooler，查找 .status-bar 容器并创建监听器。
+  initializeOrganizerSpooler() {
+    var statusBar = document.getElementsByClassName("status-bar")[0];
+    if (!statusBar) {
+      console.warn("[ねね] 未找到状态栏容器，状态栏元素管理不可用");
+      return;
+    }
+    var self = this;
+    this.organizerSpooler = new statusBarEnhancerModule.OrganizerSpooler(
+      statusBar,
+      function() {
+        return self.statusBarEnhancerStore.getOrganizerElements();
+      },
+      function() {
+      }
+    );
+  }
+  // 返回 .status-bar 容器 DOM 元素。
+  getStatusBarElement() {
+    return document.getElementsByClassName("status-bar")[0] || null;
+  }
+  // 返回当前 organizer 元素状态映射表。
+  getOrganizerSettings() {
+    return this.statusBarEnhancerStore.getOrganizerElements();
+  }
+  // 保存 organizer 元素状态映射表。
+  async setOrganizerElementStatus(elements) {
+    return this.statusBarEnhancerStore.setOrganizerElements(elements);
+  }
+  // 返回 organizer Spooler 实例。
+  getOrganizerSpooler() {
+    return this.organizerSpooler;
+  }
   // 更新标签栏增强模块开关，并立即同步实验性 class 的挂载状态。
   async updateTabBarEnhancerEnabled(enabled) {
     const nextEnabled = await this.pluginSettingsStore.setTabBarEnhancerEnabled(enabled);
@@ -7572,11 +8629,19 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   // 根据当前设置同步状态栏增强模块的启停状态，并在启用时刷新当前活动文件路径。
   syncStatusBarEnhancerState() {
     this.statusBarEnhancerRuntime.load(this.statusBarEnhancerStore.getSettings());
+    this.snippetsRuntime.load(this.snippetsStore.getSettings());
     if (this.isStatusBarEnhancerEnabled()) {
       this.statusBarEnhancerRuntime.start();
-      return;
+      if (this.organizerSpooler) {
+        this.organizerSpooler.start();
+      }
+    } else {
+      this.statusBarEnhancerRuntime.stop();
+      if (this.organizerSpooler) {
+        this.organizerSpooler.stop();
+      }
     }
-    this.statusBarEnhancerRuntime.stop();
+    this.snippetsRuntime.start();
   }
   // 根据当前设置同步标签栏增强模块的启停状态，并挂载或移除实验性 class。
   syncTabBarEnhancerState() {
@@ -7604,6 +8669,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
+    this.snippetsStore.load();
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();
     this.syncAnchorGraphEnhancerState();
