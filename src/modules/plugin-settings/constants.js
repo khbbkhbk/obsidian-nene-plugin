@@ -19,6 +19,9 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   tabBarEnhancer: {
     enabled: false
+  },
+  fileExplorerEnhancer: {
+    enabled: false
   }
 };
 

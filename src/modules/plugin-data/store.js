@@ -24,6 +24,7 @@ class PluginDataStore {
     this.featureData.copyPath = await this.loadFeatureSlice('copyPath', rawData?.copyPath);
     this.featureData.statusBarEnhancer = await this.loadFeatureSlice('statusBarEnhancer', rawData?.statusBarEnhancer);
     this.featureData.tabBarEnhancer = await this.loadFeatureSlice('tabBarEnhancer', rawData?.tabBarEnhancer);
+    this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice('fileExplorerEnhancer', rawData?.fileExplorerEnhancer);
 
     if (this.hasLegacyFeatureSlices(rawData)) {
       await this.save();
@@ -111,6 +112,16 @@ class PluginDataStore {
     this.featureData.tabBarEnhancer = this.normalizeTabBarEnhancerData(tabBarEnhancerData);
   }
 
+  // 返回文件资源管理器增强模块的独立配置切片。
+  getFileExplorerEnhancerData() {
+    return this.featureData.fileExplorerEnhancer;
+  }
+
+  // 更新文件资源管理器增强模块的独立配置切片缓存。
+  setFileExplorerEnhancerData(fileExplorerEnhancerData) {
+    this.featureData.fileExplorerEnhancer = this.normalizeFileExplorerEnhancerData(fileExplorerEnhancerData);
+  }
+
   // 保存文件标记功能数据到独立配置文件。
   async saveFileMarkerData(fileMarkerData) {
     this.setFileMarkerData(fileMarkerData);
@@ -145,6 +156,13 @@ class PluginDataStore {
   async saveTabBarEnhancerData(tabBarEnhancerData) {
     this.setTabBarEnhancerData(tabBarEnhancerData);
     await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
+    await this.featureConfigManager.save('fileExplorerEnhancer', this.featureData.fileExplorerEnhancer);
+  }
+
+  // 保存文件资源管理器增强模块数据到独立配置文件。
+  async saveFileExplorerEnhancerData(fileExplorerEnhancerData) {
+    this.setFileExplorerEnhancerData(fileExplorerEnhancerData);
+    await this.featureConfigManager.save('fileExplorerEnhancer', this.featureData.fileExplorerEnhancer);
   }
 
   // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
@@ -168,6 +186,7 @@ class PluginDataStore {
     const copyPathPath = this.featureConfigManager.getFeatureConfigPath('copyPath');
     const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('statusBarEnhancer');
     const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('tabBarEnhancer');
+    const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath('fileExplorerEnhancer');
 
     return {
       directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
@@ -220,6 +239,13 @@ class PluginDataStore {
         path: tabBarEnhancerPath,
         exists: await this.featureConfigManager.exists('tabBarEnhancer'),
         summary: `空白区滚轮切换：${this.featureData.tabBarEnhancer.topBarWheelTabSwitch === true ? '已开启' : '已关闭'}，跳过隐藏标签：${this.featureData.tabBarEnhancer.skipCssHiddenTabs !== false ? '已开启' : '已关闭'}，跳过未加载插件标签：${this.featureData.tabBarEnhancer.skipUnloadedPluginTabs !== false ? '已开启' : '已关闭'}`
+      },
+      fileExplorerEnhancer: {
+        key: 'fileExplorerEnhancer',
+        name: '文件资源管理器增强配置',
+        path: fileExplorerEnhancerPath,
+        exists: await this.featureConfigManager.exists('fileExplorerEnhancer'),
+        summary: `置顶路径规则：${(this.featureData.fileExplorerEnhancer.pinFilters.paths || []).length} 条，隐藏路径规则：${(this.featureData.fileExplorerEnhancer.hideFilters.paths || []).length} 条`
       }
     };
   }
@@ -271,6 +297,8 @@ class PluginDataStore {
       this.featureData.statusBarEnhancer = defaultFeatureData;
     } else if (featureKey === 'tabBarEnhancer') {
       this.featureData.tabBarEnhancer = defaultFeatureData;
+    } else if (featureKey === 'fileExplorerEnhancer') {
+      this.featureData.fileExplorerEnhancer = defaultFeatureData;
     }
 
     await this.featureConfigManager.save(featureKey, defaultFeatureData);
@@ -296,7 +324,8 @@ class PluginDataStore {
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
       copyPath: this.normalizeCopyPathData(source.copyPath),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
-      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
+      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
+      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
     });
   }
 
@@ -311,6 +340,7 @@ class PluginDataStore {
     delete normalizedCoreData.copyPath;
     delete normalizedCoreData.statusBarEnhancer;
     delete normalizedCoreData.tabBarEnhancer;
+    delete normalizedCoreData.fileExplorerEnhancer;
 
     normalizedCoreData.features = this.normalizeFeatures(source.features);
     return normalizedCoreData;
@@ -326,7 +356,8 @@ class PluginDataStore {
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
       copyPath: this.normalizeCopyPathData(source.copyPath),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
-      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
+      tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
+      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
     };
   }
 
@@ -350,6 +381,9 @@ class PluginDataStore {
       },
       tabBarEnhancer: {
         enabled: features?.tabBarEnhancer?.enabled === true
+      },
+      fileExplorerEnhancer: {
+        enabled: features?.fileExplorerEnhancer?.enabled === true
       }
     };
   }
@@ -494,6 +528,48 @@ class PluginDataStore {
     };
   }
 
+  // 归一化文件资源管理器增强配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeFileExplorerEnhancerData(fileExplorerEnhancerData) {
+    var source = this.isPlainObject(fileExplorerEnhancerData) ? fileExplorerEnhancerData : {};
+    var defaults = require('../file-explorer-enhancer/constants').DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS;
+
+    return {
+      pinFilters: {
+        active: source.pinFilters && source.pinFilters.active === true,
+        paths: Array.isArray(source.pinFilters && source.pinFilters.paths)
+          ? this.normalizePathFilters(source.pinFilters.paths)
+          : defaults.pinFilters.paths
+      },
+      hideFilters: {
+        active: source.hideFilters && source.hideFilters.active === true,
+        paths: Array.isArray(source.hideFilters && source.hideFilters.paths)
+          ? this.normalizePathFilters(source.hideFilters.paths)
+          : defaults.hideFilters.paths
+      }
+    };
+  }
+
+  // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
+  normalizePathFilters(filters) {
+    return filters
+      .filter(function (f) { return f && typeof f === 'object' && !Array.isArray(f); })
+      .map(function (f, idx) {
+        return {
+          name: typeof f.name === 'string' ? f.name : '',
+          active: f.active !== false,
+          type: ['FILES', 'DIRECTORIES'].indexOf(f.type) !== -1
+            ? f.type
+            : 'FILES',
+          pattern: typeof f.pattern === 'string' ? f.pattern : '',
+          patternType: ['REGEX', 'WILDCARD', 'STRICT'].indexOf(f.patternType) !== -1
+            ? f.patternType
+            : 'STRICT',
+          position: (typeof f.position === 'number' && !isNaN(f.position)) ? f.position : idx
+        };
+      })
+      .sort(function (a, b) { return a.position - b.position; });
+  }
+
   // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
   async loadFeatureSlice(featureKey, legacyData) {
     const loadResult = await this.featureConfigManager.load(featureKey);
@@ -539,6 +615,10 @@ class PluginDataStore {
       return this.normalizeTabBarEnhancerData(featureData);
     }
 
+    if (featureKey === 'fileExplorerEnhancer') {
+      return this.normalizeFileExplorerEnhancerData(featureData);
+    }
+
     return this.isPlainObject(featureData) ? featureData : {};
   }
 
@@ -550,7 +630,8 @@ class PluginDataStore {
       || this.isPlainObject(source.menuCustomizer)
       || this.isPlainObject(source.copyPath)
       || this.isPlainObject(source.statusBarEnhancer)
-      || this.isPlainObject(source.tabBarEnhancer);
+      || this.isPlainObject(source.tabBarEnhancer)
+      || this.isPlainObject(source.fileExplorerEnhancer);
   }
 
   // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
@@ -572,7 +653,8 @@ class PluginDataStore {
         menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
         copyPath: bundle.featureData?.copyPath || bundle.copyPath,
         statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
-        tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer
+        tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
+        fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
       })
       : bundle;
 

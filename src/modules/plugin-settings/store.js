@@ -93,6 +93,18 @@ class PluginSettingsStore {
     return this.isTabBarEnhancerEnabled();
   }
 
+  // 切换文件资源管理器增强模块的启用状态，并立即持久化到本地。
+  async setFileExplorerEnhancerEnabled(enabled) {
+    this.settings.fileExplorerEnhancer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isFileExplorerEnhancerEnabled();
+  }
+
+  // 返回文件资源管理器增强模块是否启用，供主入口和设置页统一读取。
+  isFileExplorerEnhancerEnabled() {
+    return Boolean(this.settings.fileExplorerEnhancer.enabled);
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -119,6 +131,9 @@ class PluginSettingsStore {
       },
       tabBarEnhancer: {
         enabled: source.tabBarEnhancer?.enabled === true
+      },
+      fileExplorerEnhancer: {
+        enabled: source.fileExplorerEnhancer?.enabled === true
       }
     };
   }

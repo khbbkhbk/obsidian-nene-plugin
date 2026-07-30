@@ -1,0 +1,267 @@
+.file-explorer-plus.pin-icon {
+  color: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  margin-right: 0.2em;
+  width: 16px;
+  height: 16px;
+  margin-top: -4px;
+  align-self: center;
+  scale: 0.75;
+  rotate: 45deg;
+  opacity: 0.7;
+}
+
+.file-explorer-plus.filters-activated-modal {
+  display: grid;
+  place-items: center;
+}
+
+.file-explorer-plus table {
+  border-collapse: collapse;
+}
+
+.file-explorer-plus th {
+  text-align: center;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom: 2px solid var(--text-normal);
+}
+
+.file-explorer-plus td {
+  padding: 3px;
+}
+
+/* 新建路径过滤器弹窗：适配默认 Modal 尺寸，内容可滚动，按钮固定在底部 */
+.nene-new-filter-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.nene-new-filter-modal {
+  max-width: 1000px;
+  flex: 1;
+}
+
+.nene-new-filter-setting {
+  padding: 0.75em;
+}
+
+.nene-new-filter-setting .setting-item-info {
+  display: none;
+}
+
+.nene-new-filter-setting .setting-item-control {
+  flex-wrap: nowrap;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.nene-new-filter-setting .setting-item-control .search-input-container {
+  min-width: 500px;
+}
+
+.nene-new-filter-setting .setting-item-control .dropdown {
+  width: unset;
+}
+
+.nene-new-filter-setting .search-input-container {
+  flex: 1;
+}
+
+.nene-new-filter-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 8px;
+}
+
+.nene-new-filter-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 12px;
+  margin-left: calc(var(--size-4-4) * -1);
+  margin-right: calc(var(--size-4-4) * -1);
+  padding-left: var(--size-4-4);
+  padding-right: var(--size-4-4);
+}
+
+/* 路径过滤器列表表头行 */
+.nene-filter-table-header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: 8px 0 6px 0;
+  border-bottom: 2px solid var(--background-modifier-border);
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.nene-filter-col-selector {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+  text-align: left;
+}
+
+.nene-filter-col-name {
+  width: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+.nene-filter-col-drag {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.nene-filter-col-type {
+  width: 96px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.nene-filter-col-mode {
+  width: 72px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.nene-filter-col-toggle {
+  width: 38px;
+  flex-shrink: 0;
+}
+
+.nene-filter-col-btn {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.nene-filter-setting-row .setting-item-info {
+  display: none;
+}
+
+.nene-filter-setting-row .setting-item-control {
+  flex-wrap: nowrap;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* 按 .setting-item-control 子元素顺序设置列宽，对齐表头 */
+/* :nth-child(1) 是拖曳手柄 */
+.nene-filter-setting-row .setting-item-control> :nth-child(2) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.nene-filter-setting-row .setting-item-control> :nth-child(3) {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.nene-filter-setting-row .setting-item-control> :nth-child(4) {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.nene-filter-setting-row .setting-item-control> :nth-child(5) {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+/* Toggle 和 ExtraButton 保持自然宽度 */
+.nene-filter-setting-row .setting-item-control> :nth-child(6),
+.nene-filter-setting-row .setting-item-control> :nth-child(7),
+.nene-filter-setting-row .setting-item-control> :nth-child(8),
+.nene-filter-setting-row .setting-item-control> :nth-child(9) {
+  flex-shrink: 0;
+}
+
+/* 拖曳手柄样式（参照 nene-organizer-row-handle） */
+.nene-filter-drag-handle {
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  opacity: 0.35;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.nene-filter-drag-handle:hover {
+  opacity: 0.7;
+}
+
+/* 拖拽浮动副本 — 绝对定位跟随鼠标 */
+.nene-filter-row-drag {
+  position: absolute;
+  background: var(--color-accent);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  opacity: 1;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.nene-filter-rows-container {
+  position: relative;
+}
+
+/* 被拖拽原行 — 透明化 */
+.nene-filter-row-clone {
+  opacity: 0.25;
+}
+
+/* 拖拽落点提示 — 与 organizer 一致的 ::before 强调色条 */
+.nene-filter-row-drop-target::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--color-accent);
+  margin: -2px 0 2px 0;
+  border-radius: 1px;
+}
+
+/* 只读文本样式：隐藏 input 外壳，看起来像普通 span */
+.nene-filter-text-display {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-normal) !important;
+  opacity: 1 !important;
+  cursor: default;
+  padding: 0 2px !important;
+  height: auto !important;
+  font-size: var(--font-ui-small);
+}
+
+.setting-item-control .nene-filter-text-display:nth-child(n+3) {
+  text-align: center;
+}
+
+.nene-filter-text-display:disabled {
+  opacity: 1 !important;
+  -webkit-text-fill-color: var(--text-normal) !important;
+}
+
+/* 眼睛按钮 / 恢复按钮统一禁用态 */
+.nene-eye-toggle-button:disabled,
+.nene-eye-restore-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

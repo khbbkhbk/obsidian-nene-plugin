@@ -697,7 +697,7 @@ var require_constants3 = __commonJS({
     var DEFAULT_COPY_PATH_SETTINGS = {
       addTrailingSlashToFolders: false
     };
-    var MENU_TARGET_MAX_AGE = 2e3;
+    var MENU_TARGET_MAX_AGE = 3e4;
     module2.exports = {
       DEFAULT_COPY_PATH_SETTINGS,
       MENU_TARGET_MAX_AGE
@@ -994,8 +994,28 @@ var require_constants6 = __commonJS({
   }
 });
 
-// src/modules/plugin-data/constants.js
+// src/modules/file-explorer-enhancer/constants.js
 var require_constants7 = __commonJS({
+  "src/modules/file-explorer-enhancer/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS = {
+      pinFilters: {
+        active: false,
+        paths: []
+      },
+      hideFilters: {
+        active: false,
+        paths: []
+      }
+    };
+    module2.exports = {
+      DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS
+    };
+  }
+});
+
+// src/modules/plugin-data/constants.js
+var require_constants8 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
     var anchorGraphConstants = require_constants2();
@@ -1005,6 +1025,7 @@ var require_constants7 = __commonJS({
     var statusBarEnhancerConstants = require_constants5();
     var snippetsConstants = require_snippets_constants();
     var tabBarEnhancerConstants = require_constants6();
+    var fileExplorerEnhancerConstants = require_constants7();
     var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
     var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
     var FEATURE_CONFIG_FILE_NAMES = {
@@ -1013,7 +1034,8 @@ var require_constants7 = __commonJS({
       menuCustomizer: "menu-customizer",
       copyPath: "copy-path",
       statusBarEnhancer: "status-bar-enhancer",
-      tabBarEnhancer: "tab-bar-enhancer"
+      tabBarEnhancer: "tab-bar-enhancer",
+      fileExplorerEnhancer: "file-explorer-enhancer"
     };
     var DEFAULT_PLUGIN_DATA = {
       features: {
@@ -1034,6 +1056,9 @@ var require_constants7 = __commonJS({
         },
         tabBarEnhancer: {
           enabled: false
+        },
+        fileExplorerEnhancer: {
+          enabled: false
         }
       }
     };
@@ -1046,7 +1071,8 @@ var require_constants7 = __commonJS({
         organizer: statusBarEnhancerConstants.DEFAULT_ORGANIZER_SETTINGS,
         snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
       }),
-      tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS
+      tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS,
+      fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS
     };
     module2.exports = {
       DEFAULT_FEATURE_DATA,
@@ -1063,7 +1089,7 @@ var require_feature_config_manager = __commonJS({
   "src/modules/plugin-data/feature-config-manager.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var constants = require_constants7();
+    var constants = require_constants8();
     var FeatureConfigManager = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1166,7 +1192,7 @@ var require_store2 = __commonJS({
   "src/modules/plugin-data/store.js"(exports2, module2) {
     "use strict";
     var featureConfigManagerModule = require_feature_config_manager();
-    var constants = require_constants7();
+    var constants = require_constants8();
     var PluginDataStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1185,6 +1211,7 @@ var require_store2 = __commonJS({
         this.featureData.copyPath = await this.loadFeatureSlice("copyPath", rawData?.copyPath);
         this.featureData.statusBarEnhancer = await this.loadFeatureSlice("statusBarEnhancer", rawData?.statusBarEnhancer);
         this.featureData.tabBarEnhancer = await this.loadFeatureSlice("tabBarEnhancer", rawData?.tabBarEnhancer);
+        this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice("fileExplorerEnhancer", rawData?.fileExplorerEnhancer);
         if (this.hasLegacyFeatureSlices(rawData)) {
           await this.save();
         }
@@ -1254,6 +1281,14 @@ var require_store2 = __commonJS({
       setTabBarEnhancerData(tabBarEnhancerData) {
         this.featureData.tabBarEnhancer = this.normalizeTabBarEnhancerData(tabBarEnhancerData);
       }
+      // 返回文件资源管理器增强模块的独立配置切片。
+      getFileExplorerEnhancerData() {
+        return this.featureData.fileExplorerEnhancer;
+      }
+      // 更新文件资源管理器增强模块的独立配置切片缓存。
+      setFileExplorerEnhancerData(fileExplorerEnhancerData) {
+        this.featureData.fileExplorerEnhancer = this.normalizeFileExplorerEnhancerData(fileExplorerEnhancerData);
+      }
       // 保存文件标记功能数据到独立配置文件。
       async saveFileMarkerData(fileMarkerData) {
         this.setFileMarkerData(fileMarkerData);
@@ -1283,6 +1318,12 @@ var require_store2 = __commonJS({
       async saveTabBarEnhancerData(tabBarEnhancerData) {
         this.setTabBarEnhancerData(tabBarEnhancerData);
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
+        await this.featureConfigManager.save("fileExplorerEnhancer", this.featureData.fileExplorerEnhancer);
+      }
+      // 保存文件资源管理器增强模块数据到独立配置文件。
+      async saveFileExplorerEnhancerData(fileExplorerEnhancerData) {
+        this.setFileExplorerEnhancerData(fileExplorerEnhancerData);
+        await this.featureConfigManager.save("fileExplorerEnhancer", this.featureData.fileExplorerEnhancer);
       }
       // 将当前核心配置与全部模块配置一次性持久化，供导入和全量重置复用。
       async saveAll() {
@@ -1304,6 +1345,7 @@ var require_store2 = __commonJS({
         const copyPathPath = this.featureConfigManager.getFeatureConfigPath("copyPath");
         const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("statusBarEnhancer");
         const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("tabBarEnhancer");
+        const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath("fileExplorerEnhancer");
         return {
           directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
           exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
@@ -1355,6 +1397,13 @@ var require_store2 = __commonJS({
             path: tabBarEnhancerPath,
             exists: await this.featureConfigManager.exists("tabBarEnhancer"),
             summary: `空白区滚轮切换：${this.featureData.tabBarEnhancer.topBarWheelTabSwitch === true ? "已开启" : "已关闭"}，跳过隐藏标签：${this.featureData.tabBarEnhancer.skipCssHiddenTabs !== false ? "已开启" : "已关闭"}，跳过未加载插件标签：${this.featureData.tabBarEnhancer.skipUnloadedPluginTabs !== false ? "已开启" : "已关闭"}`
+          },
+          fileExplorerEnhancer: {
+            key: "fileExplorerEnhancer",
+            name: "文件资源管理器增强配置",
+            path: fileExplorerEnhancerPath,
+            exists: await this.featureConfigManager.exists("fileExplorerEnhancer"),
+            summary: `置顶路径规则：${(this.featureData.fileExplorerEnhancer.pinFilters.paths || []).length} 条，隐藏路径规则：${(this.featureData.fileExplorerEnhancer.hideFilters.paths || []).length} 条`
           }
         };
       }
@@ -1400,6 +1449,8 @@ var require_store2 = __commonJS({
           this.featureData.statusBarEnhancer = defaultFeatureData;
         } else if (featureKey === "tabBarEnhancer") {
           this.featureData.tabBarEnhancer = defaultFeatureData;
+        } else if (featureKey === "fileExplorerEnhancer") {
+          this.featureData.fileExplorerEnhancer = defaultFeatureData;
         }
         await this.featureConfigManager.save(featureKey, defaultFeatureData);
         return defaultFeatureData;
@@ -1421,7 +1472,8 @@ var require_store2 = __commonJS({
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
           copyPath: this.normalizeCopyPathData(source.copyPath),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
-          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
+          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
+          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
         });
       }
       // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
@@ -1434,6 +1486,7 @@ var require_store2 = __commonJS({
         delete normalizedCoreData.copyPath;
         delete normalizedCoreData.statusBarEnhancer;
         delete normalizedCoreData.tabBarEnhancer;
+        delete normalizedCoreData.fileExplorerEnhancer;
         normalizedCoreData.features = this.normalizeFeatures(source.features);
         return normalizedCoreData;
       }
@@ -1446,7 +1499,8 @@ var require_store2 = __commonJS({
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
           copyPath: this.normalizeCopyPathData(source.copyPath),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
-          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer)
+          tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
+          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
         };
       }
       // 归一化插件级功能开关结构。
@@ -1469,6 +1523,9 @@ var require_store2 = __commonJS({
           },
           tabBarEnhancer: {
             enabled: features?.tabBarEnhancer?.enabled === true
+          },
+          fileExplorerEnhancer: {
+            enabled: features?.fileExplorerEnhancer?.enabled === true
           }
         };
       }
@@ -1581,6 +1638,38 @@ var require_store2 = __commonJS({
           skipUnloadedPluginTabs: source.skipUnloadedPluginTabs !== false
         };
       }
+      // 归一化文件资源管理器增强配置结构，保证首次安装与旧数据迁移后形状稳定。
+      normalizeFileExplorerEnhancerData(fileExplorerEnhancerData) {
+        var source = this.isPlainObject(fileExplorerEnhancerData) ? fileExplorerEnhancerData : {};
+        var defaults = require_constants7().DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS;
+        return {
+          pinFilters: {
+            active: source.pinFilters && source.pinFilters.active === true,
+            paths: Array.isArray(source.pinFilters && source.pinFilters.paths) ? this.normalizePathFilters(source.pinFilters.paths) : defaults.pinFilters.paths
+          },
+          hideFilters: {
+            active: source.hideFilters && source.hideFilters.active === true,
+            paths: Array.isArray(source.hideFilters && source.hideFilters.paths) ? this.normalizePathFilters(source.hideFilters.paths) : defaults.hideFilters.paths
+          }
+        };
+      }
+      // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
+      normalizePathFilters(filters) {
+        return filters.filter(function(f) {
+          return f && typeof f === "object" && !Array.isArray(f);
+        }).map(function(f, idx) {
+          return {
+            name: typeof f.name === "string" ? f.name : "",
+            active: f.active !== false,
+            type: ["FILES", "DIRECTORIES"].indexOf(f.type) !== -1 ? f.type : "FILES",
+            pattern: typeof f.pattern === "string" ? f.pattern : "",
+            patternType: ["REGEX", "WILDCARD", "STRICT"].indexOf(f.patternType) !== -1 ? f.patternType : "STRICT",
+            position: typeof f.position === "number" && !isNaN(f.position) ? f.position : idx
+          };
+        }).sort(function(a, b) {
+          return a.position - b.position;
+        });
+      }
       // 加载单个功能切片，优先读取独立文件，缺失时自动迁移旧版 data.json 中的同名数据。
       async loadFeatureSlice(featureKey, legacyData) {
         const loadResult = await this.featureConfigManager.load(featureKey);
@@ -1616,12 +1705,15 @@ var require_store2 = __commonJS({
         if (featureKey === "tabBarEnhancer") {
           return this.normalizeTabBarEnhancerData(featureData);
         }
+        if (featureKey === "fileExplorerEnhancer") {
+          return this.normalizeFileExplorerEnhancerData(featureData);
+        }
         return this.isPlainObject(featureData) ? featureData : {};
       }
       // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
       hasLegacyFeatureSlices(data) {
         const source = this.isPlainObject(data) ? data : {};
-        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.copyPath) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer);
+        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.copyPath) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer) || this.isPlainObject(source.fileExplorerEnhancer);
       }
       // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
       getCoreConfigPath() {
@@ -1639,7 +1731,8 @@ var require_store2 = __commonJS({
           menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
           copyPath: bundle.featureData?.copyPath || bundle.copyPath,
           statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
-          tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer
+          tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
+          fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
         }) : bundle;
         const coreSource = hasSeparatedPayload ? Object.assign({}, bundle.coreData, {
           features: bundle.coreData?.features || bundle.features
@@ -1678,7 +1771,7 @@ var require_store2 = __commonJS({
 var require_plugin_data = __commonJS({
   "src/modules/plugin-data/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants7();
+    var constants = require_constants8();
     var featureConfigManager = require_feature_config_manager();
     var store = require_store2();
     module2.exports = Object.assign({}, constants, featureConfigManager, store);
@@ -1686,7 +1779,7 @@ var require_plugin_data = __commonJS({
 });
 
 // src/modules/plugin-settings/constants.js
-var require_constants8 = __commonJS({
+var require_constants9 = __commonJS({
   "src/modules/plugin-settings/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FEATURE_SETTINGS = {
@@ -1707,6 +1800,9 @@ var require_constants8 = __commonJS({
       },
       tabBarEnhancer: {
         enabled: false
+      },
+      fileExplorerEnhancer: {
+        enabled: false
       }
     };
     module2.exports = {
@@ -1719,7 +1815,7 @@ var require_constants8 = __commonJS({
 var require_store3 = __commonJS({
   "src/modules/plugin-settings/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants8();
+    var constants = require_constants9();
     var PluginSettingsStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1795,6 +1891,16 @@ var require_store3 = __commonJS({
         await this.save();
         return this.isTabBarEnhancerEnabled();
       }
+      // 切换文件资源管理器增强模块的启用状态，并立即持久化到本地。
+      async setFileExplorerEnhancerEnabled(enabled) {
+        this.settings.fileExplorerEnhancer.enabled = Boolean(enabled);
+        await this.save();
+        return this.isFileExplorerEnhancerEnabled();
+      }
+      // 返回文件资源管理器增强模块是否启用，供主入口和设置页统一读取。
+      isFileExplorerEnhancerEnabled() {
+        return Boolean(this.settings.fileExplorerEnhancer.enabled);
+      }
       // 返回功能设置对象，供主入口与设置页读取当前切片。
       getSettings() {
         return this.settings;
@@ -1820,6 +1926,9 @@ var require_store3 = __commonJS({
           },
           tabBarEnhancer: {
             enabled: source.tabBarEnhancer?.enabled === true
+          },
+          fileExplorerEnhancer: {
+            enabled: source.fileExplorerEnhancer?.enabled === true
           }
         };
       }
@@ -1834,7 +1943,7 @@ var require_store3 = __commonJS({
 var require_plugin_settings = __commonJS({
   "src/modules/plugin-settings/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants8();
+    var constants = require_constants9();
     var store = require_store3();
     module2.exports = Object.assign({}, constants, store);
   }
@@ -7490,6 +7599,3225 @@ var require_context_menu_enhancer = __commonJS({
   }
 });
 
+// node_modules/wildcard-match/build/index.js
+var require_build = __commonJS({
+  "node_modules/wildcard-match/build/index.js"(exports2, module2) {
+    "use strict";
+    function escapeRegExpChar(char) {
+      if (char === "-" || char === "^" || char === "$" || char === "+" || char === "." || char === "(" || char === ")" || char === "|" || char === "[" || char === "]" || char === "{" || char === "}" || char === "*" || char === "?" || char === "\\") {
+        return "\\".concat(char);
+      } else {
+        return char;
+      }
+    }
+    function escapeRegExpString(str) {
+      var result = "";
+      for (var i = 0; i < str.length; i++) {
+        result += escapeRegExpChar(str[i]);
+      }
+      return result;
+    }
+    function transform(pattern, separator) {
+      if (separator === void 0) {
+        separator = true;
+      }
+      if (Array.isArray(pattern)) {
+        var regExpPatterns = pattern.map(function(p) {
+          return "^".concat(transform(p, separator), "$");
+        });
+        return "(?:".concat(regExpPatterns.join("|"), ")");
+      }
+      var separatorSplitter = "";
+      var separatorMatcher = "";
+      var wildcard = ".";
+      if (separator === true) {
+        separatorSplitter = "/";
+        separatorMatcher = "[/\\\\]";
+        wildcard = "[^/\\\\]";
+      } else if (separator) {
+        separatorSplitter = separator;
+        separatorMatcher = escapeRegExpString(separatorSplitter);
+        if (separatorMatcher.length > 1) {
+          separatorMatcher = "(?:".concat(separatorMatcher, ")");
+          wildcard = "((?!".concat(separatorMatcher, ").)");
+        } else {
+          wildcard = "[^".concat(separatorMatcher, "]");
+        }
+      }
+      var requiredSeparator = separator ? "".concat(separatorMatcher, "+?") : "";
+      var optionalSeparator = separator ? "".concat(separatorMatcher, "*?") : "";
+      var segments = separator ? pattern.split(separatorSplitter) : [pattern];
+      var result = "";
+      for (var s = 0; s < segments.length; s++) {
+        var segment = segments[s];
+        var nextSegment = segments[s + 1];
+        var currentSeparator = "";
+        if (!segment && s > 0) {
+          continue;
+        }
+        if (separator) {
+          if (s === segments.length - 1) {
+            currentSeparator = optionalSeparator;
+          } else if (nextSegment !== "**") {
+            currentSeparator = requiredSeparator;
+          } else {
+            currentSeparator = "";
+          }
+        }
+        if (separator && segment === "**") {
+          if (currentSeparator) {
+            result += s === 0 ? "" : s === segments.length - 1 ? "(?:".concat(requiredSeparator, "|$)") : requiredSeparator;
+            result += "(?:".concat(wildcard, "*?").concat(currentSeparator, ")*?");
+          }
+          continue;
+        }
+        for (var c = 0; c < segment.length; c++) {
+          var char = segment[c];
+          if (char === "\\") {
+            if (c < segment.length - 1) {
+              result += escapeRegExpChar(segment[c + 1]);
+              c++;
+            }
+          } else if (char === "?") {
+            result += wildcard;
+          } else if (char === "*") {
+            result += "".concat(wildcard, "*?");
+          } else {
+            result += escapeRegExpChar(char);
+          }
+        }
+        result += currentSeparator;
+      }
+      return result;
+    }
+    function isMatch(regexp, sample) {
+      if (typeof sample !== "string") {
+        throw new TypeError("Sample must be a string, but ".concat(typeof sample, " given"));
+      }
+      return regexp.test(sample);
+    }
+    function wildcardMatch(pattern, options) {
+      if (typeof pattern !== "string" && !Array.isArray(pattern)) {
+        throw new TypeError("The first argument must be a single pattern string or an array of patterns, but ".concat(typeof pattern, " given"));
+      }
+      if (typeof options === "string" || typeof options === "boolean") {
+        options = { separator: options };
+      }
+      if (arguments.length === 2 && !(typeof options === "undefined" || typeof options === "object" && options !== null && !Array.isArray(options))) {
+        throw new TypeError("The second argument must be an options object or a string/boolean separator, but ".concat(typeof options, " given"));
+      }
+      options = options || {};
+      if (options.separator === "\\") {
+        throw new Error("\\ is not a valid separator because it is used for escaping. Try setting the separator to `true` instead");
+      }
+      var regexpPattern = transform(pattern, options.separator);
+      var regexp = new RegExp("^".concat(regexpPattern, "$"), options.flags);
+      var fn = isMatch.bind(null, regexp);
+      fn.options = options;
+      fn.pattern = pattern;
+      fn.regexp = regexp;
+      return fn;
+    }
+    module2.exports = wildcardMatch;
+  }
+});
+
+// src/modules/file-explorer-enhancer/store.js
+var require_store8 = __commonJS({
+  "src/modules/file-explorer-enhancer/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants7();
+    var obsidian2 = require("obsidian");
+    var FileExplorerEnhancerStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = this.normalizeSettings();
+        this.strictHidePaths = /* @__PURE__ */ new Map();
+        this.strictPinPaths = /* @__PURE__ */ new Map();
+        this.fileStateCache = /* @__PURE__ */ new Map();
+        this.cacheVersion = 0;
+      }
+      // 挂载插件数据仓库中的文件资源管理器增强切片，并预编译匹配器 + 构建 STRICT Map。
+      // 首次加载时回写磁盘，确保旧数据补全 position 等归一化字段。
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+        this.plugin.dataStore.setFileExplorerEnhancerData(this.settings);
+        this.plugin.dataStore.saveFileExplorerEnhancerData(this.settings);
+        this.compileAllFilters();
+        this.buildStrictMaps();
+        this.invalidateCache();
+      }
+      // 将最新数据同步到插件级数据仓库并持久化，之后重建编译缓存。
+      async save() {
+        this.settings = this.normalizeSettings(this.settings);
+        this.compileAllFilters();
+        this.buildStrictMaps();
+        this.invalidateCache();
+        await this.plugin.dataStore.saveFileExplorerEnhancerData(this.settings);
+      }
+      // 返回完整配置对象。
+      getSettings() {
+        return this.settings;
+      }
+      // --------------------------------
+      //  预编译优化：将 RegExp / wildcard 编译从「每次匹配」转移到「filter 变更时」
+      // --------------------------------
+      // 遍历所有激活的过滤器规则，预编译 _regex 与 _matcher 并挂载到 filter 对象上。
+      // 无效 filter 或 STRICT 模式（走 Map 查找）不编译。
+      compileAllFilters() {
+        var allPathFilters = this.settings.pinFilters.paths.concat(this.settings.hideFilters.paths);
+        for (var i = 0; i < allPathFilters.length; i++) {
+          var f = allPathFilters[i];
+          delete f._regex;
+          delete f._matcher;
+          if (!f.active || !f.pattern) continue;
+          if (f.patternType === "STRICT") continue;
+          if (f.patternType === "REGEX") {
+            try {
+              f._regex = new RegExp(f.pattern);
+            } catch (e) {
+              f._regex = null;
+            }
+          } else if (f.patternType === "WILDCARD") {
+            try {
+              var wcmatch = require_build();
+              var fn = typeof wcmatch === "function" ? wcmatch : wcmatch.default;
+              f._matcher = fn(f.pattern);
+            } catch (e) {
+              f._matcher = null;
+            }
+          }
+        }
+      }
+      // --------------------------------
+      //  STRICT 模式 Map 化：将精确匹配路径存入 Set，实现 O(1) 查找
+      // --------------------------------
+      buildStrictMaps() {
+        this.strictHidePaths.clear();
+        this.strictPinPaths.clear();
+        var hidePaths = this.settings.hideFilters.paths;
+        for (var i = 0; i < hidePaths.length; i++) {
+          var f = hidePaths[i];
+          if (f.active && f.patternType === "STRICT" && f.pattern) {
+            this.strictHidePaths.set(f.pattern, true);
+          }
+        }
+        var pinPaths = this.settings.pinFilters.paths;
+        for (var j = 0; j < pinPaths.length; j++) {
+          var f2 = pinPaths[j];
+          if (f2.active && f2.patternType === "STRICT" && f2.pattern) {
+            this.strictPinPaths.set(f2.pattern, true);
+          }
+        }
+      }
+      // O(1) 检查文件是否被 STRICT 模式隐藏。
+      checkStrictHide(file) {
+        return this.strictHidePaths.has(file.path) || this.strictHidePaths.has(file.path.replace(/\.md$/g, "")) || this.strictHidePaths.has(file.basename || file.name);
+      }
+      // O(1) 检查文件是否被 STRICT 模式置顶。
+      checkStrictPin(file) {
+        return this.strictPinPaths.has(file.path) || this.strictPinPaths.has(file.path.replace(/\.md$/g, "")) || this.strictPinPaths.has(file.basename || file.name);
+      }
+      // --------------------------------
+      //  文件状态缓存：避免每次全量重算
+      // --------------------------------
+      // 使全部缓存失效，settings 变更或 filter 变更时调用。
+      invalidateCache() {
+        this.cacheVersion++;
+        this.fileStateCache.clear();
+      }
+      // 获取文件状态（pinned / hidden），优先读缓存。
+      getFileState(file) {
+        var cached = this.fileStateCache.get(file.path);
+        if (cached && cached.version === this.cacheVersion) {
+          return cached;
+        }
+        var state = {
+          pinned: false,
+          hidden: false,
+          version: this.cacheVersion
+        };
+        if (this.settings.hideFilters.active) {
+          state.hidden = this.computeShouldHide(file);
+        }
+        if (this.settings.pinFilters.active) {
+          state.pinned = this.computeShouldPin(file);
+        }
+        this.fileStateCache.set(file.path, state);
+        return state;
+      }
+      // 计算文件是否需要隐藏（不走缓存）。
+      computeShouldHide(file) {
+        if (this.checkStrictHide(file)) return true;
+        return this.settings.hideFilters.paths.some(function(f) {
+          if (!f.active || f.patternType === "STRICT") return false;
+          return quickCheckPathFilter(f, file);
+        });
+      }
+      // 计算文件是否需要置顶（不走缓存）。
+      computeShouldPin(file) {
+        if (this.checkStrictPin(file)) return true;
+        return this.settings.pinFilters.paths.some(function(f) {
+          if (!f.active || f.patternType === "STRICT") return false;
+          return quickCheckPathFilter(f, file);
+        });
+      }
+      // 更新单个文件的状态缓存，rename / delete / metadata change 时调用。
+      updateFileState(file) {
+        this.fileStateCache.delete(file.path);
+        this.fileStateCache.delete(file.path.replace(/\.md$/g, ""));
+      }
+      // --------------------------------
+      //  归一化
+      // --------------------------------
+      normalizeSettings(data) {
+        var source = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+        var defaults = constants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS;
+        return {
+          pinFilters: {
+            active: source.pinFilters && source.pinFilters.active === true,
+            paths: Array.isArray(source.pinFilters && source.pinFilters.paths) ? this.normalizePathFilters(source.pinFilters.paths) : defaults.pinFilters.paths
+          },
+          hideFilters: {
+            active: source.hideFilters && source.hideFilters.active === true,
+            paths: Array.isArray(source.hideFilters && source.hideFilters.paths) ? this.normalizePathFilters(source.hideFilters.paths) : defaults.hideFilters.paths
+          }
+        };
+      }
+      normalizePathFilters(filters) {
+        return filters.filter(function(f) {
+          return f && typeof f === "object" && !Array.isArray(f);
+        }).map(function(f, idx) {
+          return {
+            name: typeof f.name === "string" ? f.name : "",
+            active: f.active !== false,
+            type: ["FILES", "DIRECTORIES", "FILES_AND_DIRECTORIES"].indexOf(f.type) !== -1 ? f.type : "FILES_AND_DIRECTORIES",
+            pattern: typeof f.pattern === "string" ? f.pattern : "",
+            patternType: ["REGEX", "WILDCARD", "STRICT"].indexOf(f.patternType) !== -1 ? f.patternType : "STRICT",
+            position: typeof f.position === "number" && !isNaN(f.position) ? f.position : idx
+          };
+        }).sort(function(a, b) {
+          return a.position - b.position;
+        });
+      }
+    };
+    function quickCheckPathFilter(filter, file) {
+      if (!filter.active || filter.pattern === "") return false;
+      if (filter.type === "FILES" && file instanceof obsidian2.TFolder) return false;
+      if (filter.type === "DIRECTORIES" && file instanceof obsidian2.TFile) return false;
+      if (filter.patternType === "REGEX") {
+        if (!filter._regex) return false;
+        return filter._regex.test(file.path) || filter._regex.test(file.path.replace(/\.md$/g, "")) || filter._regex.test(file.basename || file.name);
+      } else if (filter.patternType === "WILDCARD") {
+        if (!filter._matcher) return false;
+        return filter._matcher(file.path) || filter._matcher(file.path.replace(/\.md$/g, "")) || filter._matcher(file.basename || file.name);
+      }
+      return false;
+    }
+    module2.exports = {
+      FileExplorerEnhancerStore,
+      quickCheckPathFilter
+    };
+  }
+});
+
+// node_modules/monkey-around/index.js
+var require_monkey_around = __commonJS({
+  "node_modules/monkey-around/index.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.serialize = exports2.after = exports2.dedupe = exports2.around = void 0;
+    function around(obj, factories) {
+      const removers = Object.keys(factories).map((key) => around1(obj, key, factories[key]));
+      return removers.length === 1 ? removers[0] : function() {
+        removers.forEach((r) => r());
+      };
+    }
+    exports2.around = around;
+    function around1(obj, method, createWrapper) {
+      const original = obj[method], hadOwn = obj.hasOwnProperty(method);
+      let current = createWrapper(original);
+      if (original)
+        Object.setPrototypeOf(current, original);
+      Object.setPrototypeOf(wrapper, current);
+      obj[method] = wrapper;
+      return remove;
+      function wrapper(...args) {
+        if (current === original && obj[method] === wrapper)
+          remove();
+        return current.apply(this, args);
+      }
+      function remove() {
+        if (obj[method] === wrapper) {
+          if (hadOwn)
+            obj[method] = original;
+          else
+            delete obj[method];
+        }
+        if (current === original)
+          return;
+        current = original;
+        Object.setPrototypeOf(wrapper, original || Function);
+      }
+    }
+    function dedupe(key, oldFn, newFn) {
+      check[key] = key;
+      return check;
+      function check(...args) {
+        return (oldFn[key] === key ? oldFn : newFn).apply(this, args);
+      }
+    }
+    exports2.dedupe = dedupe;
+    function after(promise, cb) {
+      return promise.then(cb, cb);
+    }
+    exports2.after = after;
+    function serialize(asyncFunction) {
+      let lastRun = Promise.resolve();
+      function wrapper(...args) {
+        return lastRun = new Promise((res, rej) => {
+          after(lastRun, () => {
+            asyncFunction.apply(this, args).then(res, rej);
+          });
+        });
+      }
+      wrapper.after = function() {
+        return lastRun = new Promise((res, rej) => {
+          after(lastRun, res);
+        });
+      };
+      return wrapper;
+    }
+    exports2.serialize = serialize;
+  }
+});
+
+// src/modules/file-explorer-enhancer/runtime.js
+var require_runtime4 = __commonJS({
+  "src/modules/file-explorer-enhancer/runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var around = require_monkey_around().around || require_monkey_around();
+    function changeVirtualElementPin(vEl, pin, applyDOM) {
+      if (applyDOM === void 0) applyDOM = true;
+      if (pin) {
+        vEl.info.pinned = true;
+        if (applyDOM && !vEl.el.hasClass("tree-item-pinned")) {
+          vEl.el.addClass("tree-item-pinned");
+          var pinDiv = document.createElement("div");
+          pinDiv.addClass("file-explorer-plus");
+          pinDiv.addClass("pin-icon");
+          obsidian2.setIcon(pinDiv, "pin");
+          if (vEl.el.firstChild) {
+            vEl.el.firstChild.insertBefore(pinDiv, vEl.el.firstChild.firstChild);
+          }
+        }
+      } else {
+        vEl.info.pinned = false;
+        if (applyDOM && vEl.el.hasClass("tree-item-pinned")) {
+          vEl.el.removeClass("tree-item-pinned");
+          var firstChild = vEl.el.firstChild;
+          if (firstChild && firstChild.children) {
+            var pinIcons = Array.from(firstChild.children).filter(function(el) {
+              return el.hasClass("pin-icon");
+            });
+            pinIcons.forEach(function(icon) {
+              if (firstChild) firstChild.removeChild(icon);
+            });
+          }
+        }
+      }
+      return vEl;
+    }
+    function checkPathFilter(filter, file) {
+      if (!filter.active || filter.pattern === "") return false;
+      if (filter.type === "FILES" && file instanceof obsidian2.TFolder) return false;
+      if (filter.type === "DIRECTORIES" && file instanceof obsidian2.TFile) return false;
+      if (filter.patternType === "STRICT") {
+        return file.path === filter.pattern || file.path.replace(/\.md$/g, "") === filter.pattern || (file.basename || file.name) === filter.pattern;
+      }
+      if (filter.patternType === "REGEX") {
+        if (!filter._regex) return false;
+        return filter._regex.test(file.path) || filter._regex.test(file.path.replace(/\.md$/g, "")) || filter._regex.test(file.basename || file.name);
+      }
+      if (filter.patternType === "WILDCARD") {
+        if (!filter._matcher) return false;
+        return filter._matcher(file.path) || filter._matcher(file.path.replace(/\.md$/g, "")) || filter._matcher(file.basename || file.name);
+      }
+      return false;
+    }
+    function addOnRename(plugin) {
+      plugin.registerEvent(
+        plugin.app.vault.on("rename", function(file, oldPath) {
+          var settings = plugin.fileExplorerEnhancerSettings;
+          var newPath = file.path;
+          var hasChanged = false;
+          var oldPathPrefix = oldPath + "/";
+          var isFolder = file instanceof obsidian2.TFolder;
+          for (var i = 0; i < settings.hideFilters.paths.length; i++) {
+            var hf = settings.hideFilters.paths[i];
+            if (hf.patternType !== "STRICT" || !hf.pattern) continue;
+            if (hf.pattern === oldPath) {
+              hf.pattern = newPath;
+              hasChanged = true;
+            } else if (isFolder && hf.pattern.indexOf(oldPathPrefix) === 0) {
+              hf.pattern = newPath + "/" + hf.pattern.slice(oldPathPrefix.length);
+              hasChanged = true;
+            }
+          }
+          for (var j = 0; j < settings.pinFilters.paths.length; j++) {
+            var pf = settings.pinFilters.paths[j];
+            if (pf.patternType !== "STRICT" || !pf.pattern) continue;
+            if (pf.pattern === oldPath) {
+              pf.pattern = newPath;
+              hasChanged = true;
+            } else if (isFolder && pf.pattern.indexOf(oldPathPrefix) === 0) {
+              pf.pattern = newPath + "/" + pf.pattern.slice(oldPathPrefix.length);
+              hasChanged = true;
+            }
+          }
+          if (hasChanged) {
+            plugin.fileExplorerEnhancerStore.updateFileState(file);
+            plugin.fileExplorerEnhancerStore.save();
+            if (plugin._fileExplorerView) {
+              plugin._fileExplorerView.requestSort();
+            }
+          }
+        })
+      );
+    }
+    function addOnDelete(plugin) {
+      plugin.registerEvent(
+        plugin.app.vault.on("delete", function(file) {
+          var settings = plugin.fileExplorerEnhancerSettings;
+          var deletedPath = file.path;
+          var hasChanged = false;
+          var deletedPathPrefix = deletedPath + "/";
+          var isFolder = file instanceof obsidian2.TFolder;
+          var newHidePaths = [];
+          for (var i = 0; i < settings.hideFilters.paths.length; i++) {
+            var hf = settings.hideFilters.paths[i];
+            if (hf.patternType === "STRICT" && hf.pattern) {
+              if (hf.pattern === deletedPath || isFolder && hf.pattern.indexOf(deletedPathPrefix) === 0) {
+                hasChanged = true;
+                continue;
+              }
+            }
+            newHidePaths.push(hf);
+          }
+          settings.hideFilters.paths = newHidePaths;
+          var newPinPaths = [];
+          for (var j = 0; j < settings.pinFilters.paths.length; j++) {
+            var pf = settings.pinFilters.paths[j];
+            if (pf.patternType === "STRICT" && pf.pattern) {
+              if (pf.pattern === deletedPath || isFolder && pf.pattern.indexOf(deletedPathPrefix) === 0) {
+                hasChanged = true;
+                continue;
+              }
+            }
+            newPinPaths.push(pf);
+          }
+          settings.pinFilters.paths = newPinPaths;
+          if (hasChanged) {
+            plugin.fileExplorerEnhancerStore.updateFileState(file);
+            plugin.fileExplorerEnhancerStore.save();
+            if (plugin._fileExplorerView) {
+              plugin._fileExplorerView.requestSort();
+            }
+          }
+        })
+      );
+    }
+    function cacheFileMenuTarget(plugin) {
+      plugin.registerEvent(
+        plugin.app.workspace.on("file-menu", function(menu, path) {
+          plugin.fileExplorerEnhancerStore._lastMenuTarget = path;
+        })
+      );
+    }
+    function addCommands(plugin) {
+      plugin.addCommand({
+        id: "pin-or-unpin-file-or-folder",
+        name: "置顶/取消置顶文件或文件夹",
+        callback: function() {
+          var target = plugin.fileExplorerEnhancerStore._lastMenuTarget;
+          if (!target) target = plugin.app.workspace.getActiveFile();
+          if (!target) {
+            new obsidian2.Notice("没有可操作的目标");
+            return;
+          }
+          var settings = plugin.fileExplorerEnhancerSettings;
+          var type = target instanceof obsidian2.TFile ? "FILES" : "DIRECTORIES";
+          var index = settings.pinFilters.paths.findIndex(function(filter) {
+            return filter.patternType === "STRICT" && filter.type === type && filter.pattern === target.path;
+          });
+          if (index === -1 || !settings.pinFilters.paths[index].active) {
+            if (index === -1) {
+              settings.pinFilters.paths.push({ name: "", active: true, type, pattern: target.path, patternType: "STRICT" });
+            } else {
+              settings.pinFilters.paths[index].active = true;
+            }
+            new obsidian2.Notice("已置顶：" + target.path);
+          } else {
+            settings.pinFilters.paths.splice(index, 1);
+            new obsidian2.Notice("已取消置顶：" + target.path);
+          }
+          plugin.fileExplorerEnhancerStore.save();
+          if (settings.pinFilters.active && plugin._fileExplorerView) {
+            plugin._fileExplorerView.requestSort();
+          }
+        }
+      });
+      plugin.addCommand({
+        id: "hide-file-or-folder",
+        name: "隐藏文件或文件夹",
+        callback: function() {
+          var target = plugin.fileExplorerEnhancerStore._lastMenuTarget;
+          if (!target) target = plugin.app.workspace.getActiveFile();
+          if (!target) {
+            new obsidian2.Notice("没有可操作的目标");
+            return;
+          }
+          var settings = plugin.fileExplorerEnhancerSettings;
+          var type = target instanceof obsidian2.TFile ? "FILES" : "DIRECTORIES";
+          var index = settings.hideFilters.paths.findIndex(function(filter) {
+            return filter.patternType === "STRICT" && filter.type === type && filter.pattern === target.path;
+          });
+          if (index === -1) {
+            settings.hideFilters.paths.push({ name: "", active: true, type, pattern: target.path, patternType: "STRICT" });
+            new obsidian2.Notice("已隐藏：" + target.path);
+          } else {
+            if (!settings.hideFilters.paths[index].active) {
+              settings.hideFilters.paths[index].active = true;
+              new obsidian2.Notice("已隐藏：" + target.path);
+            }
+          }
+          plugin.fileExplorerEnhancerStore.save();
+          if (settings.hideFilters.active && plugin._fileExplorerView) {
+            plugin._fileExplorerView.requestSort();
+          }
+        }
+      });
+    }
+    function patchFileExplorerFolder(plugin, fileExplorerView) {
+      var leaf = plugin.app.workspace.getLeaf(true);
+      var tmpFolder = new obsidian2.TFolder(obsidian2.Vault, "");
+      var Folder = fileExplorerView.createFolderDom(tmpFolder).constructor;
+      plugin.register(
+        around(Folder.prototype, {
+          sort: function(old) {
+            return function() {
+              var store = plugin.fileExplorerEnhancerStore;
+              var settings = plugin.fileExplorerEnhancerSettings;
+              old.call(this);
+              if (!plugin.isFileExplorerEnhancerEnabled()) return;
+              if (!this.hiddenVChildren) {
+                this.hiddenVChildren = [];
+              }
+              var virtualElements = this.vChildren.children;
+              var hiddenVChildren = [];
+              var pinnedVChildren = [];
+              var unpinnedVChildren = [];
+              var revealedVChildren = [];
+              for (var i = 0; i < virtualElements.length; i++) {
+                var vEl = virtualElements[i];
+                var state = store.getFileState(vEl.file);
+                var isRevealed = plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(vEl.file.path);
+                if (settings.hideFilters.active && state.hidden && !isRevealed) {
+                  vEl.info.hidden = true;
+                  hiddenVChildren.push(vEl);
+                } else {
+                  vEl.info.hidden = false;
+                  if (isRevealed) {
+                    changeVirtualElementPin(vEl, false, false);
+                    revealedVChildren.push(vEl);
+                  } else if (settings.pinFilters.active && state.pinned) {
+                    changeVirtualElementPin(vEl, true, false);
+                    pinnedVChildren.push(vEl);
+                  } else {
+                    changeVirtualElementPin(vEl, false, false);
+                    unpinnedVChildren.push(vEl);
+                  }
+                }
+              }
+              this.hiddenVChildren = hiddenVChildren;
+              if (settings.pinFilters.active) {
+                this.vChildren.setChildren(pinnedVChildren.concat(unpinnedVChildren).concat(revealedVChildren));
+              } else {
+                var normalVisible = unpinnedVChildren.map(function(v) {
+                  return changeVirtualElementPin(v, false, false);
+                });
+                var pinnedCleared = pinnedVChildren.map(function(v) {
+                  return changeVirtualElementPin(v, false, false);
+                });
+                var revealedCleared = revealedVChildren.map(function(v) {
+                  return changeVirtualElementPin(v, false, false);
+                });
+                this.vChildren.setChildren(pinnedCleared.concat(normalVisible).concat(revealedCleared));
+              }
+              var rafId = this.__feRafId;
+              if (rafId) cancelAnimationFrame(rafId);
+              this.__feRafId = requestAnimationFrame(function() {
+                var allEls = this.vChildren.children;
+                for (var k = 0; k < allEls.length; k++) {
+                  var v = allEls[k];
+                  if (v.info.pinned && !v.el.hasClass("tree-item-pinned")) {
+                    v.el.addClass("tree-item-pinned");
+                    var pinDiv = document.createElement("div");
+                    pinDiv.addClass("file-explorer-plus");
+                    pinDiv.addClass("pin-icon");
+                    obsidian2.setIcon(pinDiv, "pin");
+                    if (v.el.firstChild) {
+                      v.el.firstChild.insertBefore(pinDiv, v.el.firstChild.firstChild);
+                    }
+                  } else if (!v.info.pinned && v.el.hasClass("tree-item-pinned")) {
+                    v.el.removeClass("tree-item-pinned");
+                    var fc = v.el.firstChild;
+                    if (fc && fc.children) {
+                      var icons = Array.from(fc.children).filter(function(e) {
+                        return e.hasClass("pin-icon");
+                      });
+                      icons.forEach(function(icon) {
+                        if (fc) fc.removeChild(icon);
+                      });
+                    }
+                  }
+                }
+              }.bind(this));
+            };
+          }
+        })
+      );
+      leaf.detach();
+    }
+    function getPathsToPin(plugin, paths) {
+      var store = plugin.fileExplorerEnhancerStore;
+      var settings = plugin.fileExplorerEnhancerSettings;
+      var nonStrictActiveFilters = [];
+      for (var i = 0; i < settings.pinFilters.paths.length; i++) {
+        var f = settings.pinFilters.paths[i];
+        if (f.active && f.patternType !== "STRICT") nonStrictActiveFilters.push(f);
+      }
+      if (store.strictPinPaths.size === 0 && nonStrictActiveFilters.length === 0) return [];
+      return paths.filter(function(path) {
+        if (!path) return false;
+        if (store.checkStrictPin(path)) return true;
+        return nonStrictActiveFilters.some(function(filter) {
+          return checkPathFilter(filter, path);
+        });
+      });
+    }
+    function getPathsToHide(plugin, paths) {
+      var store = plugin.fileExplorerEnhancerStore;
+      var settings = plugin.fileExplorerEnhancerSettings;
+      var nonStrictActiveFilters = [];
+      for (var i = 0; i < settings.hideFilters.paths.length; i++) {
+        var f = settings.hideFilters.paths[i];
+        if (f.active && f.patternType !== "STRICT") nonStrictActiveFilters.push(f);
+      }
+      if (store.strictHidePaths.size === 0 && nonStrictActiveFilters.length === 0) return [];
+      return paths.filter(function(path) {
+        if (!path) return false;
+        if (store.checkStrictHide(path)) return true;
+        return nonStrictActiveFilters.some(function(filter) {
+          return checkPathFilter(filter, path);
+        });
+      });
+    }
+    function unloadFileExplorerEnhancer(plugin, fileExplorerView) {
+      for (var key in fileExplorerView.fileItems) {
+        if (fileExplorerView.fileItems.hasOwnProperty(key)) {
+          var vEl = fileExplorerView.fileItems[key];
+          if (vEl.__feRafId) cancelAnimationFrame(vEl.__feRafId);
+          fileExplorerView.fileItems[key] = changeVirtualElementPin(vEl, false);
+        }
+      }
+      fileExplorerView.requestSort();
+    }
+    function refreshCompiledState(plugin) {
+      plugin.fileExplorerEnhancerStore.compileAllFilters();
+      plugin.fileExplorerEnhancerStore.buildStrictMaps();
+      plugin.fileExplorerEnhancerStore.invalidateCache();
+    }
+    function injectEyeButtons(plugin, view) {
+      var navHeader = view.containerEl.querySelector(".nav-header");
+      if (!navHeader) return;
+      var buttonsContainer = navHeader.querySelector(".nav-buttons-container");
+      if (!buttonsContainer) return;
+      if (buttonsContainer.querySelector(".nene-eye-toggle-button")) return;
+      var eyeBtn = document.createElement("button");
+      eyeBtn.className = "clickable-icon nav-action-button nene-eye-toggle-button";
+      eyeBtn.setAttribute("type", "button");
+      eyeBtn.setAttribute("aria-label", "");
+      obsidian2.setIcon(eyeBtn, "eye");
+      eyeBtn.disabled = true;
+      eyeBtn.addEventListener("click", function() {
+        handleEyeClick(plugin);
+      });
+      var restoreBtn = document.createElement("button");
+      restoreBtn.className = "clickable-icon nav-action-button nene-eye-restore-button";
+      restoreBtn.setAttribute("type", "button");
+      restoreBtn.setAttribute("aria-label", "");
+      obsidian2.setIcon(restoreBtn, "rotate-ccw");
+      restoreBtn.disabled = true;
+      restoreBtn.addEventListener("click", function() {
+        handleRestoreClick(plugin);
+      });
+      buttonsContainer.appendChild(eyeBtn);
+      buttonsContainer.appendChild(restoreBtn);
+      plugin._eyeToggleBtn = eyeBtn;
+      plugin._eyeRestoreBtn = restoreBtn;
+      updateEyeButtonState(plugin);
+      updateRestoreButtonState(plugin);
+    }
+    function removeEyeButtons() {
+      var eyeBtn = document.querySelector(".nene-eye-toggle-button");
+      var restoreBtn = document.querySelector(".nene-eye-restore-button");
+      if (eyeBtn && eyeBtn.parentNode) eyeBtn.parentNode.removeChild(eyeBtn);
+      if (restoreBtn && restoreBtn.parentNode) restoreBtn.parentNode.removeChild(restoreBtn);
+    }
+    function updateEyeButtonState(plugin) {
+      var btn = plugin._eyeToggleBtn;
+      if (!btn) return;
+      var dirPath = getTargetDirectory(plugin);
+      if (dirPath === null) {
+        obsidian2.setIcon(btn, "eye");
+        btn.disabled = true;
+        btn.setAttribute("aria-label", "无可用目录");
+        return;
+      }
+      if (hasHiddenFilesInDir(plugin, dirPath)) {
+        obsidian2.setIcon(btn, "eye-off");
+        btn.disabled = false;
+        btn.setAttribute("aria-label", "显示当前目录下的隐藏文件");
+      } else {
+        obsidian2.setIcon(btn, "eye");
+        btn.disabled = true;
+        btn.setAttribute("aria-label", "当前目录无隐藏文件");
+      }
+      updateRestoreButtonState(plugin);
+    }
+    function updateRestoreButtonState(plugin) {
+      var btn = plugin._eyeRestoreBtn;
+      if (!btn) return;
+      var history = plugin._eyeToggleHistory || [];
+      var hasRevealed = plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.size > 0;
+      if (history.length > 0 || hasRevealed) {
+        obsidian2.setIcon(btn, "rotate-ccw");
+        btn.disabled = false;
+        btn.setAttribute("aria-label", "恢复所有临时显示的隐藏文件");
+      } else {
+        obsidian2.setIcon(btn, "rotate-ccw");
+        btn.disabled = true;
+        btn.setAttribute("aria-label", "无需恢复");
+      }
+    }
+    function hasHiddenFilesInDir(plugin, dirPath) {
+      var settings = plugin.fileExplorerEnhancerSettings;
+      var hidePaths = settings.hideFilters.paths;
+      var activeFilters = [];
+      for (var i = 0; i < hidePaths.length; i++) {
+        var f = hidePaths[i];
+        if (f.active && f.pattern) {
+          activeFilters.push(f);
+        }
+      }
+      if (activeFilters.length === 0) return false;
+      var isRoot = dirPath === "";
+      var dirPrefix = isRoot ? "" : dirPath.endsWith("/") ? dirPath : dirPath + "/";
+      var allFiles = plugin.app.vault.getAllLoadedFiles();
+      for (var j = 0; j < allFiles.length; j++) {
+        var file = allFiles[j];
+        if (isRoot) {
+          if (file.path.indexOf("/") !== -1) continue;
+          if (plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(file.path)) continue;
+        } else {
+          if (file.path !== dirPath && file.path.indexOf(dirPrefix) !== 0) continue;
+        }
+        for (var k = 0; k < activeFilters.length; k++) {
+          if (checkPathFilter(activeFilters[k], file)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    function handleEyeClick(plugin) {
+      var dirPath = getTargetDirectory(plugin);
+      if (dirPath === null) return;
+      var isRoot = dirPath === "";
+      if (isRoot) {
+        if (!plugin._eyeRevealedPaths) plugin._eyeRevealedPaths = /* @__PURE__ */ new Set();
+        var settings = plugin.fileExplorerEnhancerSettings;
+        var hidePaths = settings.hideFilters.paths;
+        var activeFilters = [];
+        for (var fi = 0; fi < hidePaths.length; fi++) {
+          var f = hidePaths[fi];
+          if (f.active && f.pattern) {
+            activeFilters.push(f);
+          }
+        }
+        if (activeFilters.length === 0) return;
+        var allFiles = plugin.app.vault.getAllLoadedFiles();
+        var newlyRevealed = [];
+        for (var fj = 0; fj < allFiles.length; fj++) {
+          var file = allFiles[fj];
+          if (file.path.indexOf("/") !== -1) continue;
+          for (var fk = 0; fk < activeFilters.length; fk++) {
+            if (checkPathFilter(activeFilters[fk], file)) {
+              if (!plugin._eyeRevealedPaths.has(file.path)) {
+                plugin._eyeRevealedPaths.add(file.path);
+                newlyRevealed.push(file.path);
+              }
+              break;
+            }
+          }
+        }
+        if (newlyRevealed.length > 0) {
+          if (plugin._fileExplorerView) {
+            plugin._fileExplorerView.requestSort();
+          }
+        }
+        updateEyeButtonState(plugin);
+        updateRestoreButtonState(plugin);
+        return;
+      }
+      var dirPrefix = dirPath.endsWith("/") ? dirPath : dirPath + "/";
+      var settings2 = plugin.fileExplorerEnhancerSettings;
+      var hidePaths2 = settings2.hideFilters.paths;
+      if (!plugin._eyeToggleHistory) plugin._eyeToggleHistory = [];
+      var allFiles2 = plugin.app.vault.getAllLoadedFiles();
+      var hasChanges = false;
+      for (var i = 0; i < hidePaths2.length; i++) {
+        var f2 = hidePaths2[i];
+        if (!f2.active || !f2.pattern) continue;
+        var affectsDir = false;
+        for (var j = 0; j < allFiles2.length; j++) {
+          var file2 = allFiles2[j];
+          if (file2.path === dirPath || file2.path.indexOf(dirPrefix) === 0) {
+            if (checkPathFilter(f2, file2)) {
+              affectsDir = true;
+              break;
+            }
+          }
+        }
+        if (affectsDir) {
+          f2.active = false;
+          hasChanges = true;
+          if (plugin._eyeToggleHistory.indexOf(i) === -1) {
+            plugin._eyeToggleHistory.push(i);
+          }
+        }
+      }
+      if (hasChanges) {
+        plugin.fileExplorerEnhancerStore.save();
+        if (plugin._fileExplorerView) {
+          plugin._fileExplorerView.requestSort();
+        }
+      }
+      updateEyeButtonState(plugin);
+      updateRestoreButtonState(plugin);
+    }
+    function handleRestoreClick(plugin) {
+      var history = plugin._eyeToggleHistory;
+      if (history && history.length > 0) {
+        var settings = plugin.fileExplorerEnhancerSettings;
+        var hidePaths = settings.hideFilters.paths;
+        var hasChanges = false;
+        for (var i = 0; i < history.length; i++) {
+          var idx = history[i];
+          if (idx >= 0 && idx < hidePaths.length) {
+            hidePaths[idx].active = true;
+            hasChanges = true;
+          }
+        }
+        plugin._eyeToggleHistory = [];
+        if (hasChanges) {
+          plugin.fileExplorerEnhancerStore.save();
+        }
+      }
+      var hadRevealed = plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.size > 0;
+      plugin._eyeRevealedPaths = null;
+      plugin._lastFocusedFile = null;
+      if (hadRevealed || history && history.length > 0) {
+        if (plugin._fileExplorerView) {
+          plugin._fileExplorerView.requestSort();
+        }
+      }
+      updateEyeButtonState(plugin);
+      updateRestoreButtonState(plugin);
+    }
+    function getTargetDirectory(plugin) {
+      var lastFile = plugin._lastFocusedFile;
+      if (lastFile) {
+        if (lastFile instanceof obsidian2.TFolder) {
+          return normalizeRootPath(lastFile.path);
+        }
+        if (lastFile instanceof obsidian2.TFile) {
+          return lastFile.parent ? normalizeRootPath(lastFile.parent.path) : "";
+        }
+      }
+      var activeFile = plugin.app.workspace.getActiveFile();
+      if (activeFile && activeFile.parent) {
+        return normalizeRootPath(activeFile.parent.path);
+      }
+      return "";
+    }
+    function normalizeRootPath(path) {
+      if (path === "/" || path === "\\") return "";
+      return path;
+    }
+    function setupFileExplorerFocusTracking(plugin) {
+      if (!plugin._fileExplorerView) return;
+      var containerEl = plugin._fileExplorerView.containerEl;
+      if (!containerEl) return;
+      if (plugin._eyeFocusTrackingBound) return;
+      plugin._eyeFocusTrackingBound = true;
+      containerEl.addEventListener("click", function(event) {
+        var treeItem = event.target.closest(".tree-item");
+        if (!treeItem) {
+          plugin._lastFocusedFile = null;
+          updateEyeButtonState(plugin);
+          return;
+        }
+        var fileItems = plugin._fileExplorerView.fileItems;
+        if (!fileItems) return;
+        var innerEl = treeItem.querySelector(".tree-item-self .tree-item-inner");
+        if (!innerEl) return;
+        var title = innerEl.textContent || "";
+        var filePath = "";
+        var keys = Object.keys(fileItems);
+        for (var i = 0; i < keys.length; i++) {
+          var vEl = fileItems[keys[i]];
+          if (!vEl || !vEl.file) continue;
+          var fName = vEl.file.name || vEl.file.basename || "";
+          if (fName === title) {
+            filePath = vEl.file.path;
+            plugin._lastFocusedFile = vEl.file;
+            break;
+          }
+        }
+        updateEyeButtonState(plugin);
+      });
+      if (!plugin._eyeLeafChangeBound) {
+        plugin._eyeLeafChangeBound = true;
+        plugin.registerEvent(
+          plugin.app.workspace.on("active-leaf-change", function() {
+            plugin._lastFocusedFile = null;
+            updateEyeButtonState(plugin);
+          })
+        );
+      }
+    }
+    module2.exports = {
+      addCommands,
+      addOnRename,
+      addOnDelete,
+      cacheFileMenuTarget,
+      checkPathFilter,
+      changeVirtualElementPin,
+      patchFileExplorerFolder,
+      getPathsToPin,
+      getPathsToHide,
+      unloadFileExplorerEnhancer,
+      refreshCompiledState,
+      injectEyeButtons,
+      removeEyeButtons,
+      setupFileExplorerFocusTracking,
+      updateEyeButtonState
+    };
+  }
+});
+
+// node_modules/@popperjs/core/dist/cjs/popper.js
+var require_popper = __commonJS({
+  "node_modules/@popperjs/core/dist/cjs/popper.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    function getWindow(node) {
+      if (node == null) {
+        return window;
+      }
+      if (node.toString() !== "[object Window]") {
+        var ownerDocument = node.ownerDocument;
+        return ownerDocument ? ownerDocument.defaultView || window : window;
+      }
+      return node;
+    }
+    function isElement(node) {
+      var OwnElement = getWindow(node).Element;
+      return node instanceof OwnElement || node instanceof Element;
+    }
+    function isHTMLElement(node) {
+      var OwnElement = getWindow(node).HTMLElement;
+      return node instanceof OwnElement || node instanceof HTMLElement;
+    }
+    function isShadowRoot(node) {
+      if (typeof ShadowRoot === "undefined") {
+        return false;
+      }
+      var OwnElement = getWindow(node).ShadowRoot;
+      return node instanceof OwnElement || node instanceof ShadowRoot;
+    }
+    var max = Math.max;
+    var min = Math.min;
+    var round = Math.round;
+    function getUAString() {
+      var uaData = navigator.userAgentData;
+      if (uaData != null && uaData.brands && Array.isArray(uaData.brands)) {
+        return uaData.brands.map(function(item) {
+          return item.brand + "/" + item.version;
+        }).join(" ");
+      }
+      return navigator.userAgent;
+    }
+    function isLayoutViewport() {
+      return !/^((?!chrome|android).)*safari/i.test(getUAString());
+    }
+    function getBoundingClientRect(element, includeScale, isFixedStrategy) {
+      if (includeScale === void 0) {
+        includeScale = false;
+      }
+      if (isFixedStrategy === void 0) {
+        isFixedStrategy = false;
+      }
+      var clientRect = element.getBoundingClientRect();
+      var scaleX = 1;
+      var scaleY = 1;
+      if (includeScale && isHTMLElement(element)) {
+        scaleX = element.offsetWidth > 0 ? round(clientRect.width) / element.offsetWidth || 1 : 1;
+        scaleY = element.offsetHeight > 0 ? round(clientRect.height) / element.offsetHeight || 1 : 1;
+      }
+      var _ref = isElement(element) ? getWindow(element) : window, visualViewport = _ref.visualViewport;
+      var addVisualOffsets = !isLayoutViewport() && isFixedStrategy;
+      var x = (clientRect.left + (addVisualOffsets && visualViewport ? visualViewport.offsetLeft : 0)) / scaleX;
+      var y = (clientRect.top + (addVisualOffsets && visualViewport ? visualViewport.offsetTop : 0)) / scaleY;
+      var width = clientRect.width / scaleX;
+      var height = clientRect.height / scaleY;
+      return {
+        width,
+        height,
+        top: y,
+        right: x + width,
+        bottom: y + height,
+        left: x,
+        x,
+        y
+      };
+    }
+    function getWindowScroll(node) {
+      var win = getWindow(node);
+      var scrollLeft = win.pageXOffset;
+      var scrollTop = win.pageYOffset;
+      return {
+        scrollLeft,
+        scrollTop
+      };
+    }
+    function getHTMLElementScroll(element) {
+      return {
+        scrollLeft: element.scrollLeft,
+        scrollTop: element.scrollTop
+      };
+    }
+    function getNodeScroll(node) {
+      if (node === getWindow(node) || !isHTMLElement(node)) {
+        return getWindowScroll(node);
+      } else {
+        return getHTMLElementScroll(node);
+      }
+    }
+    function getNodeName(element) {
+      return element ? (element.nodeName || "").toLowerCase() : null;
+    }
+    function getDocumentElement(element) {
+      return ((isElement(element) ? element.ownerDocument : (
+        // $FlowFixMe[prop-missing]
+        element.document
+      )) || window.document).documentElement;
+    }
+    function getWindowScrollBarX(element) {
+      return getBoundingClientRect(getDocumentElement(element)).left + getWindowScroll(element).scrollLeft;
+    }
+    function getComputedStyle(element) {
+      return getWindow(element).getComputedStyle(element);
+    }
+    function isScrollParent(element) {
+      var _getComputedStyle = getComputedStyle(element), overflow = _getComputedStyle.overflow, overflowX = _getComputedStyle.overflowX, overflowY = _getComputedStyle.overflowY;
+      return /auto|scroll|overlay|hidden/.test(overflow + overflowY + overflowX);
+    }
+    function isElementScaled(element) {
+      var rect = element.getBoundingClientRect();
+      var scaleX = round(rect.width) / element.offsetWidth || 1;
+      var scaleY = round(rect.height) / element.offsetHeight || 1;
+      return scaleX !== 1 || scaleY !== 1;
+    }
+    function getCompositeRect(elementOrVirtualElement, offsetParent, isFixed) {
+      if (isFixed === void 0) {
+        isFixed = false;
+      }
+      var isOffsetParentAnElement = isHTMLElement(offsetParent);
+      var offsetParentIsScaled = isHTMLElement(offsetParent) && isElementScaled(offsetParent);
+      var documentElement = getDocumentElement(offsetParent);
+      var rect = getBoundingClientRect(elementOrVirtualElement, offsetParentIsScaled, isFixed);
+      var scroll = {
+        scrollLeft: 0,
+        scrollTop: 0
+      };
+      var offsets = {
+        x: 0,
+        y: 0
+      };
+      if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
+        if (getNodeName(offsetParent) !== "body" || // https://github.com/popperjs/popper-core/issues/1078
+        isScrollParent(documentElement)) {
+          scroll = getNodeScroll(offsetParent);
+        }
+        if (isHTMLElement(offsetParent)) {
+          offsets = getBoundingClientRect(offsetParent, true);
+          offsets.x += offsetParent.clientLeft;
+          offsets.y += offsetParent.clientTop;
+        } else if (documentElement) {
+          offsets.x = getWindowScrollBarX(documentElement);
+        }
+      }
+      return {
+        x: rect.left + scroll.scrollLeft - offsets.x,
+        y: rect.top + scroll.scrollTop - offsets.y,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+    function getLayoutRect(element) {
+      var clientRect = getBoundingClientRect(element);
+      var width = element.offsetWidth;
+      var height = element.offsetHeight;
+      if (Math.abs(clientRect.width - width) <= 1) {
+        width = clientRect.width;
+      }
+      if (Math.abs(clientRect.height - height) <= 1) {
+        height = clientRect.height;
+      }
+      return {
+        x: element.offsetLeft,
+        y: element.offsetTop,
+        width,
+        height
+      };
+    }
+    function getParentNode(element) {
+      if (getNodeName(element) === "html") {
+        return element;
+      }
+      return (
+        // this is a quicker (but less type safe) way to save quite some bytes from the bundle
+        // $FlowFixMe[incompatible-return]
+        // $FlowFixMe[prop-missing]
+        element.assignedSlot || // step into the shadow DOM of the parent of a slotted node
+        element.parentNode || // DOM Element detected
+        (isShadowRoot(element) ? element.host : null) || // ShadowRoot detected
+        // $FlowFixMe[incompatible-call]: HTMLElement is a Node
+        getDocumentElement(element)
+      );
+    }
+    function getScrollParent(node) {
+      if (["html", "body", "#document"].indexOf(getNodeName(node)) >= 0) {
+        return node.ownerDocument.body;
+      }
+      if (isHTMLElement(node) && isScrollParent(node)) {
+        return node;
+      }
+      return getScrollParent(getParentNode(node));
+    }
+    function listScrollParents(element, list) {
+      var _element$ownerDocumen;
+      if (list === void 0) {
+        list = [];
+      }
+      var scrollParent = getScrollParent(element);
+      var isBody = scrollParent === ((_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body);
+      var win = getWindow(scrollParent);
+      var target = isBody ? [win].concat(win.visualViewport || [], isScrollParent(scrollParent) ? scrollParent : []) : scrollParent;
+      var updatedList = list.concat(target);
+      return isBody ? updatedList : (
+        // $FlowFixMe[incompatible-call]: isBody tells us target will be an HTMLElement here
+        updatedList.concat(listScrollParents(getParentNode(target)))
+      );
+    }
+    function isTableElement(element) {
+      return ["table", "td", "th"].indexOf(getNodeName(element)) >= 0;
+    }
+    function getTrueOffsetParent(element) {
+      if (!isHTMLElement(element) || // https://github.com/popperjs/popper-core/issues/837
+      getComputedStyle(element).position === "fixed") {
+        return null;
+      }
+      return element.offsetParent;
+    }
+    function getContainingBlock(element) {
+      var isFirefox = /firefox/i.test(getUAString());
+      var isIE = /Trident/i.test(getUAString());
+      if (isIE && isHTMLElement(element)) {
+        var elementCss = getComputedStyle(element);
+        if (elementCss.position === "fixed") {
+          return null;
+        }
+      }
+      var currentNode = getParentNode(element);
+      if (isShadowRoot(currentNode)) {
+        currentNode = currentNode.host;
+      }
+      while (isHTMLElement(currentNode) && ["html", "body"].indexOf(getNodeName(currentNode)) < 0) {
+        var css = getComputedStyle(currentNode);
+        if (css.transform !== "none" || css.perspective !== "none" || css.contain === "paint" || ["transform", "perspective"].indexOf(css.willChange) !== -1 || isFirefox && css.willChange === "filter" || isFirefox && css.filter && css.filter !== "none") {
+          return currentNode;
+        } else {
+          currentNode = currentNode.parentNode;
+        }
+      }
+      return null;
+    }
+    function getOffsetParent(element) {
+      var window2 = getWindow(element);
+      var offsetParent = getTrueOffsetParent(element);
+      while (offsetParent && isTableElement(offsetParent) && getComputedStyle(offsetParent).position === "static") {
+        offsetParent = getTrueOffsetParent(offsetParent);
+      }
+      if (offsetParent && (getNodeName(offsetParent) === "html" || getNodeName(offsetParent) === "body" && getComputedStyle(offsetParent).position === "static")) {
+        return window2;
+      }
+      return offsetParent || getContainingBlock(element) || window2;
+    }
+    var top = "top";
+    var bottom = "bottom";
+    var right = "right";
+    var left = "left";
+    var auto = "auto";
+    var basePlacements = [top, bottom, right, left];
+    var start = "start";
+    var end = "end";
+    var clippingParents = "clippingParents";
+    var viewport = "viewport";
+    var popper = "popper";
+    var reference = "reference";
+    var variationPlacements = /* @__PURE__ */ basePlacements.reduce(function(acc, placement) {
+      return acc.concat([placement + "-" + start, placement + "-" + end]);
+    }, []);
+    var placements = /* @__PURE__ */ [].concat(basePlacements, [auto]).reduce(function(acc, placement) {
+      return acc.concat([placement, placement + "-" + start, placement + "-" + end]);
+    }, []);
+    var beforeRead = "beforeRead";
+    var read = "read";
+    var afterRead = "afterRead";
+    var beforeMain = "beforeMain";
+    var main = "main";
+    var afterMain = "afterMain";
+    var beforeWrite = "beforeWrite";
+    var write = "write";
+    var afterWrite = "afterWrite";
+    var modifierPhases = [beforeRead, read, afterRead, beforeMain, main, afterMain, beforeWrite, write, afterWrite];
+    function order(modifiers) {
+      var map = /* @__PURE__ */ new Map();
+      var visited = /* @__PURE__ */ new Set();
+      var result = [];
+      modifiers.forEach(function(modifier) {
+        map.set(modifier.name, modifier);
+      });
+      function sort(modifier) {
+        visited.add(modifier.name);
+        var requires = [].concat(modifier.requires || [], modifier.requiresIfExists || []);
+        requires.forEach(function(dep) {
+          if (!visited.has(dep)) {
+            var depModifier = map.get(dep);
+            if (depModifier) {
+              sort(depModifier);
+            }
+          }
+        });
+        result.push(modifier);
+      }
+      modifiers.forEach(function(modifier) {
+        if (!visited.has(modifier.name)) {
+          sort(modifier);
+        }
+      });
+      return result;
+    }
+    function orderModifiers(modifiers) {
+      var orderedModifiers = order(modifiers);
+      return modifierPhases.reduce(function(acc, phase) {
+        return acc.concat(orderedModifiers.filter(function(modifier) {
+          return modifier.phase === phase;
+        }));
+      }, []);
+    }
+    function debounce(fn) {
+      var pending;
+      return function() {
+        if (!pending) {
+          pending = new Promise(function(resolve) {
+            Promise.resolve().then(function() {
+              pending = void 0;
+              resolve(fn());
+            });
+          });
+        }
+        return pending;
+      };
+    }
+    function mergeByName(modifiers) {
+      var merged = modifiers.reduce(function(merged2, current) {
+        var existing = merged2[current.name];
+        merged2[current.name] = existing ? Object.assign({}, existing, current, {
+          options: Object.assign({}, existing.options, current.options),
+          data: Object.assign({}, existing.data, current.data)
+        }) : current;
+        return merged2;
+      }, {});
+      return Object.keys(merged).map(function(key) {
+        return merged[key];
+      });
+    }
+    function getViewportRect(element, strategy) {
+      var win = getWindow(element);
+      var html = getDocumentElement(element);
+      var visualViewport = win.visualViewport;
+      var width = html.clientWidth;
+      var height = html.clientHeight;
+      var x = 0;
+      var y = 0;
+      if (visualViewport) {
+        width = visualViewport.width;
+        height = visualViewport.height;
+        var layoutViewport = isLayoutViewport();
+        if (layoutViewport || !layoutViewport && strategy === "fixed") {
+          x = visualViewport.offsetLeft;
+          y = visualViewport.offsetTop;
+        }
+      }
+      return {
+        width,
+        height,
+        x: x + getWindowScrollBarX(element),
+        y
+      };
+    }
+    function getDocumentRect(element) {
+      var _element$ownerDocumen;
+      var html = getDocumentElement(element);
+      var winScroll = getWindowScroll(element);
+      var body = (_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body;
+      var width = max(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
+      var height = max(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
+      var x = -winScroll.scrollLeft + getWindowScrollBarX(element);
+      var y = -winScroll.scrollTop;
+      if (getComputedStyle(body || html).direction === "rtl") {
+        x += max(html.clientWidth, body ? body.clientWidth : 0) - width;
+      }
+      return {
+        width,
+        height,
+        x,
+        y
+      };
+    }
+    function contains(parent, child) {
+      var rootNode = child.getRootNode && child.getRootNode();
+      if (parent.contains(child)) {
+        return true;
+      } else if (rootNode && isShadowRoot(rootNode)) {
+        var next = child;
+        do {
+          if (next && parent.isSameNode(next)) {
+            return true;
+          }
+          next = next.parentNode || next.host;
+        } while (next);
+      }
+      return false;
+    }
+    function rectToClientRect(rect) {
+      return Object.assign({}, rect, {
+        left: rect.x,
+        top: rect.y,
+        right: rect.x + rect.width,
+        bottom: rect.y + rect.height
+      });
+    }
+    function getInnerBoundingClientRect(element, strategy) {
+      var rect = getBoundingClientRect(element, false, strategy === "fixed");
+      rect.top = rect.top + element.clientTop;
+      rect.left = rect.left + element.clientLeft;
+      rect.bottom = rect.top + element.clientHeight;
+      rect.right = rect.left + element.clientWidth;
+      rect.width = element.clientWidth;
+      rect.height = element.clientHeight;
+      rect.x = rect.left;
+      rect.y = rect.top;
+      return rect;
+    }
+    function getClientRectFromMixedType(element, clippingParent, strategy) {
+      return clippingParent === viewport ? rectToClientRect(getViewportRect(element, strategy)) : isElement(clippingParent) ? getInnerBoundingClientRect(clippingParent, strategy) : rectToClientRect(getDocumentRect(getDocumentElement(element)));
+    }
+    function getClippingParents(element) {
+      var clippingParents2 = listScrollParents(getParentNode(element));
+      var canEscapeClipping = ["absolute", "fixed"].indexOf(getComputedStyle(element).position) >= 0;
+      var clipperElement = canEscapeClipping && isHTMLElement(element) ? getOffsetParent(element) : element;
+      if (!isElement(clipperElement)) {
+        return [];
+      }
+      return clippingParents2.filter(function(clippingParent) {
+        return isElement(clippingParent) && contains(clippingParent, clipperElement) && getNodeName(clippingParent) !== "body";
+      });
+    }
+    function getClippingRect(element, boundary, rootBoundary, strategy) {
+      var mainClippingParents = boundary === "clippingParents" ? getClippingParents(element) : [].concat(boundary);
+      var clippingParents2 = [].concat(mainClippingParents, [rootBoundary]);
+      var firstClippingParent = clippingParents2[0];
+      var clippingRect = clippingParents2.reduce(function(accRect, clippingParent) {
+        var rect = getClientRectFromMixedType(element, clippingParent, strategy);
+        accRect.top = max(rect.top, accRect.top);
+        accRect.right = min(rect.right, accRect.right);
+        accRect.bottom = min(rect.bottom, accRect.bottom);
+        accRect.left = max(rect.left, accRect.left);
+        return accRect;
+      }, getClientRectFromMixedType(element, firstClippingParent, strategy));
+      clippingRect.width = clippingRect.right - clippingRect.left;
+      clippingRect.height = clippingRect.bottom - clippingRect.top;
+      clippingRect.x = clippingRect.left;
+      clippingRect.y = clippingRect.top;
+      return clippingRect;
+    }
+    function getBasePlacement(placement) {
+      return placement.split("-")[0];
+    }
+    function getVariation(placement) {
+      return placement.split("-")[1];
+    }
+    function getMainAxisFromPlacement(placement) {
+      return ["top", "bottom"].indexOf(placement) >= 0 ? "x" : "y";
+    }
+    function computeOffsets(_ref) {
+      var reference2 = _ref.reference, element = _ref.element, placement = _ref.placement;
+      var basePlacement = placement ? getBasePlacement(placement) : null;
+      var variation = placement ? getVariation(placement) : null;
+      var commonX = reference2.x + reference2.width / 2 - element.width / 2;
+      var commonY = reference2.y + reference2.height / 2 - element.height / 2;
+      var offsets;
+      switch (basePlacement) {
+        case top:
+          offsets = {
+            x: commonX,
+            y: reference2.y - element.height
+          };
+          break;
+        case bottom:
+          offsets = {
+            x: commonX,
+            y: reference2.y + reference2.height
+          };
+          break;
+        case right:
+          offsets = {
+            x: reference2.x + reference2.width,
+            y: commonY
+          };
+          break;
+        case left:
+          offsets = {
+            x: reference2.x - element.width,
+            y: commonY
+          };
+          break;
+        default:
+          offsets = {
+            x: reference2.x,
+            y: reference2.y
+          };
+      }
+      var mainAxis = basePlacement ? getMainAxisFromPlacement(basePlacement) : null;
+      if (mainAxis != null) {
+        var len = mainAxis === "y" ? "height" : "width";
+        switch (variation) {
+          case start:
+            offsets[mainAxis] = offsets[mainAxis] - (reference2[len] / 2 - element[len] / 2);
+            break;
+          case end:
+            offsets[mainAxis] = offsets[mainAxis] + (reference2[len] / 2 - element[len] / 2);
+            break;
+        }
+      }
+      return offsets;
+    }
+    function getFreshSideObject() {
+      return {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      };
+    }
+    function mergePaddingObject(paddingObject) {
+      return Object.assign({}, getFreshSideObject(), paddingObject);
+    }
+    function expandToHashMap(value, keys) {
+      return keys.reduce(function(hashMap, key) {
+        hashMap[key] = value;
+        return hashMap;
+      }, {});
+    }
+    function detectOverflow(state, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      var _options = options, _options$placement = _options.placement, placement = _options$placement === void 0 ? state.placement : _options$placement, _options$strategy = _options.strategy, strategy = _options$strategy === void 0 ? state.strategy : _options$strategy, _options$boundary = _options.boundary, boundary = _options$boundary === void 0 ? clippingParents : _options$boundary, _options$rootBoundary = _options.rootBoundary, rootBoundary = _options$rootBoundary === void 0 ? viewport : _options$rootBoundary, _options$elementConte = _options.elementContext, elementContext = _options$elementConte === void 0 ? popper : _options$elementConte, _options$altBoundary = _options.altBoundary, altBoundary = _options$altBoundary === void 0 ? false : _options$altBoundary, _options$padding = _options.padding, padding = _options$padding === void 0 ? 0 : _options$padding;
+      var paddingObject = mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
+      var altContext = elementContext === popper ? reference : popper;
+      var popperRect = state.rects.popper;
+      var element = state.elements[altBoundary ? altContext : elementContext];
+      var clippingClientRect = getClippingRect(isElement(element) ? element : element.contextElement || getDocumentElement(state.elements.popper), boundary, rootBoundary, strategy);
+      var referenceClientRect = getBoundingClientRect(state.elements.reference);
+      var popperOffsets2 = computeOffsets({
+        reference: referenceClientRect,
+        element: popperRect,
+        strategy: "absolute",
+        placement
+      });
+      var popperClientRect = rectToClientRect(Object.assign({}, popperRect, popperOffsets2));
+      var elementClientRect = elementContext === popper ? popperClientRect : referenceClientRect;
+      var overflowOffsets = {
+        top: clippingClientRect.top - elementClientRect.top + paddingObject.top,
+        bottom: elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom,
+        left: clippingClientRect.left - elementClientRect.left + paddingObject.left,
+        right: elementClientRect.right - clippingClientRect.right + paddingObject.right
+      };
+      var offsetData = state.modifiersData.offset;
+      if (elementContext === popper && offsetData) {
+        var offset2 = offsetData[placement];
+        Object.keys(overflowOffsets).forEach(function(key) {
+          var multiply = [right, bottom].indexOf(key) >= 0 ? 1 : -1;
+          var axis = [top, bottom].indexOf(key) >= 0 ? "y" : "x";
+          overflowOffsets[key] += offset2[axis] * multiply;
+        });
+      }
+      return overflowOffsets;
+    }
+    var DEFAULT_OPTIONS = {
+      placement: "bottom",
+      modifiers: [],
+      strategy: "absolute"
+    };
+    function areValidElements() {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      return !args.some(function(element) {
+        return !(element && typeof element.getBoundingClientRect === "function");
+      });
+    }
+    function popperGenerator(generatorOptions) {
+      if (generatorOptions === void 0) {
+        generatorOptions = {};
+      }
+      var _generatorOptions = generatorOptions, _generatorOptions$def = _generatorOptions.defaultModifiers, defaultModifiers2 = _generatorOptions$def === void 0 ? [] : _generatorOptions$def, _generatorOptions$def2 = _generatorOptions.defaultOptions, defaultOptions = _generatorOptions$def2 === void 0 ? DEFAULT_OPTIONS : _generatorOptions$def2;
+      return function createPopper2(reference2, popper2, options) {
+        if (options === void 0) {
+          options = defaultOptions;
+        }
+        var state = {
+          placement: "bottom",
+          orderedModifiers: [],
+          options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions),
+          modifiersData: {},
+          elements: {
+            reference: reference2,
+            popper: popper2
+          },
+          attributes: {},
+          styles: {}
+        };
+        var effectCleanupFns = [];
+        var isDestroyed = false;
+        var instance = {
+          state,
+          setOptions: function setOptions(setOptionsAction) {
+            var options2 = typeof setOptionsAction === "function" ? setOptionsAction(state.options) : setOptionsAction;
+            cleanupModifierEffects();
+            state.options = Object.assign({}, defaultOptions, state.options, options2);
+            state.scrollParents = {
+              reference: isElement(reference2) ? listScrollParents(reference2) : reference2.contextElement ? listScrollParents(reference2.contextElement) : [],
+              popper: listScrollParents(popper2)
+            };
+            var orderedModifiers = orderModifiers(mergeByName([].concat(defaultModifiers2, state.options.modifiers)));
+            state.orderedModifiers = orderedModifiers.filter(function(m) {
+              return m.enabled;
+            });
+            runModifierEffects();
+            return instance.update();
+          },
+          // Sync update – it will always be executed, even if not necessary. This
+          // is useful for low frequency updates where sync behavior simplifies the
+          // logic.
+          // For high frequency updates (e.g. `resize` and `scroll` events), always
+          // prefer the async Popper#update method
+          forceUpdate: function forceUpdate() {
+            if (isDestroyed) {
+              return;
+            }
+            var _state$elements = state.elements, reference3 = _state$elements.reference, popper3 = _state$elements.popper;
+            if (!areValidElements(reference3, popper3)) {
+              return;
+            }
+            state.rects = {
+              reference: getCompositeRect(reference3, getOffsetParent(popper3), state.options.strategy === "fixed"),
+              popper: getLayoutRect(popper3)
+            };
+            state.reset = false;
+            state.placement = state.options.placement;
+            state.orderedModifiers.forEach(function(modifier) {
+              return state.modifiersData[modifier.name] = Object.assign({}, modifier.data);
+            });
+            for (var index = 0; index < state.orderedModifiers.length; index++) {
+              if (state.reset === true) {
+                state.reset = false;
+                index = -1;
+                continue;
+              }
+              var _state$orderedModifie = state.orderedModifiers[index], fn = _state$orderedModifie.fn, _state$orderedModifie2 = _state$orderedModifie.options, _options = _state$orderedModifie2 === void 0 ? {} : _state$orderedModifie2, name = _state$orderedModifie.name;
+              if (typeof fn === "function") {
+                state = fn({
+                  state,
+                  options: _options,
+                  name,
+                  instance
+                }) || state;
+              }
+            }
+          },
+          // Async and optimistically optimized update – it will not be executed if
+          // not necessary (debounced to run at most once-per-tick)
+          update: debounce(function() {
+            return new Promise(function(resolve) {
+              instance.forceUpdate();
+              resolve(state);
+            });
+          }),
+          destroy: function destroy() {
+            cleanupModifierEffects();
+            isDestroyed = true;
+          }
+        };
+        if (!areValidElements(reference2, popper2)) {
+          return instance;
+        }
+        instance.setOptions(options).then(function(state2) {
+          if (!isDestroyed && options.onFirstUpdate) {
+            options.onFirstUpdate(state2);
+          }
+        });
+        function runModifierEffects() {
+          state.orderedModifiers.forEach(function(_ref) {
+            var name = _ref.name, _ref$options = _ref.options, options2 = _ref$options === void 0 ? {} : _ref$options, effect2 = _ref.effect;
+            if (typeof effect2 === "function") {
+              var cleanupFn = effect2({
+                state,
+                name,
+                instance,
+                options: options2
+              });
+              var noopFn = function noopFn2() {
+              };
+              effectCleanupFns.push(cleanupFn || noopFn);
+            }
+          });
+        }
+        function cleanupModifierEffects() {
+          effectCleanupFns.forEach(function(fn) {
+            return fn();
+          });
+          effectCleanupFns = [];
+        }
+        return instance;
+      };
+    }
+    var passive = {
+      passive: true
+    };
+    function effect$2(_ref) {
+      var state = _ref.state, instance = _ref.instance, options = _ref.options;
+      var _options$scroll = options.scroll, scroll = _options$scroll === void 0 ? true : _options$scroll, _options$resize = options.resize, resize = _options$resize === void 0 ? true : _options$resize;
+      var window2 = getWindow(state.elements.popper);
+      var scrollParents = [].concat(state.scrollParents.reference, state.scrollParents.popper);
+      if (scroll) {
+        scrollParents.forEach(function(scrollParent) {
+          scrollParent.addEventListener("scroll", instance.update, passive);
+        });
+      }
+      if (resize) {
+        window2.addEventListener("resize", instance.update, passive);
+      }
+      return function() {
+        if (scroll) {
+          scrollParents.forEach(function(scrollParent) {
+            scrollParent.removeEventListener("scroll", instance.update, passive);
+          });
+        }
+        if (resize) {
+          window2.removeEventListener("resize", instance.update, passive);
+        }
+      };
+    }
+    var eventListeners = {
+      name: "eventListeners",
+      enabled: true,
+      phase: "write",
+      fn: function fn() {
+      },
+      effect: effect$2,
+      data: {}
+    };
+    function popperOffsets(_ref) {
+      var state = _ref.state, name = _ref.name;
+      state.modifiersData[name] = computeOffsets({
+        reference: state.rects.reference,
+        element: state.rects.popper,
+        strategy: "absolute",
+        placement: state.placement
+      });
+    }
+    var popperOffsets$1 = {
+      name: "popperOffsets",
+      enabled: true,
+      phase: "read",
+      fn: popperOffsets,
+      data: {}
+    };
+    var unsetSides = {
+      top: "auto",
+      right: "auto",
+      bottom: "auto",
+      left: "auto"
+    };
+    function roundOffsetsByDPR(_ref, win) {
+      var x = _ref.x, y = _ref.y;
+      var dpr = win.devicePixelRatio || 1;
+      return {
+        x: round(x * dpr) / dpr || 0,
+        y: round(y * dpr) / dpr || 0
+      };
+    }
+    function mapToStyles(_ref2) {
+      var _Object$assign2;
+      var popper2 = _ref2.popper, popperRect = _ref2.popperRect, placement = _ref2.placement, variation = _ref2.variation, offsets = _ref2.offsets, position = _ref2.position, gpuAcceleration = _ref2.gpuAcceleration, adaptive = _ref2.adaptive, roundOffsets = _ref2.roundOffsets, isFixed = _ref2.isFixed;
+      var _offsets$x = offsets.x, x = _offsets$x === void 0 ? 0 : _offsets$x, _offsets$y = offsets.y, y = _offsets$y === void 0 ? 0 : _offsets$y;
+      var _ref3 = typeof roundOffsets === "function" ? roundOffsets({
+        x,
+        y
+      }) : {
+        x,
+        y
+      };
+      x = _ref3.x;
+      y = _ref3.y;
+      var hasX = offsets.hasOwnProperty("x");
+      var hasY = offsets.hasOwnProperty("y");
+      var sideX = left;
+      var sideY = top;
+      var win = window;
+      if (adaptive) {
+        var offsetParent = getOffsetParent(popper2);
+        var heightProp = "clientHeight";
+        var widthProp = "clientWidth";
+        if (offsetParent === getWindow(popper2)) {
+          offsetParent = getDocumentElement(popper2);
+          if (getComputedStyle(offsetParent).position !== "static" && position === "absolute") {
+            heightProp = "scrollHeight";
+            widthProp = "scrollWidth";
+          }
+        }
+        offsetParent = offsetParent;
+        if (placement === top || (placement === left || placement === right) && variation === end) {
+          sideY = bottom;
+          var offsetY = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.height : (
+            // $FlowFixMe[prop-missing]
+            offsetParent[heightProp]
+          );
+          y -= offsetY - popperRect.height;
+          y *= gpuAcceleration ? 1 : -1;
+        }
+        if (placement === left || (placement === top || placement === bottom) && variation === end) {
+          sideX = right;
+          var offsetX = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.width : (
+            // $FlowFixMe[prop-missing]
+            offsetParent[widthProp]
+          );
+          x -= offsetX - popperRect.width;
+          x *= gpuAcceleration ? 1 : -1;
+        }
+      }
+      var commonStyles = Object.assign({
+        position
+      }, adaptive && unsetSides);
+      var _ref4 = roundOffsets === true ? roundOffsetsByDPR({
+        x,
+        y
+      }, getWindow(popper2)) : {
+        x,
+        y
+      };
+      x = _ref4.x;
+      y = _ref4.y;
+      if (gpuAcceleration) {
+        var _Object$assign;
+        return Object.assign({}, commonStyles, (_Object$assign = {}, _Object$assign[sideY] = hasY ? "0" : "", _Object$assign[sideX] = hasX ? "0" : "", _Object$assign.transform = (win.devicePixelRatio || 1) <= 1 ? "translate(" + x + "px, " + y + "px)" : "translate3d(" + x + "px, " + y + "px, 0)", _Object$assign));
+      }
+      return Object.assign({}, commonStyles, (_Object$assign2 = {}, _Object$assign2[sideY] = hasY ? y + "px" : "", _Object$assign2[sideX] = hasX ? x + "px" : "", _Object$assign2.transform = "", _Object$assign2));
+    }
+    function computeStyles(_ref5) {
+      var state = _ref5.state, options = _ref5.options;
+      var _options$gpuAccelerat = options.gpuAcceleration, gpuAcceleration = _options$gpuAccelerat === void 0 ? true : _options$gpuAccelerat, _options$adaptive = options.adaptive, adaptive = _options$adaptive === void 0 ? true : _options$adaptive, _options$roundOffsets = options.roundOffsets, roundOffsets = _options$roundOffsets === void 0 ? true : _options$roundOffsets;
+      var commonStyles = {
+        placement: getBasePlacement(state.placement),
+        variation: getVariation(state.placement),
+        popper: state.elements.popper,
+        popperRect: state.rects.popper,
+        gpuAcceleration,
+        isFixed: state.options.strategy === "fixed"
+      };
+      if (state.modifiersData.popperOffsets != null) {
+        state.styles.popper = Object.assign({}, state.styles.popper, mapToStyles(Object.assign({}, commonStyles, {
+          offsets: state.modifiersData.popperOffsets,
+          position: state.options.strategy,
+          adaptive,
+          roundOffsets
+        })));
+      }
+      if (state.modifiersData.arrow != null) {
+        state.styles.arrow = Object.assign({}, state.styles.arrow, mapToStyles(Object.assign({}, commonStyles, {
+          offsets: state.modifiersData.arrow,
+          position: "absolute",
+          adaptive: false,
+          roundOffsets
+        })));
+      }
+      state.attributes.popper = Object.assign({}, state.attributes.popper, {
+        "data-popper-placement": state.placement
+      });
+    }
+    var computeStyles$1 = {
+      name: "computeStyles",
+      enabled: true,
+      phase: "beforeWrite",
+      fn: computeStyles,
+      data: {}
+    };
+    function applyStyles(_ref) {
+      var state = _ref.state;
+      Object.keys(state.elements).forEach(function(name) {
+        var style = state.styles[name] || {};
+        var attributes = state.attributes[name] || {};
+        var element = state.elements[name];
+        if (!isHTMLElement(element) || !getNodeName(element)) {
+          return;
+        }
+        Object.assign(element.style, style);
+        Object.keys(attributes).forEach(function(name2) {
+          var value = attributes[name2];
+          if (value === false) {
+            element.removeAttribute(name2);
+          } else {
+            element.setAttribute(name2, value === true ? "" : value);
+          }
+        });
+      });
+    }
+    function effect$1(_ref2) {
+      var state = _ref2.state;
+      var initialStyles = {
+        popper: {
+          position: state.options.strategy,
+          left: "0",
+          top: "0",
+          margin: "0"
+        },
+        arrow: {
+          position: "absolute"
+        },
+        reference: {}
+      };
+      Object.assign(state.elements.popper.style, initialStyles.popper);
+      state.styles = initialStyles;
+      if (state.elements.arrow) {
+        Object.assign(state.elements.arrow.style, initialStyles.arrow);
+      }
+      return function() {
+        Object.keys(state.elements).forEach(function(name) {
+          var element = state.elements[name];
+          var attributes = state.attributes[name] || {};
+          var styleProperties = Object.keys(state.styles.hasOwnProperty(name) ? state.styles[name] : initialStyles[name]);
+          var style = styleProperties.reduce(function(style2, property) {
+            style2[property] = "";
+            return style2;
+          }, {});
+          if (!isHTMLElement(element) || !getNodeName(element)) {
+            return;
+          }
+          Object.assign(element.style, style);
+          Object.keys(attributes).forEach(function(attribute) {
+            element.removeAttribute(attribute);
+          });
+        });
+      };
+    }
+    var applyStyles$1 = {
+      name: "applyStyles",
+      enabled: true,
+      phase: "write",
+      fn: applyStyles,
+      effect: effect$1,
+      requires: ["computeStyles"]
+    };
+    function distanceAndSkiddingToXY(placement, rects, offset2) {
+      var basePlacement = getBasePlacement(placement);
+      var invertDistance = [left, top].indexOf(basePlacement) >= 0 ? -1 : 1;
+      var _ref = typeof offset2 === "function" ? offset2(Object.assign({}, rects, {
+        placement
+      })) : offset2, skidding = _ref[0], distance = _ref[1];
+      skidding = skidding || 0;
+      distance = (distance || 0) * invertDistance;
+      return [left, right].indexOf(basePlacement) >= 0 ? {
+        x: distance,
+        y: skidding
+      } : {
+        x: skidding,
+        y: distance
+      };
+    }
+    function offset(_ref2) {
+      var state = _ref2.state, options = _ref2.options, name = _ref2.name;
+      var _options$offset = options.offset, offset2 = _options$offset === void 0 ? [0, 0] : _options$offset;
+      var data = placements.reduce(function(acc, placement) {
+        acc[placement] = distanceAndSkiddingToXY(placement, state.rects, offset2);
+        return acc;
+      }, {});
+      var _data$state$placement = data[state.placement], x = _data$state$placement.x, y = _data$state$placement.y;
+      if (state.modifiersData.popperOffsets != null) {
+        state.modifiersData.popperOffsets.x += x;
+        state.modifiersData.popperOffsets.y += y;
+      }
+      state.modifiersData[name] = data;
+    }
+    var offset$1 = {
+      name: "offset",
+      enabled: true,
+      phase: "main",
+      requires: ["popperOffsets"],
+      fn: offset
+    };
+    var hash$1 = {
+      left: "right",
+      right: "left",
+      bottom: "top",
+      top: "bottom"
+    };
+    function getOppositePlacement(placement) {
+      return placement.replace(/left|right|bottom|top/g, function(matched) {
+        return hash$1[matched];
+      });
+    }
+    var hash = {
+      start: "end",
+      end: "start"
+    };
+    function getOppositeVariationPlacement(placement) {
+      return placement.replace(/start|end/g, function(matched) {
+        return hash[matched];
+      });
+    }
+    function computeAutoPlacement(state, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      var _options = options, placement = _options.placement, boundary = _options.boundary, rootBoundary = _options.rootBoundary, padding = _options.padding, flipVariations = _options.flipVariations, _options$allowedAutoP = _options.allowedAutoPlacements, allowedAutoPlacements = _options$allowedAutoP === void 0 ? placements : _options$allowedAutoP;
+      var variation = getVariation(placement);
+      var placements$1 = variation ? flipVariations ? variationPlacements : variationPlacements.filter(function(placement2) {
+        return getVariation(placement2) === variation;
+      }) : basePlacements;
+      var allowedPlacements = placements$1.filter(function(placement2) {
+        return allowedAutoPlacements.indexOf(placement2) >= 0;
+      });
+      if (allowedPlacements.length === 0) {
+        allowedPlacements = placements$1;
+      }
+      var overflows = allowedPlacements.reduce(function(acc, placement2) {
+        acc[placement2] = detectOverflow(state, {
+          placement: placement2,
+          boundary,
+          rootBoundary,
+          padding
+        })[getBasePlacement(placement2)];
+        return acc;
+      }, {});
+      return Object.keys(overflows).sort(function(a, b) {
+        return overflows[a] - overflows[b];
+      });
+    }
+    function getExpandedFallbackPlacements(placement) {
+      if (getBasePlacement(placement) === auto) {
+        return [];
+      }
+      var oppositePlacement = getOppositePlacement(placement);
+      return [getOppositeVariationPlacement(placement), oppositePlacement, getOppositeVariationPlacement(oppositePlacement)];
+    }
+    function flip(_ref) {
+      var state = _ref.state, options = _ref.options, name = _ref.name;
+      if (state.modifiersData[name]._skip) {
+        return;
+      }
+      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? true : _options$altAxis, specifiedFallbackPlacements = options.fallbackPlacements, padding = options.padding, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, _options$flipVariatio = options.flipVariations, flipVariations = _options$flipVariatio === void 0 ? true : _options$flipVariatio, allowedAutoPlacements = options.allowedAutoPlacements;
+      var preferredPlacement = state.options.placement;
+      var basePlacement = getBasePlacement(preferredPlacement);
+      var isBasePlacement = basePlacement === preferredPlacement;
+      var fallbackPlacements = specifiedFallbackPlacements || (isBasePlacement || !flipVariations ? [getOppositePlacement(preferredPlacement)] : getExpandedFallbackPlacements(preferredPlacement));
+      var placements2 = [preferredPlacement].concat(fallbackPlacements).reduce(function(acc, placement2) {
+        return acc.concat(getBasePlacement(placement2) === auto ? computeAutoPlacement(state, {
+          placement: placement2,
+          boundary,
+          rootBoundary,
+          padding,
+          flipVariations,
+          allowedAutoPlacements
+        }) : placement2);
+      }, []);
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var checksMap = /* @__PURE__ */ new Map();
+      var makeFallbackChecks = true;
+      var firstFittingPlacement = placements2[0];
+      for (var i = 0; i < placements2.length; i++) {
+        var placement = placements2[i];
+        var _basePlacement = getBasePlacement(placement);
+        var isStartVariation = getVariation(placement) === start;
+        var isVertical = [top, bottom].indexOf(_basePlacement) >= 0;
+        var len = isVertical ? "width" : "height";
+        var overflow = detectOverflow(state, {
+          placement,
+          boundary,
+          rootBoundary,
+          altBoundary,
+          padding
+        });
+        var mainVariationSide = isVertical ? isStartVariation ? right : left : isStartVariation ? bottom : top;
+        if (referenceRect[len] > popperRect[len]) {
+          mainVariationSide = getOppositePlacement(mainVariationSide);
+        }
+        var altVariationSide = getOppositePlacement(mainVariationSide);
+        var checks = [];
+        if (checkMainAxis) {
+          checks.push(overflow[_basePlacement] <= 0);
+        }
+        if (checkAltAxis) {
+          checks.push(overflow[mainVariationSide] <= 0, overflow[altVariationSide] <= 0);
+        }
+        if (checks.every(function(check) {
+          return check;
+        })) {
+          firstFittingPlacement = placement;
+          makeFallbackChecks = false;
+          break;
+        }
+        checksMap.set(placement, checks);
+      }
+      if (makeFallbackChecks) {
+        var numberOfChecks = flipVariations ? 3 : 1;
+        var _loop = function _loop2(_i2) {
+          var fittingPlacement = placements2.find(function(placement2) {
+            var checks2 = checksMap.get(placement2);
+            if (checks2) {
+              return checks2.slice(0, _i2).every(function(check) {
+                return check;
+              });
+            }
+          });
+          if (fittingPlacement) {
+            firstFittingPlacement = fittingPlacement;
+            return "break";
+          }
+        };
+        for (var _i = numberOfChecks; _i > 0; _i--) {
+          var _ret = _loop(_i);
+          if (_ret === "break") break;
+        }
+      }
+      if (state.placement !== firstFittingPlacement) {
+        state.modifiersData[name]._skip = true;
+        state.placement = firstFittingPlacement;
+        state.reset = true;
+      }
+    }
+    var flip$1 = {
+      name: "flip",
+      enabled: true,
+      phase: "main",
+      fn: flip,
+      requiresIfExists: ["offset"],
+      data: {
+        _skip: false
+      }
+    };
+    function getAltAxis(axis) {
+      return axis === "x" ? "y" : "x";
+    }
+    function within(min$1, value, max$1) {
+      return max(min$1, min(value, max$1));
+    }
+    function withinMaxClamp(min2, value, max2) {
+      var v = within(min2, value, max2);
+      return v > max2 ? max2 : v;
+    }
+    function preventOverflow(_ref) {
+      var state = _ref.state, options = _ref.options, name = _ref.name;
+      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? false : _options$altAxis, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, padding = options.padding, _options$tether = options.tether, tether = _options$tether === void 0 ? true : _options$tether, _options$tetherOffset = options.tetherOffset, tetherOffset = _options$tetherOffset === void 0 ? 0 : _options$tetherOffset;
+      var overflow = detectOverflow(state, {
+        boundary,
+        rootBoundary,
+        padding,
+        altBoundary
+      });
+      var basePlacement = getBasePlacement(state.placement);
+      var variation = getVariation(state.placement);
+      var isBasePlacement = !variation;
+      var mainAxis = getMainAxisFromPlacement(basePlacement);
+      var altAxis = getAltAxis(mainAxis);
+      var popperOffsets2 = state.modifiersData.popperOffsets;
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var tetherOffsetValue = typeof tetherOffset === "function" ? tetherOffset(Object.assign({}, state.rects, {
+        placement: state.placement
+      })) : tetherOffset;
+      var normalizedTetherOffsetValue = typeof tetherOffsetValue === "number" ? {
+        mainAxis: tetherOffsetValue,
+        altAxis: tetherOffsetValue
+      } : Object.assign({
+        mainAxis: 0,
+        altAxis: 0
+      }, tetherOffsetValue);
+      var offsetModifierState = state.modifiersData.offset ? state.modifiersData.offset[state.placement] : null;
+      var data = {
+        x: 0,
+        y: 0
+      };
+      if (!popperOffsets2) {
+        return;
+      }
+      if (checkMainAxis) {
+        var _offsetModifierState$;
+        var mainSide = mainAxis === "y" ? top : left;
+        var altSide = mainAxis === "y" ? bottom : right;
+        var len = mainAxis === "y" ? "height" : "width";
+        var offset2 = popperOffsets2[mainAxis];
+        var min$1 = offset2 + overflow[mainSide];
+        var max$1 = offset2 - overflow[altSide];
+        var additive = tether ? -popperRect[len] / 2 : 0;
+        var minLen = variation === start ? referenceRect[len] : popperRect[len];
+        var maxLen = variation === start ? -popperRect[len] : -referenceRect[len];
+        var arrowElement = state.elements.arrow;
+        var arrowRect = tether && arrowElement ? getLayoutRect(arrowElement) : {
+          width: 0,
+          height: 0
+        };
+        var arrowPaddingObject = state.modifiersData["arrow#persistent"] ? state.modifiersData["arrow#persistent"].padding : getFreshSideObject();
+        var arrowPaddingMin = arrowPaddingObject[mainSide];
+        var arrowPaddingMax = arrowPaddingObject[altSide];
+        var arrowLen = within(0, referenceRect[len], arrowRect[len]);
+        var minOffset = isBasePlacement ? referenceRect[len] / 2 - additive - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis : minLen - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis;
+        var maxOffset = isBasePlacement ? -referenceRect[len] / 2 + additive + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis : maxLen + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis;
+        var arrowOffsetParent = state.elements.arrow && getOffsetParent(state.elements.arrow);
+        var clientOffset = arrowOffsetParent ? mainAxis === "y" ? arrowOffsetParent.clientTop || 0 : arrowOffsetParent.clientLeft || 0 : 0;
+        var offsetModifierValue = (_offsetModifierState$ = offsetModifierState == null ? void 0 : offsetModifierState[mainAxis]) != null ? _offsetModifierState$ : 0;
+        var tetherMin = offset2 + minOffset - offsetModifierValue - clientOffset;
+        var tetherMax = offset2 + maxOffset - offsetModifierValue;
+        var preventedOffset = within(tether ? min(min$1, tetherMin) : min$1, offset2, tether ? max(max$1, tetherMax) : max$1);
+        popperOffsets2[mainAxis] = preventedOffset;
+        data[mainAxis] = preventedOffset - offset2;
+      }
+      if (checkAltAxis) {
+        var _offsetModifierState$2;
+        var _mainSide = mainAxis === "x" ? top : left;
+        var _altSide = mainAxis === "x" ? bottom : right;
+        var _offset = popperOffsets2[altAxis];
+        var _len = altAxis === "y" ? "height" : "width";
+        var _min = _offset + overflow[_mainSide];
+        var _max = _offset - overflow[_altSide];
+        var isOriginSide = [top, left].indexOf(basePlacement) !== -1;
+        var _offsetModifierValue = (_offsetModifierState$2 = offsetModifierState == null ? void 0 : offsetModifierState[altAxis]) != null ? _offsetModifierState$2 : 0;
+        var _tetherMin = isOriginSide ? _min : _offset - referenceRect[_len] - popperRect[_len] - _offsetModifierValue + normalizedTetherOffsetValue.altAxis;
+        var _tetherMax = isOriginSide ? _offset + referenceRect[_len] + popperRect[_len] - _offsetModifierValue - normalizedTetherOffsetValue.altAxis : _max;
+        var _preventedOffset = tether && isOriginSide ? withinMaxClamp(_tetherMin, _offset, _tetherMax) : within(tether ? _tetherMin : _min, _offset, tether ? _tetherMax : _max);
+        popperOffsets2[altAxis] = _preventedOffset;
+        data[altAxis] = _preventedOffset - _offset;
+      }
+      state.modifiersData[name] = data;
+    }
+    var preventOverflow$1 = {
+      name: "preventOverflow",
+      enabled: true,
+      phase: "main",
+      fn: preventOverflow,
+      requiresIfExists: ["offset"]
+    };
+    var toPaddingObject = function toPaddingObject2(padding, state) {
+      padding = typeof padding === "function" ? padding(Object.assign({}, state.rects, {
+        placement: state.placement
+      })) : padding;
+      return mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
+    };
+    function arrow(_ref) {
+      var _state$modifiersData$;
+      var state = _ref.state, name = _ref.name, options = _ref.options;
+      var arrowElement = state.elements.arrow;
+      var popperOffsets2 = state.modifiersData.popperOffsets;
+      var basePlacement = getBasePlacement(state.placement);
+      var axis = getMainAxisFromPlacement(basePlacement);
+      var isVertical = [left, right].indexOf(basePlacement) >= 0;
+      var len = isVertical ? "height" : "width";
+      if (!arrowElement || !popperOffsets2) {
+        return;
+      }
+      var paddingObject = toPaddingObject(options.padding, state);
+      var arrowRect = getLayoutRect(arrowElement);
+      var minProp = axis === "y" ? top : left;
+      var maxProp = axis === "y" ? bottom : right;
+      var endDiff = state.rects.reference[len] + state.rects.reference[axis] - popperOffsets2[axis] - state.rects.popper[len];
+      var startDiff = popperOffsets2[axis] - state.rects.reference[axis];
+      var arrowOffsetParent = getOffsetParent(arrowElement);
+      var clientSize = arrowOffsetParent ? axis === "y" ? arrowOffsetParent.clientHeight || 0 : arrowOffsetParent.clientWidth || 0 : 0;
+      var centerToReference = endDiff / 2 - startDiff / 2;
+      var min2 = paddingObject[minProp];
+      var max2 = clientSize - arrowRect[len] - paddingObject[maxProp];
+      var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
+      var offset2 = within(min2, center, max2);
+      var axisProp = axis;
+      state.modifiersData[name] = (_state$modifiersData$ = {}, _state$modifiersData$[axisProp] = offset2, _state$modifiersData$.centerOffset = offset2 - center, _state$modifiersData$);
+    }
+    function effect(_ref2) {
+      var state = _ref2.state, options = _ref2.options;
+      var _options$element = options.element, arrowElement = _options$element === void 0 ? "[data-popper-arrow]" : _options$element;
+      if (arrowElement == null) {
+        return;
+      }
+      if (typeof arrowElement === "string") {
+        arrowElement = state.elements.popper.querySelector(arrowElement);
+        if (!arrowElement) {
+          return;
+        }
+      }
+      if (!contains(state.elements.popper, arrowElement)) {
+        return;
+      }
+      state.elements.arrow = arrowElement;
+    }
+    var arrow$1 = {
+      name: "arrow",
+      enabled: true,
+      phase: "main",
+      fn: arrow,
+      effect,
+      requires: ["popperOffsets"],
+      requiresIfExists: ["preventOverflow"]
+    };
+    function getSideOffsets(overflow, rect, preventedOffsets) {
+      if (preventedOffsets === void 0) {
+        preventedOffsets = {
+          x: 0,
+          y: 0
+        };
+      }
+      return {
+        top: overflow.top - rect.height - preventedOffsets.y,
+        right: overflow.right - rect.width + preventedOffsets.x,
+        bottom: overflow.bottom - rect.height + preventedOffsets.y,
+        left: overflow.left - rect.width - preventedOffsets.x
+      };
+    }
+    function isAnySideFullyClipped(overflow) {
+      return [top, right, bottom, left].some(function(side) {
+        return overflow[side] >= 0;
+      });
+    }
+    function hide(_ref) {
+      var state = _ref.state, name = _ref.name;
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var preventedOffsets = state.modifiersData.preventOverflow;
+      var referenceOverflow = detectOverflow(state, {
+        elementContext: "reference"
+      });
+      var popperAltOverflow = detectOverflow(state, {
+        altBoundary: true
+      });
+      var referenceClippingOffsets = getSideOffsets(referenceOverflow, referenceRect);
+      var popperEscapeOffsets = getSideOffsets(popperAltOverflow, popperRect, preventedOffsets);
+      var isReferenceHidden = isAnySideFullyClipped(referenceClippingOffsets);
+      var hasPopperEscaped = isAnySideFullyClipped(popperEscapeOffsets);
+      state.modifiersData[name] = {
+        referenceClippingOffsets,
+        popperEscapeOffsets,
+        isReferenceHidden,
+        hasPopperEscaped
+      };
+      state.attributes.popper = Object.assign({}, state.attributes.popper, {
+        "data-popper-reference-hidden": isReferenceHidden,
+        "data-popper-escaped": hasPopperEscaped
+      });
+    }
+    var hide$1 = {
+      name: "hide",
+      enabled: true,
+      phase: "main",
+      requiresIfExists: ["preventOverflow"],
+      fn: hide
+    };
+    var defaultModifiers$1 = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1];
+    var createPopper$1 = /* @__PURE__ */ popperGenerator({
+      defaultModifiers: defaultModifiers$1
+    });
+    var defaultModifiers = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1, offset$1, flip$1, preventOverflow$1, arrow$1, hide$1];
+    var createPopper = /* @__PURE__ */ popperGenerator({
+      defaultModifiers
+    });
+    exports2.applyStyles = applyStyles$1;
+    exports2.arrow = arrow$1;
+    exports2.computeStyles = computeStyles$1;
+    exports2.createPopper = createPopper;
+    exports2.createPopperLite = createPopper$1;
+    exports2.defaultModifiers = defaultModifiers;
+    exports2.detectOverflow = detectOverflow;
+    exports2.eventListeners = eventListeners;
+    exports2.flip = flip$1;
+    exports2.hide = hide$1;
+    exports2.offset = offset$1;
+    exports2.popperGenerator = popperGenerator;
+    exports2.popperOffsets = popperOffsets$1;
+    exports2.preventOverflow = preventOverflow$1;
+  }
+});
+
+// src/modules/file-explorer-enhancer/view.js
+var require_view6 = __commonJS({
+  "src/modules/file-explorer-enhancer/view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var runtime = require_runtime4();
+    var createPopper = require_popper().createPopper;
+    function wrapAround(value, size) {
+      return (value % size + size) % size;
+    }
+    function Suggest(owner, containerEl, scope) {
+      this.owner = owner;
+      this.containerEl = containerEl;
+      this.values = [];
+      this.suggestions = [];
+      this.selectedItem = 0;
+      var self = this;
+      containerEl.addEventListener("click", function(event) {
+        var el = event.target.closest(".suggestion-item");
+        if (!el) return;
+        event.preventDefault();
+        var item = self.suggestions.indexOf(el);
+        self.setSelectedItem(item, false);
+        self.useSelectedItem(event);
+      });
+      containerEl.addEventListener("mousemove", function(event) {
+        var el = event.target.closest(".suggestion-item");
+        if (!el) return;
+        var item = self.suggestions.indexOf(el);
+        self.setSelectedItem(item, false);
+      });
+      scope.register([], "ArrowUp", function(event) {
+        if (!event.isComposing) {
+          self.setSelectedItem(self.selectedItem - 1, true);
+          return false;
+        }
+      });
+      scope.register([], "ArrowDown", function(event) {
+        if (!event.isComposing) {
+          self.setSelectedItem(self.selectedItem + 1, true);
+          return false;
+        }
+      });
+      scope.register([], "Enter", function(event) {
+        if (!event.isComposing) {
+          self.useSelectedItem(event);
+          return false;
+        }
+      });
+    }
+    Suggest.prototype.setSuggestions = function(values) {
+      this.containerEl.empty();
+      var suggestionEls = [];
+      for (var i = 0; i < values.length; i++) {
+        var suggestionEl = this.containerEl.createDiv("suggestion-item");
+        this.owner.renderSuggestion(values[i], suggestionEl);
+        suggestionEls.push(suggestionEl);
+      }
+      this.values = values;
+      this.suggestions = suggestionEls;
+      this.setSelectedItem(0, false);
+    };
+    Suggest.prototype.useSelectedItem = function(event) {
+      var currentValue = this.values[this.selectedItem];
+      if (currentValue) {
+        this.owner.selectSuggestion(currentValue, event);
+      }
+    };
+    Suggest.prototype.setSelectedItem = function(selectedIndex, scrollIntoView) {
+      var normalizedIndex = wrapAround(selectedIndex, this.suggestions.length);
+      var prevSelected = this.suggestions[this.selectedItem];
+      var selected = this.suggestions[normalizedIndex];
+      if (prevSelected) prevSelected.removeClass("is-selected");
+      if (selected) selected.addClass("is-selected");
+      this.selectedItem = normalizedIndex;
+      if (scrollIntoView && selected) {
+        selected.scrollIntoView(false);
+      }
+    };
+    function TextInputSuggest(app, inputEl) {
+      this.app = app;
+      this.inputEl = inputEl;
+      this.scope = new obsidian2.Scope();
+      this.suggestEl = document.createElement("div");
+      this.suggestEl.className = "suggestion-container";
+      var suggestion = document.createElement("div");
+      suggestion.className = "suggestion";
+      this.suggestEl.appendChild(suggestion);
+      this.suggest = new Suggest(this, suggestion, this.scope);
+      var self = this;
+      this.scope.register([], "Escape", function() {
+        self.close();
+      });
+      this.inputEl.addEventListener("input", function() {
+        self.onInputChanged();
+      });
+      this.inputEl.addEventListener("focus", function() {
+        self.onInputChanged();
+      });
+      this.inputEl.addEventListener("blur", function() {
+        self.close();
+      });
+      this.suggestEl.addEventListener("mousedown", function(event) {
+        event.preventDefault();
+      });
+    }
+    TextInputSuggest.prototype.onInputChanged = function() {
+      var inputStr = this.inputEl.value;
+      var suggestions = this.getSuggestions(inputStr).slice(0, 10);
+      if (suggestions.length > 0) {
+        this.suggest.setSuggestions(suggestions);
+        this.open(this.app.dom.appContainerEl, this.inputEl);
+      }
+    };
+    TextInputSuggest.prototype.open = function(container, inputEl) {
+      var self = this;
+      this.app.keymap.pushScope(this.scope);
+      this.suggestEl.style.maxWidth = "none";
+      container.appendChild(this.suggestEl);
+      this.popper = createPopper(inputEl, this.suggestEl, {
+        placement: "bottom-start",
+        modifiers: [
+          {
+            name: "sameWidth",
+            enabled: true,
+            fn: function(_a) {
+              var state = _a.state;
+              var instance = _a.instance;
+              var searchContainer = inputEl.closest(".search-input-container");
+              var targetWidth = searchContainer ? searchContainer.getBoundingClientRect().width + "px" : state.rects.reference.width + "px";
+              if (state.styles.popper.width === targetWidth) return;
+              state.styles.popper.width = targetWidth;
+              instance.update();
+            },
+            phase: "beforeWrite",
+            requires: ["computeStyles"]
+          }
+        ]
+      });
+    };
+    TextInputSuggest.prototype.close = function() {
+      this.app.keymap.popScope(this.scope);
+      this.suggest.setSuggestions([]);
+      if (this.popper) {
+        this.popper.destroy();
+      }
+      if (this.suggestEl.parentNode) {
+        this.suggestEl.detach();
+      }
+    };
+    function PathSuggest(app, inputEl) {
+      TextInputSuggest.call(this, app, inputEl);
+    }
+    PathSuggest.prototype = Object.create(TextInputSuggest.prototype);
+    PathSuggest.prototype.constructor = PathSuggest;
+    PathSuggest.prototype.getSuggestions = function(inputStr) {
+      var abstractFiles = this.app.vault.getAllLoadedFiles();
+      var paths = [];
+      var lowerCaseInputStr = inputStr.toLowerCase();
+      for (var i = 0; i < abstractFiles.length; i++) {
+        var path = abstractFiles[i];
+        if (path.path.toLowerCase().indexOf(lowerCaseInputStr) !== -1) {
+          paths.push(path);
+        }
+      }
+      return paths;
+    };
+    PathSuggest.prototype.renderSuggestion = function(file, el) {
+      el.setText(file.path);
+    };
+    PathSuggest.prototype.selectSuggestion = function(file) {
+      this.inputEl.value = file.path;
+      this.inputEl.dispatchEvent(new Event("input"));
+      this.close();
+    };
+    function PathsActivatedModal(plugin, actionType) {
+      obsidian2.Modal.call(this, plugin.app);
+      this.plugin = plugin;
+      this.actionType = actionType;
+    }
+    PathsActivatedModal.prototype = Object.create(obsidian2.Modal.prototype);
+    PathsActivatedModal.prototype.constructor = PathsActivatedModal;
+    PathsActivatedModal.prototype.onOpen = function() {
+      var contentEl = this.contentEl;
+      contentEl.empty();
+      contentEl.addClasses(["file-explorer-plus", "filters-activated-modal"]);
+      contentEl.addClass("nene-settings-modal");
+      var headerEl = contentEl.createDiv({ cls: "nene-settings-modal-header" });
+      var titleText = this.actionType === "PIN" ? "查看由选择器置顶的文件或文件夹" : "查看由选择器隐藏的文件或文件夹";
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: titleText });
+      var self = this;
+      var files = this.app.vault.getAllLoadedFiles();
+      var pathFilters = this.actionType === "HIDE" ? this.plugin.fileExplorerEnhancerSettings.hideFilters.paths : this.plugin.fileExplorerEnhancerSettings.pinFilters.paths;
+      var pathsActivated = this.actionType === "HIDE" ? runtime.getPathsToHide(this.plugin, files) : runtime.getPathsToPin(this.plugin, files);
+      pathsActivated = pathsActivated.map(function(file) {
+        var activatedNames = pathFilters.filter(function(filter) {
+          return runtime.checkPathFilter(filter, file);
+        }).map(function(filter) {
+          return filter.name && filter.name !== "" ? filter.name : filter.pattern;
+        });
+        file._filtersActivated = activatedNames.join(", ");
+        return file;
+      });
+      if (pathsActivated.length === 0) {
+        contentEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: "当前没有匹配任何文件或文件夹。"
+        });
+        return;
+      }
+      var data = [["路径", "类型", "匹配的过滤器"]];
+      for (var i = 0; i < pathsActivated.length; i++) {
+        var pathFile = pathsActivated[i];
+        var row = [];
+        if (pathFile instanceof obsidian2.TFile) {
+          var link = contentEl.createEl("a");
+          link.addEventListener("click", /* @__PURE__ */ (function(pf) {
+            return function() {
+              self.app.workspace.getLeaf("tab").openFile(pf);
+            };
+          })(pathFile));
+          link.textContent = pathFile.path;
+          row.push(link);
+        } else {
+          row.push(pathFile.path);
+        }
+        if (pathFile instanceof obsidian2.TFile) {
+          row.push("文件");
+        } else if (pathFile instanceof obsidian2.TFolder) {
+          row.push("文件夹");
+        } else {
+          row.push("未知");
+        }
+        row.push(pathFile._filtersActivated || "");
+        data.push(row);
+      }
+      var table = generateTable(data);
+      contentEl.appendChild(table);
+    };
+    PathsActivatedModal.prototype.onClose = function() {
+      this.contentEl.empty();
+    };
+    function cloneFilterRow(rowsContainer, stationaryRow, event) {
+      stationaryRow.addClass("nene-filter-row-clone");
+      var fauxRow = document.createElement("div");
+      fauxRow.className = stationaryRow.className + " nene-filter-row-drag";
+      fauxRow.innerHTML = stationaryRow.innerHTML;
+      rowsContainer.appendChild(fauxRow);
+      var containerRect = rowsContainer.getBoundingClientRect();
+      fauxRow.style.left = stationaryRow.getBoundingClientRect().left - containerRect.left + "px";
+      fauxRow.style.top = stationaryRow.getBoundingClientRect().top - containerRect.top + "px";
+      fauxRow.style.width = stationaryRow.offsetWidth + "px";
+      var offsetX = event.clientX - fauxRow.getBoundingClientRect().left;
+      var offsetY = event.clientY - fauxRow.getBoundingClientRect().top;
+      var currentIndex = Array.from(rowsContainer.children).indexOf(stationaryRow);
+      return {
+        stationaryRow,
+        movableRow: fauxRow,
+        offsetX: offsetX + containerRect.left,
+        offsetY: offsetY + containerRect.top,
+        index: currentIndex
+      };
+    }
+    function deleteFilterRowClone(stationaryRow, movableRow) {
+      stationaryRow.removeClass("nene-filter-row-clone");
+      if (movableRow.parentNode) {
+        movableRow.parentNode.removeChild(movableRow);
+      }
+      var targets = document.querySelectorAll(".nene-filter-row-drop-target");
+      for (var t = 0; t < targets.length; t++) {
+        targets[t].removeClass("nene-filter-row-drop-target");
+      }
+    }
+    function calculateFilterRowIndex(event, rowsContainer, movableRow, stationaryRow, offsetX, offsetY, index) {
+      movableRow.style.left = event.clientX - offsetX + "px";
+      movableRow.style.top = event.clientY - offsetY + "px";
+      var dist = movableRow.getBoundingClientRect().top - stationaryRow.getBoundingClientRect().top;
+      var dir = dist > 0 ? 1 : -1;
+      if (Math.abs(dist) > stationaryRow.offsetHeight * 0.75) {
+        var newIndex = Math.max(0, Math.min(index + dir, rowsContainer.children.length - 1));
+        var prevTargets = rowsContainer.querySelectorAll(".nene-filter-row-drop-target");
+        for (var p = 0; p < prevTargets.length; p++) {
+          prevTargets[p].removeClass("nene-filter-row-drop-target");
+        }
+        var targetRow = rowsContainer.children[newIndex];
+        if (targetRow) {
+          targetRow.addClass("nene-filter-row-drop-target");
+        }
+        return newIndex;
+      }
+      return index;
+    }
+    function swapFilterRowPosition(rowsContainer, stationaryRow, newIndex) {
+      rowsContainer.removeChild(stationaryRow);
+      if (newIndex >= rowsContainer.children.length) {
+        rowsContainer.appendChild(stationaryRow);
+      } else {
+        rowsContainer.insertBefore(stationaryRow, rowsContainer.children[newIndex]);
+      }
+    }
+    function handleFilterDragStart(event, plugin, actionType, rowsContainer, stationaryRow, index) {
+      if (filterDragLock) return;
+      filterDragLock = true;
+      event.preventDefault();
+      var cloneData = cloneFilterRow(rowsContainer, stationaryRow, event);
+      var currentIndex = cloneData.index;
+      function onMouseMove(moveEvent) {
+        moveEvent.preventDefault();
+        var newIndex = calculateFilterRowIndex(
+          moveEvent,
+          rowsContainer,
+          cloneData.movableRow,
+          cloneData.stationaryRow,
+          cloneData.offsetX,
+          cloneData.offsetY,
+          currentIndex
+        );
+        if (newIndex !== currentIndex) {
+          swapFilterRowPosition(rowsContainer, cloneData.stationaryRow, newIndex);
+          currentIndex = newIndex;
+        }
+      }
+      function onMouseUp() {
+        deleteFilterRowClone(cloneData.stationaryRow, cloneData.movableRow);
+        filterDragLock = false;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        var list = actionType === "PIN" ? plugin.fileExplorerEnhancerSettings.pinFilters.paths : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+        var children = Array.from(rowsContainer.children);
+        var newOrder = [];
+        for (var k = 0; k < children.length; k++) {
+          var origIndex = parseInt(children[k].getAttribute("data-nene-filter-row-index"), 10);
+          newOrder.push(list[origIndex]);
+        }
+        for (var m = 0; m < newOrder.length; m++) {
+          newOrder[m].position = m;
+        }
+        list.length = 0;
+        for (var m = 0; m < newOrder.length; m++) {
+          list.push(newOrder[m]);
+        }
+        plugin.fileExplorerEnhancerStore.save();
+        if (plugin._fileExplorerView) {
+          plugin._fileExplorerView.requestSort();
+        }
+        var typeTextMap = { FILES_AND_DIRECTORIES: "文件与文件夹", FILES: "文件", DIRECTORIES: "文件夹" };
+        var modeTextMap = { WILDCARD: "通配符", REGEX: "正则表达式", STRICT: "严格模式" };
+        for (var n = 0; n < children.length; n++) {
+          children[n].setAttribute("data-nene-filter-row-index", String(n));
+          var f = list[n];
+          var inputs = children[n].querySelectorAll(".nene-filter-text-display");
+          if (inputs.length >= 4) {
+            inputs[0].value = f.pattern || "(空)";
+            inputs[1].value = f.name || "";
+            inputs[2].value = typeTextMap[f.type] || f.type;
+            inputs[3].value = modeTextMap[f.patternType] || f.patternType;
+          }
+        }
+      }
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+    function PathFilterListModal(plugin, actionType, onChanged) {
+      obsidian2.Modal.call(this, plugin.app);
+      this.plugin = plugin;
+      this.actionType = actionType;
+      this.onChanged = onChanged || null;
+    }
+    PathFilterListModal.prototype = Object.create(obsidian2.Modal.prototype);
+    PathFilterListModal.prototype.constructor = PathFilterListModal;
+    PathFilterListModal.prototype.getFilters = function() {
+      return this.actionType === "PIN" ? this.plugin.fileExplorerEnhancerSettings.pinFilters.paths : this.plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+    };
+    PathFilterListModal.prototype.onOpen = function() {
+      this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+      var contentEl = this.contentEl;
+      contentEl.empty();
+      contentEl.addClass("nene-settings-modal");
+      var titleText = this.actionType === "PIN" ? "置顶路径过滤器" : "隐藏路径过滤器";
+      var headerEl = contentEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: titleText });
+      this.renderFilterList(contentEl);
+    };
+    var filterDragLock = false;
+    PathFilterListModal.prototype.renderFilterList = function(containerEl) {
+      var filters = this.getFilters();
+      var self = this;
+      var plugin = this.plugin;
+      var actionType = this.actionType;
+      if (filters.length === 0) {
+        var emptyEl = containerEl.createDiv({ cls: "nene-settings-modal-description" });
+        emptyEl.createEl("p", { text: "当前没有路径过滤器规则。" });
+        return;
+      }
+      var typeTextMap = { FILES_AND_DIRECTORIES: "文件与文件夹", FILES: "文件", DIRECTORIES: "文件夹" };
+      var modeTextMap = { WILDCARD: "通配符", REGEX: "正则表达式", STRICT: "严格模式" };
+      var obsidian3 = require("obsidian");
+      function getCurrentFilter(idx) {
+        var currentFilters = actionType === "PIN" ? plugin.fileExplorerEnhancerSettings.pinFilters.paths : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+        return currentFilters[idx];
+      }
+      var headerRow = containerEl.createDiv({ cls: "nene-filter-table-header" });
+      headerRow.createSpan({ cls: "nene-filter-col-drag" });
+      headerRow.createSpan({ cls: "nene-filter-col-selector", text: "选择器" });
+      headerRow.createSpan({ cls: "nene-filter-col-name", text: "名称" });
+      headerRow.createSpan({ cls: "nene-filter-col-type", text: "文件类型" });
+      headerRow.createSpan({ cls: "nene-filter-col-mode", text: "匹配模式" });
+      headerRow.createSpan({ cls: "nene-filter-col-toggle" });
+      headerRow.createSpan({ cls: "nene-filter-col-btn" });
+      headerRow.createSpan({ cls: "nene-filter-col-btn" });
+      headerRow.createSpan({ cls: "nene-filter-col-btn" });
+      var rowsContainer = containerEl.createDiv({ cls: "nene-filter-rows-container" });
+      var rowRefs = [];
+      for (var i = 0; i < filters.length; i++) {
+        (function(index) {
+          var f = getCurrentFilter(index);
+          var patternText = f.pattern || "(空)";
+          var nameText = f.name || "";
+          var typeText = typeTextMap[f.type] || f.type;
+          var modeText = modeTextMap[f.patternType] || f.patternType;
+          var setting = new obsidian3.Setting(rowsContainer);
+          setting.settingEl.addClass("nene-filter-setting-row");
+          setting.settingEl.setAttribute("data-nene-filter-row-index", String(index));
+          setting.addText(function(text) {
+            text.setValue(patternText).setDisabled(true);
+            text.inputEl.addClass("nene-filter-text-display");
+          });
+          setting.addText(function(text) {
+            text.setValue(nameText).setDisabled(true);
+            text.inputEl.addClass("nene-filter-text-display");
+          });
+          setting.addText(function(text) {
+            text.setValue(typeText).setDisabled(true);
+            text.inputEl.addClass("nene-filter-text-display");
+          });
+          setting.addText(function(text) {
+            text.setValue(modeText).setDisabled(true);
+            text.inputEl.addClass("nene-filter-text-display");
+          });
+          setting.addToggle(function(toggle) {
+            toggle.setTooltip("启用").setValue(f.active).onChange(function(isActive) {
+              var cur = getCurrentFilter(index);
+              cur.active = isActive;
+              plugin.fileExplorerEnhancerStore.save();
+              if (plugin._fileExplorerView) {
+                plugin._fileExplorerView.requestSort();
+              }
+            });
+          });
+          setting.addExtraButton(function(button) {
+            button.setIcon("search").setTooltip("查看当前规则生效的文件与文件夹").onClick(function() {
+              new SingleFilterActivatedModal(plugin, getCurrentFilter(index), actionType).open();
+            });
+          });
+          setting.addExtraButton(function(button) {
+            button.setIcon("pencil").setTooltip("编辑").onClick(function() {
+              new NewPathFilterModal(plugin, actionType, index, function() {
+                self.onOpen();
+              }).open();
+            });
+          });
+          setting.addExtraButton(function(button) {
+            button.setIcon("cross").setTooltip("删除").onClick(function() {
+              var list = actionType === "PIN" ? plugin.fileExplorerEnhancerSettings.pinFilters.paths : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+              list.splice(index, 1);
+              plugin.fileExplorerEnhancerStore.save();
+              if (plugin._fileExplorerView) {
+                plugin._fileExplorerView.requestSort();
+              }
+              self.onOpen();
+            });
+          });
+          var controlEl = setting.settingEl.querySelector(".setting-item-control");
+          var dragHandle = controlEl.createSpan({ cls: "nene-filter-drag-handle" });
+          obsidian3.setIcon(dragHandle, "grip-vertical");
+          controlEl.insertBefore(dragHandle, controlEl.firstChild);
+          rowRefs.push({ el: setting.settingEl, index });
+          setting.settingEl._filterIndex = index;
+          dragHandle.addEventListener("mousedown", function(event) {
+            handleFilterDragStart(event, plugin, actionType, rowsContainer, setting.settingEl, index);
+            event.preventDefault();
+          });
+        })(i);
+      }
+    };
+    PathFilterListModal.prototype.onClose = function() {
+      if (this.onChanged) this.onChanged();
+      this.contentEl.empty();
+    };
+    function FileExplorerManagerModal(plugin) {
+      obsidian2.Modal.call(this, plugin.app);
+      this.plugin = plugin;
+    }
+    FileExplorerManagerModal.prototype = Object.create(obsidian2.Modal.prototype);
+    FileExplorerManagerModal.prototype.constructor = FileExplorerManagerModal;
+    FileExplorerManagerModal.prototype.onOpen = function() {
+      var contentEl = this.contentEl;
+      contentEl.empty();
+      contentEl.addClass("nene-settings-modal");
+      var headerEl = contentEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: "文件列表管理" });
+      var plugin = this.plugin;
+      var settings = plugin.fileExplorerEnhancerStore.getSettings();
+      var self = this;
+      var pinSectionEl = contentEl.createDiv({ cls: "nene-settings-subsection" });
+      pinSectionEl.createEl("h4", { text: "置顶选择器" });
+      new obsidian2.Setting(pinSectionEl).setName("启用置顶选择器").addToggle(function(toggle) {
+        toggle.setValue(settings.pinFilters.active).onChange(async function(value) {
+          settings.pinFilters.active = value;
+          await plugin.fileExplorerEnhancerStore.save();
+          if (plugin._fileExplorerView) plugin._fileExplorerView.requestSort();
+          self.onOpen();
+        });
+      });
+      new obsidian2.Setting(pinSectionEl).setName("路径过滤器").setDesc(getFilterDesc(settings.pinFilters.paths)).addButton(function(button) {
+        button.setButtonText("查看列表").onClick(function() {
+          new PathFilterListModal(plugin, "PIN", function() {
+            self.onOpen();
+          }).open();
+        });
+      }).addButton(function(button) {
+        button.setButtonText("新建").setCta().onClick(function() {
+          new NewPathFilterModal(plugin, "PIN", -1, function() {
+            self.onOpen();
+          }).open();
+        });
+      });
+      var hideSectionEl = contentEl.createDiv({ cls: "nene-settings-subsection" });
+      hideSectionEl.createEl("h4", { text: "隐藏选择器" });
+      new obsidian2.Setting(hideSectionEl).setName("启用隐藏选择器").addToggle(function(toggle) {
+        toggle.setValue(settings.hideFilters.active).onChange(async function(value) {
+          settings.hideFilters.active = value;
+          await plugin.fileExplorerEnhancerStore.save();
+          if (plugin._fileExplorerView) plugin._fileExplorerView.requestSort();
+          self.onOpen();
+        });
+      });
+      new obsidian2.Setting(hideSectionEl).setName("路径过滤器").setDesc(getFilterDesc(settings.hideFilters.paths)).addButton(function(button) {
+        button.setButtonText("查看列表").onClick(function() {
+          new PathFilterListModal(plugin, "HIDE", function() {
+            self.onOpen();
+          }).open();
+        });
+      }).addButton(function(button) {
+        button.setButtonText("新建").setCta().onClick(function() {
+          new NewPathFilterModal(plugin, "HIDE", -1, function() {
+            self.onOpen();
+          }).open();
+        });
+      });
+    };
+    FileExplorerManagerModal.prototype.onClose = function() {
+      this.contentEl.empty();
+    };
+    function NewPathFilterModal(plugin, actionType, editIndex, onSaved) {
+      obsidian2.Modal.call(this, plugin.app);
+      this.plugin = plugin;
+      this.actionType = actionType;
+      this.editIndex = editIndex >= 0 ? editIndex : -1;
+      this.onSaved = onSaved || null;
+    }
+    NewPathFilterModal.prototype = Object.create(obsidian2.Modal.prototype);
+    NewPathFilterModal.prototype.constructor = NewPathFilterModal;
+    NewPathFilterModal.prototype.onOpen = function() {
+      this.modalEl.addClass("nene-new-filter-modal");
+      var contentEl = this.contentEl;
+      contentEl.empty();
+      var self = this;
+      var plugin = this.plugin;
+      var actionType = this.actionType;
+      var isEditing = this.editIndex >= 0;
+      var existingFilter = null;
+      if (isEditing) {
+        var filtersList = actionType === "PIN" ? plugin.fileExplorerEnhancerSettings.pinFilters.paths : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+        existingFilter = filtersList[self.editIndex];
+      }
+      var tempFilter = {
+        name: existingFilter ? existingFilter.name : "",
+        active: true,
+        type: existingFilter ? existingFilter.type : "FILES",
+        pattern: existingFilter ? existingFilter.pattern : "",
+        patternType: existingFilter ? existingFilter.patternType : "STRICT"
+      };
+      var bodyEl = contentEl.createDiv({ cls: "nene-new-filter-body" });
+      var titleText = isEditing ? actionType === "PIN" ? "编辑置顶路径过滤器" : "编辑隐藏路径过滤器" : actionType === "PIN" ? "新建置顶路径过滤器" : "新建隐藏路径过滤器";
+      bodyEl.createEl("h3", { text: titleText });
+      var setting = new obsidian2.Setting(bodyEl);
+      setting.settingEl.addClass("nene-new-filter-setting");
+      setting.addText(function(text) {
+        text.setPlaceholder("名称（可选）").setValue(tempFilter.name).onChange(function(v) {
+          tempFilter.name = v;
+        });
+      }).addSearch(function(text) {
+        new PathSuggest(plugin.app, text.inputEl);
+        text.setPlaceholder("路径规则（可选）").setValue(tempFilter.pattern).onChange(function(v) {
+          tempFilter.pattern = v;
+        });
+      }).addDropdown(function(dropdown) {
+        dropdown.addOptions({
+          FILES: "文件",
+          DIRECTORIES: "文件夹"
+        }).setValue(tempFilter.type).onChange(function(v) {
+          tempFilter.type = v;
+        });
+      }).addDropdown(function(dropdown) {
+        dropdown.addOptions({
+          WILDCARD: "通配符",
+          REGEX: "正则表达式",
+          STRICT: "严格模式"
+        }).setValue(tempFilter.patternType).onChange(function(v) {
+          tempFilter.patternType = v;
+        });
+      });
+      var footerEl = contentEl.createDiv({ cls: "nene-new-filter-footer" });
+      var cancelBtn = footerEl.createEl("button", { text: "取消" });
+      cancelBtn.addEventListener("click", function() {
+        self.close();
+      });
+      var confirmBtn = footerEl.createEl("button", { cls: "mod-cta", text: isEditing ? "保存" : "确认" });
+      confirmBtn.addEventListener("click", function() {
+        var filtersList2 = actionType === "PIN" ? plugin.fileExplorerEnhancerSettings.pinFilters.paths : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+        var newFilter = {
+          name: tempFilter.name,
+          active: isEditing ? existingFilter.active : tempFilter.active,
+          type: tempFilter.type,
+          pattern: tempFilter.pattern,
+          patternType: tempFilter.patternType,
+          position: isEditing ? existingFilter.position : filtersList2.length
+        };
+        if (isEditing) {
+          filtersList2[self.editIndex] = newFilter;
+          new obsidian2.Notice("路径过滤器已更新");
+        } else {
+          filtersList2.push(newFilter);
+          new obsidian2.Notice("路径过滤器已添加");
+        }
+        plugin.fileExplorerEnhancerStore.save();
+        if (tempFilter.active && plugin._fileExplorerView) {
+          plugin._fileExplorerView.requestSort();
+        }
+        if (self.onSaved) self.onSaved();
+        self.close();
+      });
+    };
+    NewPathFilterModal.prototype.onClose = function() {
+      this.contentEl.empty();
+    };
+    function generateTable(data) {
+      var table = document.createElement("table");
+      var thead = document.createElement("thead");
+      var tbody = document.createElement("tbody");
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      for (var i = 0; i < data.length; i++) {
+        var row = data[i];
+        var tableRow = document.createElement("tr");
+        if (i === 0) {
+          thead.appendChild(tableRow);
+        } else {
+          tbody.appendChild(tableRow);
+        }
+        for (var j = 0; j < row.length; j++) {
+          var cell;
+          if (i === 0) {
+            cell = document.createElement("th");
+            cell.textContent = data[i][j];
+          } else {
+            cell = document.createElement("td");
+            if (typeof data[i][j] === "string") {
+              cell.textContent = data[i][j];
+            } else {
+              cell.appendChild(data[i][j]);
+            }
+          }
+          tableRow.appendChild(cell);
+        }
+      }
+      return table;
+    }
+    function SingleFilterActivatedModal(plugin, filter, actionType) {
+      obsidian2.Modal.call(this, plugin.app);
+      this.plugin = plugin;
+      this.filter = filter;
+      this.actionType = actionType;
+    }
+    SingleFilterActivatedModal.prototype = Object.create(obsidian2.Modal.prototype);
+    SingleFilterActivatedModal.prototype.constructor = SingleFilterActivatedModal;
+    SingleFilterActivatedModal.prototype.onOpen = function() {
+      this.modalEl.addClass("mod-sidebar-layout");
+      var contentEl = this.contentEl;
+      contentEl.empty();
+      contentEl.addClasses(["file-explorer-plus", "filters-activated-modal"]);
+      var actionText = this.actionType === "PIN" ? "置顶" : "隐藏";
+      var titleText = "「" + (this.filter.name || this.filter.pattern || "未命名") + "」规则生效的" + actionText + "列表";
+      contentEl.createEl("h3", { text: titleText });
+      var allFiles = this.plugin.app.vault.getAllLoadedFiles();
+      var matched = [];
+      var checkFn = require_runtime4().checkPathFilter;
+      for (var i = 0; i < allFiles.length; i++) {
+        if (checkFn(this.filter, allFiles[i])) {
+          matched.push(allFiles[i]);
+        }
+      }
+      if (matched.length === 0) {
+        contentEl.createEl("p", { text: "当前没有匹配的文件或文件夹。" });
+        return;
+      }
+      var table = document.createElement("table");
+      var thead = document.createElement("thead");
+      var tbody = document.createElement("tbody");
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      var headerRow = document.createElement("tr");
+      var thPath = document.createElement("th");
+      thPath.textContent = "路径";
+      headerRow.appendChild(thPath);
+      var thType = document.createElement("th");
+      thType.textContent = "类型";
+      headerRow.appendChild(thType);
+      var thFilter = document.createElement("th");
+      thFilter.textContent = "过滤器";
+      headerRow.appendChild(thFilter);
+      thead.appendChild(headerRow);
+      var self = this;
+      var filterDisplay = this.filter.name || this.filter.pattern;
+      for (var j = 0; j < matched.length; j++) {
+        var file = matched[j];
+        var row = document.createElement("tr");
+        var tdPath = document.createElement("td");
+        if (file instanceof obsidian2.TFile) {
+          var link = document.createElement("a");
+          link.textContent = file.path;
+          link.addEventListener("click", /* @__PURE__ */ (function(f) {
+            return function() {
+              self.plugin.app.workspace.getLeaf("tab").openFile(f);
+            };
+          })(file));
+          tdPath.appendChild(link);
+        } else {
+          tdPath.textContent = file.path;
+        }
+        row.appendChild(tdPath);
+        var tdType = document.createElement("td");
+        tdType.textContent = file instanceof obsidian2.TFile ? "文件" : "文件夹";
+        row.appendChild(tdType);
+        var tdFilter = document.createElement("td");
+        tdFilter.textContent = filterDisplay;
+        row.appendChild(tdFilter);
+        tbody.appendChild(row);
+      }
+      contentEl.appendChild(table);
+      var actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
+      var closeBtn = actionEl.createEl("button", { text: "关闭" });
+      closeBtn.addEventListener("click", function() {
+        self.close();
+      });
+    };
+    SingleFilterActivatedModal.prototype.onClose = function() {
+      this.contentEl.empty();
+    };
+    function getFilterDesc(filters) {
+      if (!filters || filters.length === 0) {
+        return "当前 0 条规则。";
+      }
+      var activeCount = filters.filter(function(f) {
+        return f.active;
+      }).length;
+      return "当前 " + filters.length + " 条规则，" + activeCount + " 条启用。";
+    }
+    module2.exports = {
+      PathSuggest,
+      PathFilterListModal,
+      PathsActivatedModal,
+      NewPathFilterModal,
+      FileExplorerManagerModal,
+      SingleFilterActivatedModal
+    };
+  }
+});
+
+// src/modules/file-explorer-enhancer/index.js
+var require_file_explorer_enhancer = __commonJS({
+  "src/modules/file-explorer-enhancer/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants7();
+    var store = require_store8();
+    var runtime = require_runtime4();
+    var view = require_view6();
+    module2.exports = {
+      DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS: constants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
+      FileExplorerEnhancerStore: store.FileExplorerEnhancerStore,
+      PathSuggest: view.PathSuggest,
+      PathFilterListModal: view.PathFilterListModal,
+      PathsActivatedModal: view.PathsActivatedModal,
+      NewPathFilterModal: view.NewPathFilterModal,
+      FileExplorerManagerModal: view.FileExplorerManagerModal,
+      addCommands: runtime.addCommands,
+      addOnRename: runtime.addOnRename,
+      addOnDelete: runtime.addOnDelete,
+      cacheFileMenuTarget: runtime.cacheFileMenuTarget,
+      checkPathFilter: runtime.checkPathFilter,
+      changeVirtualElementPin: runtime.changeVirtualElementPin,
+      patchFileExplorerFolder: runtime.patchFileExplorerFolder,
+      getPathsToPin: runtime.getPathsToPin,
+      getPathsToHide: runtime.getPathsToHide,
+      unloadFileExplorerEnhancer: runtime.unloadFileExplorerEnhancer,
+      refreshCompiledState: runtime.refreshCompiledState,
+      injectEyeButtons: runtime.injectEyeButtons,
+      removeEyeButtons: runtime.removeEyeButtons,
+      setupFileExplorerFocusTracking: runtime.setupFileExplorerFocusTracking,
+      updateEyeButtonState: runtime.updateEyeButtonState
+    };
+  }
+});
+
 // src/modules/settings-tab/index.js
 var require_settings_tab = __commonJS({
   "src/modules/settings-tab/index.js"(exports2, module2) {
@@ -7499,6 +10827,7 @@ var require_settings_tab = __commonJS({
     var menuCustomizerModule = require_context_menu_enhancer();
     var statusBarEnhancerModule2 = require_status_bar_enhancer();
     var tabBarEnhancerModule2 = require_tab_bar_enhancer();
+    var fileExplorerEnhancerModule2 = require_file_explorer_enhancer();
     async function copyTextToClipboard(text) {
       if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         await navigator.clipboard.writeText(text);
@@ -7921,6 +11250,7 @@ var require_settings_tab = __commonJS({
         this.renderCopyPathSection(featureGroupEl, summary);
         this.renderStatusBarEnhancerSection(featureGroupEl, summary);
         this.renderTabBarEnhancerSection(featureGroupEl, summary);
+        this.renderCorePluginEnhancerSection(featureGroupEl, summary);
         const managementGroupEl = containerEl.createDiv({ cls: "nene-settings-group" });
         managementGroupEl.createDiv({ cls: "nene-settings-group-title", text: "配置管理" });
         this.renderConfigManagementEntry(managementGroupEl);
@@ -8070,6 +11400,28 @@ var require_settings_tab = __commonJS({
         listEl.createEl("li", {
           text: "标签栏增强模块仅面向桌面端，依赖若干未文档化的内部接口实现滚轮切换标签，后续 Obsidian 版本存在失效风险。"
         });
+        listEl.createEl("li", {
+          text: '文件列表增强模块仅面向桌面端，通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏。右键菜单命令可配合"右键菜单自定义"模块手动配置。'
+        });
+      }
+      // 渲染核心插件增强分区，包含文件列表子模块（二级窗口管理置顶/隐藏选择器）。
+      renderCorePluginEnhancerSection(containerEl, summary) {
+        var plugin = this.plugin;
+        var self = this;
+        containerEl.createDiv({ cls: "nene-settings-group-title", text: "核心插件增强" });
+        new obsidian2.Setting(containerEl).setName("文件列表").setDesc(
+          summary.fileExplorerEnhancerEnabled ? "已启用。可通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏管理。" : "未启用。启用后可对文件资源管理器中的文件/文件夹进行置顶与隐藏。"
+        ).addToggle(function(toggle) {
+          toggle.setValue(summary.fileExplorerEnhancerEnabled).onChange(async function(value) {
+            await plugin.updateFileExplorerEnhancerEnabled(value);
+            new obsidian2.Notice(value ? "已启用文件列表增强模块" : "已关闭文件列表增强模块");
+            await self.display();
+          }.bind({ plugin }));
+        }).addButton(function(button) {
+          button.setButtonText("管理").setDisabled(!summary.fileExplorerEnhancerEnabled).onClick(function() {
+            new fileExplorerEnhancerModule2.FileExplorerManagerModal(plugin).open();
+          });
+        });
       }
     };
     module2.exports = {
@@ -8090,6 +11442,7 @@ var statusBarEnhancerModule = require_status_bar_enhancer();
 var tabBarEnhancerModule = require_tab_bar_enhancer();
 var contextMenuEnhancerModule = require_context_menu_enhancer();
 var settingsTabModule = require_settings_tab();
+var fileExplorerEnhancerModule = require_file_explorer_enhancer();
 var ObsidianNenePlugin = class extends obsidian.Plugin {
   constructor() {
     super(...arguments);
@@ -8109,10 +11462,18 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this);
     this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this);
     this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this);
+    this.fileExplorerEnhancerStore = new fileExplorerEnhancerModule.FileExplorerEnhancerStore(this);
+    this._fileExplorerView = null;
+    this._lastFocusedFile = null;
+    this._eyeToggleHistory = [];
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
     return this.dataStore.getData();
+  }
+  // 暴露文件资源管理器增强模块设置，供 runtime 直接读写。
+  get fileExplorerEnhancerSettings() {
+    return this.fileExplorerEnhancerStore.getSettings();
   }
   // 插件加载时执行初始化逻辑。
   async onload() {
@@ -8125,6 +11486,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.snippetsStore.load();
+    this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.initializeOrganizerSpooler();
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
@@ -8136,12 +11498,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.setupCommandEntries();
     this.setupLayoutEvents();
     this.setupAnchorGraphEvents();
+    this.setupFileExplorerEnhancer();
     this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
     this.syncStatusBarEnhancerState();
     this.syncTabBarEnhancerState();
+    this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
@@ -8156,6 +11520,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
+    this.fileExplorerEnhancerUnload();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
     });
@@ -8375,6 +11740,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isAnchorGraphEnabled() {
     return this.pluginSettingsStore.isAnchorGraphEnabled();
   }
+  // 返回文件资源管理器增强模块是否已启用。
+  isFileExplorerEnhancerEnabled() {
+    return this.pluginSettingsStore.isFileExplorerEnhancerEnabled();
+  }
   // 返回右键菜单自定义模块当前是否被用户启用。
   isMenuCustomizerEnabled() {
     return this.pluginSettingsStore.isMenuCustomizerEnabled();
@@ -8438,7 +11807,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       tabBarEnhancerTopBarWheel: this.tabBarEnhancerStore.getSettings().topBarWheelTabSwitch === true,
       tabBarEnhancerSkipCssHiddenTabs: this.tabBarEnhancerStore.getSettings().skipCssHiddenTabs !== false,
       tabBarEnhancerSkipUnloadedPluginTabs: this.tabBarEnhancerStore.getSettings().skipUnloadedPluginTabs !== false,
-      tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true
+      tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true,
+      fileExplorerEnhancerEnabled: this.isFileExplorerEnhancerEnabled(),
+      fileExplorerEnhancerPinFilterCount: (this.fileExplorerEnhancerStore.getSettings().pinFilters.paths || []).length,
+      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length
     };
   }
   // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
@@ -8675,6 +12047,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncTabBarEnhancerState();
     return nextValue;
   }
+  // 更新文件资源管理器增强模块开关，并立即同步启停状态。
+  async updateFileExplorerEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setFileExplorerEnhancerEnabled(enabled);
+    this.syncFileExplorerEnhancerState();
+    return nextEnabled;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -8787,6 +12165,62 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     this.tabBarEnhancerRuntime.stop();
   }
+  // 装配文件资源管理器增强：缓存右键目标、注册命令、监听布局变化挂载 monkey-patch。
+  setupFileExplorerEnhancer() {
+    var self = this;
+    self.registerEvent(
+      self.app.workspace.on("file-menu", function(menu, file) {
+        self.fileExplorerEnhancerStore._lastMenuTarget = file;
+      })
+    );
+    fileExplorerEnhancerModule.addCommands(self);
+    self.registerEvent(
+      self.app.workspace.on("layout-change", function() {
+        if (self.isFileExplorerEnhancerEnabled() && !self._fileExplorerView) {
+          self.attachFileExplorerPatch();
+        }
+      })
+    );
+  }
+  // 挂载文件资源管理器增强的 monkey-patch，在视图就绪时调用。
+  attachFileExplorerPatch() {
+    var self = this;
+    var fileExplorerLeaves = self.app.workspace.getLeavesOfType("file-explorer");
+    if (fileExplorerLeaves.length > 0 && !self._fileExplorerView) {
+      var view = fileExplorerLeaves[0].view;
+      self._fileExplorerView = view;
+      self.fileExplorerEnhancerStore.load(self.dataStore.getFileExplorerEnhancerData());
+      fileExplorerEnhancerModule.patchFileExplorerFolder(self, view);
+      fileExplorerEnhancerModule.addOnRename(self);
+      fileExplorerEnhancerModule.addOnDelete(self);
+      fileExplorerEnhancerModule.setupFileExplorerFocusTracking(self);
+      fileExplorerEnhancerModule.injectEyeButtons(self, view);
+      view.requestSort();
+    }
+  }
+  // 卸载文件资源管理器增强的 monkey-patch，恢复原始排序。
+  fileExplorerEnhancerUnload(skipCommands) {
+    if (!this._fileExplorerView) return;
+    fileExplorerEnhancerModule.unloadFileExplorerEnhancer(this, this._fileExplorerView);
+    fileExplorerEnhancerModule.removeEyeButtons();
+    this._fileExplorerView.requestSort();
+    this._fileExplorerView = null;
+    this._lastFocusedFile = null;
+    this._eyeToggleHistory = [];
+    this._eyeRevealedPaths = null;
+    this._eyeFocusTrackingBound = false;
+    this._eyeLeafChangeBound = false;
+    this._eyeToggleBtn = null;
+    this._eyeRestoreBtn = null;
+  }
+  // 根据当前设置同步文件资源管理器增强模块的启停状态。
+  syncFileExplorerEnhancerState() {
+    if (this.isFileExplorerEnhancerEnabled()) {
+      this.attachFileExplorerPatch();
+      return;
+    }
+    this.fileExplorerEnhancerUnload(true);
+  }
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -8804,6 +12238,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
+    this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.snippetsStore.load();
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();

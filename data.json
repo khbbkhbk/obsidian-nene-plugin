@@ -7,7 +7,7 @@
       "enabled": true
     },
     "menuCustomizer": {
-      "enabled": false
+      "enabled": true
     },
     "copyPath": {
       "enabled": true
@@ -16,6 +16,9 @@
       "enabled": true
     },
     "tabBarEnhancer": {
+      "enabled": true
+    },
+    "fileExplorerEnhancer": {
       "enabled": true
     }
   }

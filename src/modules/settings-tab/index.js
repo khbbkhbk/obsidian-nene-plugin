@@ -5,6 +5,7 @@ var copyPathModule = require('../copy-path/index.js');
 var menuCustomizerModule = require('../context-menu-enhancer/index.js');
 var statusBarEnhancerModule = require('../status-bar-enhancer/index.js');
 var tabBarEnhancerModule = require('../tab-bar-enhancer/index.js');
+var fileExplorerEnhancerModule = require('../file-explorer-enhancer/index.js');
 
 // 优先使用现代剪贴板 API，失败时回退到传统复制命令。
 async function copyTextToClipboard(text) {
@@ -566,6 +567,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.renderCopyPathSection(featureGroupEl, summary);
     this.renderStatusBarEnhancerSection(featureGroupEl, summary);
     this.renderTabBarEnhancerSection(featureGroupEl, summary);
+    this.renderCorePluginEnhancerSection(featureGroupEl, summary);
 
     const managementGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
     managementGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '配置管理' });
@@ -807,6 +809,44 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     listEl.createEl('li', {
       text: '标签栏增强模块仅面向桌面端，依赖若干未文档化的内部接口实现滚轮切换标签，后续 Obsidian 版本存在失效风险。'
     });
+    listEl.createEl('li', {
+      text: '文件列表增强模块仅面向桌面端，通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏。右键菜单命令可配合"右键菜单自定义"模块手动配置。'
+    });
+  }
+
+  // 渲染核心插件增强分区，包含文件列表子模块（二级窗口管理置顶/隐藏选择器）。
+  renderCorePluginEnhancerSection(containerEl, summary) {
+    var plugin = this.plugin;
+    var self = this;
+
+    // --- 核心插件增强分组标题 ---
+    containerEl.createDiv({ cls: 'nene-settings-group-title', text: '核心插件增强' });
+
+    // --- 文件列表主开关 + 管理按钮 ---
+    new obsidian.Setting(containerEl)
+      .setName('文件列表')
+      .setDesc(
+        summary.fileExplorerEnhancerEnabled
+          ? '已启用。可通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏管理。'
+          : '未启用。启用后可对文件资源管理器中的文件/文件夹进行置顶与隐藏。'
+      )
+      .addToggle(function (toggle) {
+        toggle
+          .setValue(summary.fileExplorerEnhancerEnabled)
+          .onChange(async function (value) {
+            await plugin.updateFileExplorerEnhancerEnabled(value);
+            new obsidian.Notice(value ? '已启用文件列表增强模块' : '已关闭文件列表增强模块');
+            await self.display();
+          }.bind({ plugin: plugin }));
+      })
+      .addButton(function (button) {
+        button
+          .setButtonText('管理')
+          .setDisabled(!summary.fileExplorerEnhancerEnabled)
+          .onClick(function () {
+            new fileExplorerEnhancerModule.FileExplorerManagerModal(plugin).open();
+          });
+      });
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "menus": {
     "editor": {
-      "enabled": true,
+      "enabled": false,
       "groups": [
         {
           "id": "editor-quick-actions",
@@ -161,6 +161,18 @@
           "type": "command",
           "commandId": "obsidian-nene-plugin:copy-uri-link",
           "hidden": false
+        },
+        {
+          "id": "root-1785401840636-6qxghi",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:pin-or-unpin-file-or-folder",
+          "hidden": false
+        },
+        {
+          "id": "root-1785402965314-6l6h0o",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:hide-file-or-folder",
+          "hidden": false
         }
       ],
       "commandOverrides": {},
@@ -225,6 +237,18 @@
           "id": "root-1784268894038-yum6xo",
           "type": "command",
           "commandId": "obsidian-nene-plugin:copy-uri-link",
+          "hidden": false
+        },
+        {
+          "id": "root-1785415815913-xyoijp",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:pin-or-unpin-file-or-folder",
+          "hidden": false
+        },
+        {
+          "id": "root-1785415820824-w7egb9",
+          "type": "command",
+          "commandId": "obsidian-nene-plugin:hide-file-or-folder",
           "hidden": false
         }
       ],

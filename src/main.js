@@ -11,6 +11,7 @@ var statusBarEnhancerModule = require('./modules/status-bar-enhancer/index.js');
 var tabBarEnhancerModule = require('./modules/tab-bar-enhancer/index.js');
 var contextMenuEnhancerModule = require('./modules/context-menu-enhancer/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
+var fileExplorerEnhancerModule = require('./modules/file-explorer-enhancer/index.js');
 
 // 定义插件主类，作为模块装配层，统一协调各功能目录。
 class ObsidianNenePlugin extends obsidian.Plugin {
@@ -32,11 +33,20 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.menuCustomizerRuntime = new contextMenuEnhancerModule.MenuCustomizerRuntime(this); // 管理右键菜单运行时拦截与重构
     this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this); // 管理 Snippets 管理模块配置
     this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this); // 管理 Snippets 运行时
+    this.fileExplorerEnhancerStore = new fileExplorerEnhancerModule.FileExplorerEnhancerStore(this); // 管理文件资源管理器增强配置切片
+    this._fileExplorerView = null; // 缓存文件资源管理器视图引用
+    this._lastFocusedFile = null; // 文件列表中最后点击的文件/文件夹
+    this._eyeToggleHistory = []; // 眼睛按钮停用的隐藏规则索引记录
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
     return this.dataStore.getData();
+  }
+
+  // 暴露文件资源管理器增强模块设置，供 runtime 直接读写。
+  get fileExplorerEnhancerSettings() {
+    return this.fileExplorerEnhancerStore.getSettings();
   }
 
   // 插件加载时执行初始化逻辑。
@@ -51,6 +61,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData()); // 将状态栏增强配置切片挂载到业务仓库
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData()); // 将标签栏增强配置切片挂载到业务仓库
     this.snippetsStore.load(); // 从状态栏增强配置中提取 snippets 切片
+    this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData()); // 将文件资源管理器增强配置切片挂载到业务仓库
     this.initializeOrganizerSpooler(); // 初始化状态栏元素管理 Spooler
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
@@ -63,6 +74,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.setupCommandEntries();
     this.setupLayoutEvents();
     this.setupAnchorGraphEvents();
+    this.setupFileExplorerEnhancer(); // 装配文件资源管理器增强（缓存右键目标 + 注册命令 + 布局监听）
     this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
 
     this.pluginListEnhancer.start();
@@ -70,6 +82,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.syncAnchorGraphEnhancerState();
     this.syncStatusBarEnhancerState();
     this.syncTabBarEnhancerState();
+    this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
   }
 
@@ -85,6 +98,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     }
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
+    this.fileExplorerEnhancerUnload();
 
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
@@ -351,6 +365,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isAnchorGraphEnabled();
   }
 
+  // 返回文件资源管理器增强模块是否已启用。
+  isFileExplorerEnhancerEnabled() {
+    return this.pluginSettingsStore.isFileExplorerEnhancerEnabled();
+  }
+
   // 返回右键菜单自定义模块当前是否被用户启用。
   isMenuCustomizerEnabled() {
     return this.pluginSettingsStore.isMenuCustomizerEnabled();
@@ -422,7 +441,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       tabBarEnhancerTopBarWheel: this.tabBarEnhancerStore.getSettings().topBarWheelTabSwitch === true,
       tabBarEnhancerSkipCssHiddenTabs: this.tabBarEnhancerStore.getSettings().skipCssHiddenTabs !== false,
       tabBarEnhancerSkipUnloadedPluginTabs: this.tabBarEnhancerStore.getSettings().skipUnloadedPluginTabs !== false,
-      tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true
+      tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true,
+      fileExplorerEnhancerEnabled: this.isFileExplorerEnhancerEnabled(),
+      fileExplorerEnhancerPinFilterCount: (this.fileExplorerEnhancerStore.getSettings().pinFilters.paths || []).length,
+      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length
     };
   }
 
@@ -708,6 +730,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextValue;
   }
 
+  // 更新文件资源管理器增强模块开关，并立即同步启停状态。
+  async updateFileExplorerEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setFileExplorerEnhancerEnabled(enabled);
+    this.syncFileExplorerEnhancerState();
+    return nextEnabled;
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -844,6 +873,76 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.tabBarEnhancerRuntime.stop();
   }
 
+  // 装配文件资源管理器增强：缓存右键目标、注册命令、监听布局变化挂载 monkey-patch。
+  setupFileExplorerEnhancer() {
+    var self = this;
+
+    // 缓存最近右键目标，供置顶/隐藏命令使用
+    self.registerEvent(
+      self.app.workspace.on('file-menu', function (menu, file) {
+        self.fileExplorerEnhancerStore._lastMenuTarget = file;
+      })
+    );
+
+    // 无条件注册命令，确保菜单自定义模块可在文件资源管理器就绪前探测到命令
+    fileExplorerEnhancerModule.addCommands(self);
+
+    // 布局变化时重试挂载：文件资源管理器可能在插件 onload 之后才就绪
+    self.registerEvent(
+      self.app.workspace.on('layout-change', function () {
+        if (self.isFileExplorerEnhancerEnabled() && !self._fileExplorerView) {
+          self.attachFileExplorerPatch();
+        }
+      })
+    );
+  }
+
+  // 挂载文件资源管理器增强的 monkey-patch，在视图就绪时调用。
+  attachFileExplorerPatch() {
+    var self = this;
+
+    var fileExplorerLeaves = self.app.workspace.getLeavesOfType('file-explorer');
+    if (fileExplorerLeaves.length > 0 && !self._fileExplorerView) {
+      var view = fileExplorerLeaves[0].view;
+      self._fileExplorerView = view;
+      self.fileExplorerEnhancerStore.load(self.dataStore.getFileExplorerEnhancerData());
+      fileExplorerEnhancerModule.patchFileExplorerFolder(self, view);
+      fileExplorerEnhancerModule.addOnRename(self);
+      fileExplorerEnhancerModule.addOnDelete(self);
+      fileExplorerEnhancerModule.setupFileExplorerFocusTracking(self);
+      fileExplorerEnhancerModule.injectEyeButtons(self, view);
+      view.requestSort();
+    }
+  }
+
+  // 卸载文件资源管理器增强的 monkey-patch，恢复原始排序。
+  fileExplorerEnhancerUnload(skipCommands) {
+    if (!this._fileExplorerView) return;
+
+    fileExplorerEnhancerModule.unloadFileExplorerEnhancer(this, this._fileExplorerView);
+    fileExplorerEnhancerModule.removeEyeButtons();
+    this._fileExplorerView.requestSort();
+    // 清除缓存引用，确保下次启用时能重新挂载
+    this._fileExplorerView = null;
+    this._lastFocusedFile = null;
+    this._eyeToggleHistory = [];
+    this._eyeRevealedPaths = null;
+    this._eyeFocusTrackingBound = false;
+    this._eyeLeafChangeBound = false;
+    this._eyeToggleBtn = null;
+    this._eyeRestoreBtn = null;
+  }
+
+  // 根据当前设置同步文件资源管理器增强模块的启停状态。
+  syncFileExplorerEnhancerState() {
+    if (this.isFileExplorerEnhancerEnabled()) {
+      this.attachFileExplorerPatch();
+      return;
+    }
+
+    this.fileExplorerEnhancerUnload(true);
+  }
+
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -864,6 +963,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.copyPathStore.load(this.dataStore.getCopyPathData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
+    this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.snippetsStore.load();
 
     this.syncFileMarkerFeatureState();
