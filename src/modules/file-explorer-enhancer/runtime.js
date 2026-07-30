@@ -497,10 +497,13 @@ function removeEyeButtons() {
   if (restoreBtn && restoreBtn.parentNode) restoreBtn.parentNode.removeChild(restoreBtn);
 }
 
-// 刷新眼睛按钮图标与禁用态。
+// 刷新眼睛按钮图标与禁用态，并同步更新当前获取目标的高亮标记。
 function updateEyeButtonState(plugin) {
   var btn = plugin._eyeToggleBtn;
   if (!btn) return;
+
+  // 先清除之前的高亮标记
+  clearEyeTargetHighlight(plugin);
 
   var dirPath = getTargetDirectory(plugin);
 
@@ -510,6 +513,14 @@ function updateEyeButtonState(plugin) {
     btn.disabled = true;
     btn.setAttribute('aria-label', '无可用目录');
     return;
+  }
+
+  if (dirPath === '') {
+    // 根目录：眼睛按钮变高亮色
+    btn.addClass('nene-eye-root-mode');
+  } else {
+    // 非根目录：在文件列表中高亮对应的文件/文件夹
+    highlightEyeTargetInFileList(plugin, dirPath);
   }
 
   if (hasHiddenFilesInDir(plugin, dirPath)) {
@@ -523,6 +534,36 @@ function updateEyeButtonState(plugin) {
   }
 
   updateRestoreButtonState(plugin);
+}
+
+// 清除眼睛按钮和目标文件列表项的高亮标记。
+function clearEyeTargetHighlight(plugin) {
+  var btn = plugin._eyeToggleBtn;
+  if (btn) btn.removeClass('nene-eye-root-mode');
+
+  // 清除所有文件列表项上的高亮
+  var prevHighlight = document.querySelectorAll('.tree-item-self.nene-eye-target-bg');
+  for (var i = 0; i < prevHighlight.length; i++) {
+    prevHighlight[i].removeClass('nene-eye-target-bg');
+  }
+}
+
+// 在文件列表中找到匹配路径的 .tree-item-self 并高亮。
+function highlightEyeTargetInFileList(plugin, dirPath) {
+  var view = plugin._fileExplorerView;
+  if (!view || !view.fileItems) return;
+
+  var keys = Object.keys(view.fileItems);
+  for (var i = 0; i < keys.length; i++) {
+    var vEl = view.fileItems[keys[i]];
+    if (!vEl || !vEl.file) continue;
+    // 目标是非根目录：匹配文件夹自身路径或文件所在父目录
+    if (vEl.file.path === dirPath) {
+      var targetSelf = vEl.el.querySelector('.tree-item-self');
+      if (targetSelf) targetSelf.addClass('nene-eye-target-bg');
+      return;
+    }
+  }
 }
 
 // 刷新恢复按钮图标与禁用态。

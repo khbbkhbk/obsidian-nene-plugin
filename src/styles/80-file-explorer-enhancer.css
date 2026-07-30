@@ -265,3 +265,13 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* 获取目标为根目录时：眼睛按钮图标使用高亮色 */
+.nene-eye-toggle-button.nene-eye-root-mode:not(:disabled) {
+  color: var(--text-highlight-bg);
+}
+
+/* 获取目标为非根目录文件/文件夹时：在文件列表项上显示高亮背景 */
+.tree-item-self.nene-eye-target-bg {
+  background: var(--text-highlight-bg) !important;
+}

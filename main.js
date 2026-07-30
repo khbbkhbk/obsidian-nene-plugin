@@ -8379,12 +8379,18 @@ var require_runtime4 = __commonJS({
     function updateEyeButtonState(plugin) {
       var btn = plugin._eyeToggleBtn;
       if (!btn) return;
+      clearEyeTargetHighlight(plugin);
       var dirPath = getTargetDirectory(plugin);
       if (dirPath === null) {
         obsidian2.setIcon(btn, "eye");
         btn.disabled = true;
         btn.setAttribute("aria-label", "无可用目录");
         return;
+      }
+      if (dirPath === "") {
+        btn.addClass("nene-eye-root-mode");
+      } else {
+        highlightEyeTargetInFileList(plugin, dirPath);
       }
       if (hasHiddenFilesInDir(plugin, dirPath)) {
         obsidian2.setIcon(btn, "eye-off");
@@ -8396,6 +8402,28 @@ var require_runtime4 = __commonJS({
         btn.setAttribute("aria-label", "当前目录无隐藏文件");
       }
       updateRestoreButtonState(plugin);
+    }
+    function clearEyeTargetHighlight(plugin) {
+      var btn = plugin._eyeToggleBtn;
+      if (btn) btn.removeClass("nene-eye-root-mode");
+      var prevHighlight = document.querySelectorAll(".tree-item-self.nene-eye-target-bg");
+      for (var i = 0; i < prevHighlight.length; i++) {
+        prevHighlight[i].removeClass("nene-eye-target-bg");
+      }
+    }
+    function highlightEyeTargetInFileList(plugin, dirPath) {
+      var view = plugin._fileExplorerView;
+      if (!view || !view.fileItems) return;
+      var keys = Object.keys(view.fileItems);
+      for (var i = 0; i < keys.length; i++) {
+        var vEl = view.fileItems[keys[i]];
+        if (!vEl || !vEl.file) continue;
+        if (vEl.file.path === dirPath) {
+          var targetSelf = vEl.el.querySelector(".tree-item-self");
+          if (targetSelf) targetSelf.addClass("nene-eye-target-bg");
+          return;
+        }
+      }
     }
     function updateRestoreButtonState(plugin) {
       var btn = plugin._eyeRestoreBtn;
