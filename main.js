@@ -8046,6 +8046,35 @@ var require_runtime4 = __commonJS({
       }
       return false;
     }
+    function checkPathFilterAllowInactive(filter, file) {
+      if (!filter || filter.pattern === "") return false;
+      if (filter.type === "FILES" && file instanceof obsidian2.TFolder) return false;
+      if (filter.type === "DIRECTORIES" && file instanceof obsidian2.TFile) return false;
+      if (filter.patternType === "STRICT") {
+        return file.path === filter.pattern || file.path.replace(/\.md$/g, "") === filter.pattern || (file.basename || file.name) === filter.pattern;
+      }
+      if (filter.patternType === "REGEX") {
+        if (!filter._regex) return false;
+        return filter._regex.test(file.path) || filter._regex.test(file.path.replace(/\.md$/g, "")) || filter._regex.test(file.basename || file.name);
+      }
+      if (filter.patternType === "WILDCARD") {
+        if (!filter._matcher) return false;
+        return filter._matcher(file.path) || filter._matcher(file.path.replace(/\.md$/g, "")) || filter._matcher(file.basename || file.name);
+      }
+      return false;
+    }
+    function isFileTemporarilyRevealed(plugin, file) {
+      if (plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(file.path)) return true;
+      var history = plugin._eyeToggleHistory;
+      if (history && history.length > 0) {
+        var hidePaths = plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+        for (var i = 0; i < history.length; i++) {
+          var f = hidePaths[history[i]];
+          if (f && checkPathFilterAllowInactive(f, file)) return true;
+        }
+      }
+      return false;
+    }
     function addOnRename(plugin) {
       plugin.registerEvent(
         plugin.app.vault.on("rename", function(file, oldPath) {
@@ -8222,7 +8251,7 @@ var require_runtime4 = __commonJS({
               for (var i = 0; i < virtualElements.length; i++) {
                 var vEl = virtualElements[i];
                 var state = store.getFileState(vEl.file);
-                var isRevealed = plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(vEl.file.path);
+                var isRevealed = isFileTemporarilyRevealed(plugin, vEl.file);
                 if (settings.hideFilters.active && state.hidden && !isRevealed) {
                   vEl.info.hidden = true;
                   hiddenVChildren.push(vEl);
@@ -8261,6 +8290,12 @@ var require_runtime4 = __commonJS({
                 var allEls = this.vChildren.children;
                 for (var k = 0; k < allEls.length; k++) {
                   var v = allEls[k];
+                  var isRevealed2 = isFileTemporarilyRevealed(plugin, v.file);
+                  if (isRevealed2 && !v.el.hasClass("nene-eye-revealed")) {
+                    v.el.addClass("nene-eye-revealed");
+                  } else if (!isRevealed2 && v.el.hasClass("nene-eye-revealed")) {
+                    v.el.removeClass("nene-eye-revealed");
+                  }
                   if (v.info.pinned && !v.el.hasClass("tree-item-pinned")) {
                     v.el.addClass("tree-item-pinned");
                     var pinDiv = document.createElement("div");
@@ -8281,6 +8316,13 @@ var require_runtime4 = __commonJS({
                         if (fc) fc.removeChild(icon);
                       });
                     }
+                  }
+                }
+                var hiddenEls = this.hiddenVChildren || [];
+                for (var h = 0; h < hiddenEls.length; h++) {
+                  var hv = hiddenEls[h];
+                  if (hv.el.hasClass("nene-eye-revealed")) {
+                    hv.el.removeClass("nene-eye-revealed");
                   }
                 }
               }.bind(this));
@@ -8330,6 +8372,9 @@ var require_runtime4 = __commonJS({
           var vEl = fileExplorerView.fileItems[key];
           if (vEl.__feRafId) cancelAnimationFrame(vEl.__feRafId);
           fileExplorerView.fileItems[key] = changeVirtualElementPin(vEl, false);
+          if (vEl.el.hasClass("nene-eye-revealed")) {
+            vEl.el.removeClass("nene-eye-revealed");
+          }
         }
       }
       fileExplorerView.requestSort();

@@ -81,6 +81,58 @@ function checkPathFilter(filter, file) {
   return false;
 }
 
+// 检查文件或文件夹是否匹配给定的路径过滤器规则（使用预编译匹配器）。
+// 与 checkPathFilter 等价，但不检查 filter.active，用于识别被眼睛按钮停用的过滤器。
+function checkPathFilterAllowInactive(filter, file) {
+  if (!filter || filter.pattern === '') return false;
+
+  if (filter.type === 'FILES' && file instanceof obsidian.TFolder) return false;
+  if (filter.type === 'DIRECTORIES' && file instanceof obsidian.TFile) return false;
+
+  // STRICT 模式：精确字符串匹配
+  if (filter.patternType === 'STRICT') {
+    return file.path === filter.pattern
+      || file.path.replace(/\.md$/g, '') === filter.pattern
+      || (file.basename || file.name) === filter.pattern;
+  }
+
+  // REGEX 模式：使用预编译的正则
+  if (filter.patternType === 'REGEX') {
+    if (!filter._regex) return false;
+    return filter._regex.test(file.path)
+      || filter._regex.test(file.path.replace(/\.md$/g, ''))
+      || filter._regex.test(file.basename || file.name);
+  }
+
+  // WILDCARD 模式：使用预编译的匹配函数
+  if (filter.patternType === 'WILDCARD') {
+    if (!filter._matcher) return false;
+    return filter._matcher(file.path)
+      || filter._matcher(file.path.replace(/\.md$/g, ''))
+      || filter._matcher(file.basename || file.name);
+  }
+
+  return false;
+}
+
+// 判断文件是否被眼睛按钮临时显示（根目录 Set 或子目录历史过滤器命中）。
+function isFileTemporarilyRevealed(plugin, file) {
+  // 根目录：命中 _eyeRevealedPaths 集合
+  if (plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(file.path)) return true;
+
+  // 子目录：命中 _eyeToggleHistory 中被停用的隐藏过滤器
+  var history = plugin._eyeToggleHistory;
+  if (history && history.length > 0) {
+    var hidePaths = plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+    for (var i = 0; i < history.length; i++) {
+      var f = hidePaths[history[i]];
+      if (f && checkPathFilterAllowInactive(f, file)) return true;
+    }
+  }
+
+  return false;
+}
+
 // 监听文件重命名事件，自动更新严格模式下的路径规则（含子文件），并同步更新缓存。
 function addOnRename(plugin) {
   plugin.registerEvent(
@@ -294,8 +346,8 @@ function patchFileExplorerFolder(plugin, fileExplorerView) {
             var vEl = virtualElements[i];
             var state = store.getFileState(vEl.file);
 
-            // 检查是否被根目录 eye 按钮临时显示
-            var isRevealed = plugin._eyeRevealedPaths && plugin._eyeRevealedPaths.has(vEl.file.path);
+            // 检查是否被眼睛按钮临时显示（根目录 Set 或子目录历史过滤器）
+            var isRevealed = isFileTemporarilyRevealed(plugin, vEl.file);
 
             if (settings.hideFilters.active && state.hidden && !isRevealed) {
               vEl.info.hidden = true;
@@ -337,6 +389,15 @@ function patchFileExplorerFolder(plugin, fileExplorerView) {
             var allEls = this.vChildren.children;
             for (var k = 0; k < allEls.length; k++) {
               var v = allEls[k];
+
+              // 眼睛按钮临时显示项：添加半透明样式，其余项移除
+              var isRevealed = isFileTemporarilyRevealed(plugin, v.file);
+              if (isRevealed && !v.el.hasClass('nene-eye-revealed')) {
+                v.el.addClass('nene-eye-revealed');
+              } else if (!isRevealed && v.el.hasClass('nene-eye-revealed')) {
+                v.el.removeClass('nene-eye-revealed');
+              }
+
               if (v.info.pinned && !v.el.hasClass('tree-item-pinned')) {
                 v.el.addClass('tree-item-pinned');
                 var pinDiv = document.createElement('div');
@@ -353,6 +414,15 @@ function patchFileExplorerFolder(plugin, fileExplorerView) {
                   var icons = Array.from(fc.children).filter(function (e) { return e.hasClass('pin-icon'); });
                   icons.forEach(function (icon) { if (fc) fc.removeChild(icon); });
                 }
+              }
+            }
+
+            // 隐藏项不在 vChildren 中，单独清理残留的临时显示样式类
+            var hiddenEls = this.hiddenVChildren || [];
+            for (var h = 0; h < hiddenEls.length; h++) {
+              var hv = hiddenEls[h];
+              if (hv.el.hasClass('nene-eye-revealed')) {
+                hv.el.removeClass('nene-eye-revealed');
               }
             }
           }.bind(this));
@@ -427,6 +497,10 @@ function unloadFileExplorerEnhancer(plugin, fileExplorerView) {
       var vEl = fileExplorerView.fileItems[key];
       if (vEl.__feRafId) cancelAnimationFrame(vEl.__feRafId);
       fileExplorerView.fileItems[key] = changeVirtualElementPin(vEl, false);
+      // 清理临时显示样式类
+      if (vEl.el.hasClass('nene-eye-revealed')) {
+        vEl.el.removeClass('nene-eye-revealed');
+      }
     }
   }
   fileExplorerView.requestSort();

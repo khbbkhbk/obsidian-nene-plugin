@@ -1943,3 +1943,8 @@ body>.tooltip {
 .tree-item-self.nene-eye-target-bg {
   background: var(--text-highlight-bg) !important;
 }
+
+/* 通过眼睛按钮临时显示的文件/文件夹：半透明以示区分 */
+.tree-item.nene-eye-revealed {
+  opacity: 0.5;
+}
