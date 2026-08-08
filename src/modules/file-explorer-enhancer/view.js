@@ -966,10 +966,6 @@ SingleFilterActivatedModal.prototype.onOpen = function () {
   contentEl.empty();
   contentEl.addClasses(['file-explorer-plus', 'filters-activated-modal']);
 
-  var actionText = this.actionType === 'PIN' ? '置顶' : '隐藏';
-  var titleText = '「' + (this.filter.name || this.filter.pattern || '未命名') + '」规则生效的' + actionText + '列表';
-  contentEl.createEl('h3', { text: titleText });
-
   var allFiles = this.plugin.app.vault.getAllLoadedFiles();
   var matched = [];
   var checkFn = require('./runtime').checkPathFilter;
@@ -1035,10 +1031,6 @@ SingleFilterActivatedModal.prototype.onOpen = function () {
 
   contentEl.appendChild(table);
 
-  // 关闭按钮
-  var actionEl = contentEl.createDiv({ cls: 'nene-settings-modal-actions' });
-  var closeBtn = actionEl.createEl('button', { text: '关闭' });
-  closeBtn.addEventListener('click', function () { self.close(); });
 };
 
 SingleFilterActivatedModal.prototype.onClose = function () {

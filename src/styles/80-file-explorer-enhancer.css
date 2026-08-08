@@ -11,8 +11,9 @@
 }
 
 .file-explorer-plus.filters-activated-modal {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
 }
 
 .file-explorer-plus table {
@@ -21,13 +22,18 @@
 
 .file-explorer-plus th {
   text-align: center;
-  padding-left: 5px;
-  padding-right: 5px;
+  padding: 0 5px;
   border-bottom: 2px solid var(--text-normal);
+  white-space: nowrap;
 }
 
 .file-explorer-plus td {
-  padding: 3px;
+  padding: 5px;
+}
+
+.file-explorer-plus.filters-activated-modal td:nth-child(2) {
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* 新建路径过滤器弹窗：适配默认 Modal 尺寸，内容可滚动，按钮固定在底部 */
