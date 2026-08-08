@@ -215,6 +215,196 @@
 }
 
 /* ------------------------------ */
+/* 命令&URI增强模块管理弹窗样式 */
+/* ------------------------------ */
+
+/* 模块分区：上下纵向排列。 */
+.nene-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 分区标题：小号全大写风格 + 顶部分隔线。 */
+.nene-modal-section-title {
+  margin: 14px 0 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-medium);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 分区内设置项保持紧凑节奏。 */
+.nene-modal-section .setting-item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* 条目行：左侧文本 + 右侧按钮的 row flex 布局。 */
+.nene-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 条目左侧信息纵向排列，标题与描述分层。 */
+.nene-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nene-entry-title {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.nene-entry-desc {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+}
+
+.nene-entry-action {
+  flex-shrink: 0;
+}
+
+/* 图标按钮：仅图标展示，带悬停反馈。 */
+.nene-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 100ms ease-out, color 100ms ease-out;
+}
+
+.nene-icon-button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* 命令列表：命令名称与 ID 左右分布。 */
+.nene-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nene-command-name {
+  color: var(--text-normal);
+}
+
+.nene-command-id {
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+}
+
+/* 可用 URI 表格：表头与数据行保持对齐。 */
+.nene-uri-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.nene-uri-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nene-uri-col-syntax {
+  flex: 1;
+  min-width: 0;
+}
+
+.nene-uri-col-action {
+  flex-shrink: 0;
+}
+
+.nene-uri-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 行内左侧信息：URI 语法与注释纵向排列。 */
+.nene-uri-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nene-uri-syntax {
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nene-uri-comment {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.nene-uri-action {
+  flex-shrink: 0;
+}
+
+/* 二级弹窗统一使用紧凑宽度。 */
+.modal.nene-popover-modal {
+  width: min(90vw, 560px);
+}
+
+.modal.nene-popover-modal .modal-content {
+  padding: 20px 24px;
+}
+
+/* 空状态：居中弱化展示。 */
+.nene-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 0;
+  color: var(--text-muted);
+}
+
+.nene-empty-state-icon {
+  opacity: 0.7;
+}
+
+/* ------------------------------ */
 /* 右键菜单自定义管理弹窗 */
 /* ------------------------------ */
 

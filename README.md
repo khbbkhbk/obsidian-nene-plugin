@@ -17,7 +17,7 @@ Obsidian插件ねね，集成功能列表：
     - 新增功能：（基于第三方插件“proog/obsidian-trash-explorer”）
     - 新增功能：（基于第三方插件“tgrosinger/recent-files-obsidian”）
 - [x] 命令&URI增强
-  - 路径与链接相关
+  - 命令增强模块
     - 复制当前目标的库内路径（基于第三方插件“shumadrid/obsidian-copy-path”）
     - 复制当前目标的完整路径（基于第三方插件“shumadrid/obsidian-copy-path”）
     - 复制当前目标的URI链接（基于第三方插件“michalbures/obsidian-file-path-to-uri”）
