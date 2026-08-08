@@ -1,7 +1,7 @@
 'use strict';
 
 var obsidian = require('obsidian');
-var copyPathModule = require('../copy-path/index.js');
+var commandUriEnhancerModule = require('../command-uri-enhancer/index.js');
 var menuCustomizerModule = require('../context-menu-enhancer/index.js');
 var statusBarEnhancerModule = require('../status-bar-enhancer/index.js');
 var tabBarEnhancerModule = require('../tab-bar-enhancer/index.js');
@@ -400,8 +400,8 @@ class AnchorGraphManagementModal extends obsidian.Modal {
 class MenuCustomizerManagementModal extends menuCustomizerModule.MenuCustomizerManagementModal {
 }
 
-// 定义复制路径模块管理弹窗入口，实际内容由独立模块实现。
-class CopyPathManagementModal extends copyPathModule.CopyPathManagementModal {
+// 定义命令&URI增强模块管理弹窗入口，实际内容由独立模块实现。
+class CommandUriEnhancerManagementModal extends commandUriEnhancerModule.CommandUriEnhancerManagementModal {
 }
 
 // 定义状态栏增强模块管理弹窗入口，实际内容由独立模块实现。
@@ -445,7 +445,7 @@ class ConfigManagementModal extends obsidian.Modal {
     renderDetailItem(detailListEl, '文件标记配置', `${configSummary.fileMarker.exists ? '已存在' : '未发现'}，${configSummary.fileMarker.summary}`);
     renderDetailItem(detailListEl, '关系图谱配置', `${configSummary.anchorGraph.exists ? '已存在' : '未发现'}，${configSummary.anchorGraph.summary}`);
     renderDetailItem(detailListEl, '右键菜单配置', `${configSummary.menuCustomizer.exists ? '已存在' : '未发现'}，${configSummary.menuCustomizer.summary}`);
-    renderDetailItem(detailListEl, '复制路径配置', `${configSummary.copyPath.exists ? '已存在' : '未发现'}，${configSummary.copyPath.summary}`);
+    renderDetailItem(detailListEl, '命令&URI增强配置', `${configSummary.commandUriEnhancer.exists ? '已存在' : '未发现'}，${configSummary.commandUriEnhancer.summary}`);
     renderDetailItem(detailListEl, '状态栏增强配置', `${configSummary.statusBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.statusBarEnhancer.summary}`);
     renderDetailItem(detailListEl, '标签栏增强配置', `${configSummary.tabBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.tabBarEnhancer.summary}`);
     renderDetailItem(detailListEl, '配置目录', configSummary.directoryPath, true);
@@ -509,7 +509,7 @@ class ConfigManagementModal extends obsidian.Modal {
 
     new obsidian.Setting(contentEl)
       .setName('重置全部配置')
-      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径、状态栏增强和标签栏增强设置都会恢复为首次安装状态。')
+      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强和标签栏增强设置都会恢复为首次安装状态。')
       .addButton((button) => {
         button
           .setButtonText('重置全部')
@@ -518,7 +518,7 @@ class ConfigManagementModal extends obsidian.Modal {
             new ConfirmActionModal(
               this.app,
               '重置全部插件配置',
-              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。',
+              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。',
               '确认全部重置',
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -564,7 +564,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.renderFileMarkerSection(featureGroupEl, summary);
     this.renderAnchorGraphSection(featureGroupEl, summary);
     this.renderMenuCustomizerSection(featureGroupEl, summary);
-    this.renderCopyPathSection(featureGroupEl, summary);
+    this.renderCommandUriEnhancerSection(featureGroupEl, summary);
     this.renderStatusBarEnhancerSection(featureGroupEl, summary);
     this.renderTabBarEnhancerSection(featureGroupEl, summary);
     this.renderCorePluginEnhancerSection(featureGroupEl, summary);
@@ -672,14 +672,14 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
       });
   }
 
-  // 渲染复制路径模块分区，仅保留状态概览、开关与弹窗入口。
-  renderCopyPathSection(containerEl, summary) {
+  // 渲染命令&URI增强模块分区，仅保留状态概览、开关与弹窗入口。
+  renderCommandUriEnhancerSection(containerEl, summary) {
     new obsidian.Setting(containerEl)
-      .setName('复制路径')
+      .setName('命令&URI增强')
       .setDesc(
-        summary.copyPathEnabled
+        summary.commandUriEnhancerEnabled
           ? (
-            summary.copyPathTrailingSlashEnabled
+            summary.commandUriEnhancerTrailingSlashEnabled
               ? '已启用，文件夹路径复制时会自动在末尾追加 /。模块只注册命令，不会直接向右键菜单添加入口。'
               : '已启用，当前不会为文件夹路径自动补 /。模块只注册命令，不会直接向右键菜单添加入口。'
           )
@@ -687,10 +687,10 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
       )
       .addToggle((toggle) => {
         toggle
-          .setValue(summary.copyPathEnabled)
+          .setValue(summary.commandUriEnhancerEnabled)
           .onChange(async (value) => {
-            await this.plugin.updateCopyPathEnabled(value);
-            new obsidian.Notice(value ? '已启用复制路径模块' : '已关闭复制路径模块');
+            await this.plugin.updateCommandUriEnhancerEnabled(value);
+            new obsidian.Notice(value ? '已启用命令&URI增强模块' : '已关闭命令&URI增强模块');
             await this.display();
           });
       })
@@ -698,7 +698,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new CopyPathManagementModal(this.app, this.plugin, async () => {
+            new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
             }).open();
           });
@@ -801,7 +801,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
       text: '右键菜单自定义基于 Obsidian v1.4.16 的菜单结构设计，启用后会保留原始命令回调，但会重新组织 DOM 顺序。'
     });
     listEl.createEl('li', {
-      text: '复制路径模块默认不直接向右键菜单注入入口，只注册命令；如需显示在右键菜单中，可通过“右键菜单自定义”手动添加。'
+      text: '命令&URI增强模块默认不直接向右键菜单注入入口，只注册命令；如需显示在右键菜单中，可通过“右键菜单自定义”手动添加。'
     });
     listEl.createEl('li', {
       text: '状态栏增强模块主要面向桌面端；移动端通常不显示状态栏，因此只会保留配置，不会实际显示路径。'

@@ -8,17 +8,21 @@ Obsidian插件ねね，集成功能列表：
   - 新增功能：状态栏显示“Snippets管理”按钮（基于第三方插件“chetachiezikeuzor/MySnippets-Plugin”）
 - [x] 关系图谱增强
   - 新增功能：支持额外实时识别a标签形式的正向链接（class包含internal-link，且带有data-href或href的HTML a标签，并排除特殊字符干扰）
-- [] 设置面板增强
+- [ ] 设置面板增强
   - 新增功能：设置面板左侧“第三方插件”列表的条目追加启停按钮，无论是否启用，条目都会显示，若插件具有设置界面，则额外当光标移至条目时变为cursor pointer，点击后右侧切换为设置界面。
 - [ ] 核心插件增强
   - [ ] 文件列表
     - 新增功能：置顶与隐藏（基于第三方插件“kelszo/obsidian-file-explorer-plus”）
-      - ⛔在文件列表的工具栏中添加一个眼睛按钮，用于切换当前聚焦的文件或文件夹的所在目录，或当前活动笔记所在目录，这两种目录的子文件、子目录、子目录下所有文件或目录）的显隐
-- [x] 命令增强
+    - 新增功能：隐藏文件的临时显隐开关
+    - 新增功能：（基于第三方插件“proog/obsidian-trash-explorer”）
+    - 新增功能：（基于第三方插件“tgrosinger/recent-files-obsidian”）
+- [x] 命令&URI增强
   - 路径与链接相关
     - 复制当前目标的库内路径（基于第三方插件“shumadrid/obsidian-copy-path”）
     - 复制当前目标的完整路径（基于第三方插件“shumadrid/obsidian-copy-path”）
     - 复制当前目标的URI链接（基于第三方插件“michalbures/obsidian-file-path-to-uri”）
+  - URI增强列表
+    - （基于第三方插件“pjeby/hotkey-helper”）
 - [ ] 其它
   - [x] 为第三方插件列表添加 data-plugin-name 属性，以支持自定义 CSS 样式。
   - [ ] 窗口模式下执行“在文件列表中显示当前文件”，将无视Obsidian窗口是否隐藏/最小化/失去焦点，强制还原窗口
@@ -31,3 +35,4 @@ Obsidian插件ねね，集成功能列表：
       - [ ] 每个链接支持新建窗口模式下打开、新建标签页打开、当前标签页打开
     - [ ] 每个笔记窗口附带一个小窗口
 - [ ]  菜单定位有问题
+

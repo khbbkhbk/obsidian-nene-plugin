@@ -6,7 +6,7 @@ var pluginData = require('./modules/plugin-data/index.js');
 var pluginSettings = require('./modules/plugin-settings/index.js');
 var pluginListEnhancerModule = require('./modules/plugin-list-enhancer/index.js');
 var graphViewEnhancerModule = require('./modules/graph-view-enhancer/index.js');
-var copyPathModule = require('./modules/copy-path/index.js');
+var commandUriEnhancerModule = require('./modules/command-uri-enhancer/index.js');
 var statusBarEnhancerModule = require('./modules/status-bar-enhancer/index.js');
 var tabBarEnhancerModule = require('./modules/tab-bar-enhancer/index.js');
 var contextMenuEnhancerModule = require('./modules/context-menu-enhancer/index.js');
@@ -22,8 +22,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this); // 管理文件标记业务数据
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this); // 管理旧设置页增强逻辑
     this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
-    this.copyPathStore = new copyPathModule.CopyPathStore(this); // 管理复制路径模块配置与右键菜单目标缓存
-    this.copyPathService = new copyPathModule.CopyPathService(this); // 管理复制路径命令执行逻辑
+    this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this); // 管理命令&URI增强模块配置与右键菜单目标缓存
+    this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this); // 管理命令&URI增强命令执行逻辑
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
     this.organizerSpooler = null; // 状态栏元素管理 Spooler，在 onload 中初始化
@@ -57,7 +57,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures()); // 将插件级功能开关注入设置仓库
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData()); // 将文件标记切片挂载到业务仓库
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData()); // 将右键菜单配置切片挂载到业务仓库
-    this.copyPathStore.load(this.dataStore.getCopyPathData()); // 将复制路径配置切片挂载到业务仓库
+    this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData()); // 将命令&URI增强配置切片挂载到业务仓库
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData()); // 将状态栏增强配置切片挂载到业务仓库
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData()); // 将标签栏增强配置切片挂载到业务仓库
     this.snippetsStore.load(); // 从状态栏增强配置中提取 snippets 切片
@@ -122,7 +122,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
         this.menuCustomizerRuntime.annotateFileMenu(menu, file);
-        this.copyPathStore.rememberMenuTarget(file);
+        this.commandUriEnhancerStore.rememberMenuTarget(file);
+        // 菜单关闭时清空右键菜单目标，使目标生命周期与菜单生命周期保持一致
+        menu.onClose(() => {
+          this.commandUriEnhancerStore.clearRecentMenuTarget();
+        });
         if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
 
@@ -242,7 +246,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       id: 'copy-vault-path',
       name: '复制当前目标的库内路径',
       callback: async () => {
-        await this.copyPathService.copyVaultPathFromCommand();
+        await this.commandUriEnhancerService.copyVaultPathFromCommand();
       }
     });
 
@@ -250,7 +254,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       id: 'copy-full-path',
       name: '复制当前目标的完整路径',
       callback: async () => {
-        await this.copyPathService.copyFullPathFromCommand();
+        await this.commandUriEnhancerService.copyFullPathFromCommand();
       }
     });
 
@@ -258,7 +262,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       id: 'copy-uri-link',
       name: '复制当前目标的URI链接',
       callback: async () => {
-        await this.copyPathService.copyUriLinkFromCommand();
+        await this.commandUriEnhancerService.copyUriLinkFromCommand();
       }
     });
   }
@@ -375,9 +379,9 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isMenuCustomizerEnabled();
   }
 
-  // 返回复制路径模块当前是否被用户启用。
-  isCopyPathEnabled() {
-    return this.pluginSettingsStore.isCopyPathEnabled();
+  // 返回命令&URI增强模块当前是否被用户启用。
+  isCommandUriEnhancerEnabled() {
+    return this.pluginSettingsStore.isCommandUriEnhancerEnabled();
   }
 
   // 返回状态栏增强模块当前是否被用户启用。
@@ -423,8 +427,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       menuCustomizerEnabled: this.isMenuCustomizerEnabled(),
       menuCustomizerMenuCount: this.menuCustomizerStore.getEnabledMenuCount(),
       menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount(),
-      copyPathEnabled: this.isCopyPathEnabled(),
-      copyPathTrailingSlashEnabled: this.copyPathStore.getSettings().addTrailingSlashToFolders === true,
+      commandUriEnhancerEnabled: this.isCommandUriEnhancerEnabled(),
+      commandUriEnhancerTrailingSlashEnabled: this.commandUriEnhancerStore.getSettings().addTrailingSlashToFolders === true,
       statusBarEnhancerEnabled: this.isStatusBarEnhancerEnabled(),
       statusBarEnhancerShowFileName: this.statusBarEnhancerStore.getSettings().showFileName === true,
       statusBarEnhancerShowIcons: this.statusBarEnhancerStore.getSettings().showIcons === true,
@@ -552,14 +556,14 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextEnabled;
   }
 
-  // 更新复制路径模块开关。
-  async updateCopyPathEnabled(enabled) {
-    return this.pluginSettingsStore.setCopyPathEnabled(enabled);
+  // 更新命令&URI增强模块开关。
+  async updateCommandUriEnhancerEnabled(enabled) {
+    return this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
   }
 
-  // 更新复制路径模块的文件夹末尾斜杠配置。
-  async updateCopyPathTrailingSlashEnabled(enabled) {
-    return this.copyPathStore.setAddTrailingSlashToFolders(enabled);
+  // 更新命令&URI增强模块的文件夹末尾斜杠配置。
+  async updateCommandUriEnhancerTrailingSlashEnabled(enabled) {
+    return this.commandUriEnhancerStore.setAddTrailingSlashToFolders(enabled);
   }
 
   // 更新状态栏增强模块开关，并立即同步状态栏显示状态。
@@ -960,7 +964,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures());
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
-    this.copyPathStore.load(this.dataStore.getCopyPathData());
+    this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());

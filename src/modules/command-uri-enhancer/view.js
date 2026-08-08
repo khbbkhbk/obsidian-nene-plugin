@@ -25,15 +25,15 @@ function renderDetailItem(containerEl, label, value, codeStyle) {
   });
 }
 
-// 定义复制路径模块管理弹窗，集中放置配置项与命令说明。
-class CopyPathManagementModal extends obsidian.Modal {
+// 定义命令&URI增强模块管理弹窗，集中放置配置项与命令说明。
+class CommandUriEnhancerManagementModal extends obsidian.Modal {
   constructor(app, plugin, onSettingsChanged) {
     super(app);
     this.plugin = plugin;
     this.onSettingsChanged = onSettingsChanged; // 保存回调，便于修改设置后刷新主设置页
   }
 
-  // 打开弹窗时渲染复制路径模块详情与配置项。
+  // 打开弹窗时渲染命令&URI增强模块详情与配置项。
   onOpen() {
     this.modalEl.addClass('mod-sidebar-layout', 'nene-settings-panel-modal');
     this.contentEl.empty();
@@ -41,7 +41,7 @@ class CopyPathManagementModal extends obsidian.Modal {
     void this.render();
   }
 
-  // 根据当前最新状态渲染复制路径模块管理界面。
+  // 根据当前最新状态渲染命令&URI增强模块管理界面。
   async render() {
     const { contentEl } = this;
     const summary = this.plugin.getSettingsSummary();
@@ -50,27 +50,27 @@ class CopyPathManagementModal extends obsidian.Modal {
     contentEl.empty();
     renderModalHeader(
       contentEl,
-      '复制路径模块',
+      '命令&URI增强模块',
       '该模块只注册命令，不会直接向文件或文件夹右键菜单注入入口。若需要出现在右键菜单中，请在“右键菜单自定义”模块中手动添加这些命令。'
     );
 
     const detailListEl = contentEl.createDiv({ cls: 'nene-settings-detail-list' });
-    renderDetailItem(detailListEl, '当前状态', summary.copyPathEnabled ? '已启用' : '已关闭');
+    renderDetailItem(detailListEl, '当前状态', summary.commandUriEnhancerEnabled ? '已启用' : '已关闭');
     renderDetailItem(
       detailListEl,
       '文件夹末尾补 /',
-      summary.copyPathTrailingSlashEnabled ? '已开启' : '已关闭'
+      summary.commandUriEnhancerTrailingSlashEnabled ? '已开启' : '已关闭'
     );
-    renderDetailItem(detailListEl, '配置文件', configSummary.copyPath.path, true);
+    renderDetailItem(detailListEl, '配置文件', configSummary.commandUriEnhancer.path, true);
 
     new obsidian.Setting(contentEl)
       .setName('文件夹路径末尾补 /')
       .setDesc('开启后，复制文件夹路径时会自动在末尾追加 /，便于与文件路径区分。')
       .addToggle((toggle) => {
         toggle
-          .setValue(summary.copyPathTrailingSlashEnabled)
+          .setValue(summary.commandUriEnhancerTrailingSlashEnabled)
           .onChange(async (value) => {
-            await this.plugin.updateCopyPathTrailingSlashEnabled(value);
+            await this.plugin.updateCommandUriEnhancerTrailingSlashEnabled(value);
             new obsidian.Notice(value ? '已开启文件夹路径末尾补 /' : '已关闭文件夹路径末尾补 /');
             await this.onSettingsChanged();
             await this.render();
@@ -92,5 +92,5 @@ class CopyPathManagementModal extends obsidian.Modal {
 }
 
 module.exports = {
-  CopyPathManagementModal
+  CommandUriEnhancerManagementModal
 };

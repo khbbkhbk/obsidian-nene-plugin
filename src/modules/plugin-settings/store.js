@@ -57,16 +57,16 @@ class PluginSettingsStore {
     return this.isMenuCustomizerEnabled();
   }
 
-  // 返回复制路径模块是否启用，供主入口和设置页统一读取。
-  isCopyPathEnabled() {
-    return Boolean(this.settings.copyPath.enabled);
+  // 返回命令&URI增强模块是否启用，供主入口和设置页统一读取。
+  isCommandUriEnhancerEnabled() {
+    return Boolean(this.settings.commandUriEnhancer.enabled);
   }
 
-  // 切换复制路径模块的启用状态，并立即持久化到本地。
-  async setCopyPathEnabled(enabled) {
-    this.settings.copyPath.enabled = Boolean(enabled);
+  // 切换命令&URI增强模块的启用状态，并立即持久化到本地。
+  async setCommandUriEnhancerEnabled(enabled) {
+    this.settings.commandUriEnhancer.enabled = Boolean(enabled);
     await this.save();
-    return this.isCopyPathEnabled();
+    return this.isCommandUriEnhancerEnabled();
   }
 
   // 返回状态栏增强模块是否启用，供主入口和设置页统一读取。
@@ -123,8 +123,8 @@ class PluginSettingsStore {
       menuCustomizer: {
         enabled: source.menuCustomizer?.enabled === true
       },
-      copyPath: {
-        enabled: source.copyPath?.enabled === true
+      commandUriEnhancer: {
+        enabled: source.commandUriEnhancer?.enabled === true
       },
       statusBarEnhancer: {
         enabled: source.statusBarEnhancer?.enabled === true

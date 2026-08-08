@@ -1,7 +1,7 @@
 'use strict';
 
 var anchorGraphConstants = require('../graph-view-enhancer/constants');
-var copyPathConstants = require('../copy-path/constants');
+var commandUriEnhancerConstants = require('../command-uri-enhancer/constants');
 var fileMarkerConstants = require('../file-marker/constants');
 var menuCustomizerConstants = require('../context-menu-enhancer/constants');
 var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
@@ -20,7 +20,7 @@ const FEATURE_CONFIG_FILE_NAMES = {
   fileMarker: 'file-marker',
   anchorGraph: 'anchor-graph',
   menuCustomizer: 'menu-customizer',
-  copyPath: 'copy-path',
+  commandUriEnhancer: 'command-uri-enhancer',
   statusBarEnhancer: 'status-bar-enhancer',
   tabBarEnhancer: 'tab-bar-enhancer',
   fileExplorerEnhancer: 'file-explorer-enhancer'
@@ -38,7 +38,7 @@ const DEFAULT_PLUGIN_DATA = {
     menuCustomizer: {
       enabled: false
     },
-    copyPath: {
+    commandUriEnhancer: {
       enabled: false
     },
     statusBarEnhancer: {
@@ -58,7 +58,7 @@ const DEFAULT_FEATURE_DATA = {
   fileMarker: fileMarkerConstants.DEFAULT_FILE_MARKER_SETTINGS,
   anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
   menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
-  copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
+  commandUriEnhancer: commandUriEnhancerConstants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS,
   statusBarEnhancer: Object.assign({}, statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS, {
     organizer: statusBarEnhancerConstants.DEFAULT_ORGANIZER_SETTINGS,
     snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS

@@ -25,8 +25,8 @@ async function copyTextToClipboard(text) {
   }
 }
 
-// 定义复制路径服务，负责解析命令目标并执行复制动作。
-class CopyPathService {
+// 定义命令&URI增强服务，负责解析命令目标并执行复制动作。
+class CommandUriEnhancerService {
   constructor(plugin) {
     this.plugin = plugin; // 保存插件实例，便于读取当前配置与活跃文件
   }
@@ -48,15 +48,15 @@ class CopyPathService {
 
   // 根据命令类型解析目标并完成复制。
   async copyTargetPath(pathType) {
-    if (!this.plugin.isCopyPathEnabled()) {
-      this.plugin.copyPathStore.clearRecentMenuTarget();
-      new obsidian.Notice('复制路径模块当前已关闭，请先在设置页中启用。');
+    if (!this.plugin.isCommandUriEnhancerEnabled()) {
+      this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
+      new obsidian.Notice('命令&URI增强模块当前已关闭，请先在设置页中启用。');
       return;
     }
 
     const target = this.resolveCommandTarget();
     if (!target) {
-      this.plugin.copyPathStore.clearRecentMenuTarget();
+      this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
       new obsidian.Notice('未找到可复制的目标，请先聚焦笔记，或从文件/文件夹右键菜单中触发该命令。');
       return;
     }
@@ -69,16 +69,16 @@ class CopyPathService {
         2000
       );
     } catch (error) {
-      console.error('[ねね] 复制路径失败', error);
+      console.error('[ねね] 命令&URI增强复制失败', error);
       new obsidian.Notice(`复制失败：${error.message || '请检查当前平台是否支持该操作'}`);
     } finally {
-      this.plugin.copyPathStore.clearRecentMenuTarget();
+      this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
     }
   }
 
   // 优先使用最近一次文件右键菜单目标，其次回退到当前活动笔记。
   resolveCommandTarget() {
-    const menuTarget = this.plugin.copyPathStore.getRecentMenuTarget();
+    const menuTarget = this.plugin.commandUriEnhancerStore.getRecentMenuTarget();
     if (menuTarget instanceof obsidian.TFile || menuTarget instanceof obsidian.TFolder) {
       return menuTarget;
     }
@@ -95,7 +95,7 @@ class CopyPathService {
   buildTargetPath(target, pathType) {
     const shouldAppendTrailingSlash = pathType !== 'uriLink'
       && target instanceof obsidian.TFolder
-      && this.plugin.copyPathStore.getSettings().addTrailingSlashToFolders === true;
+      && this.plugin.commandUriEnhancerStore.getSettings().addTrailingSlashToFolders === true;
 
     if (pathType === 'full') {
       return this.getAbsolutePath(target, shouldAppendTrailingSlash);
@@ -184,5 +184,5 @@ class CopyPathService {
 }
 
 module.exports = {
-  CopyPathService
+  CommandUriEnhancerService
 };

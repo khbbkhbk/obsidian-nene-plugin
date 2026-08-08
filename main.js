@@ -690,17 +690,15 @@ var require_constants2 = __commonJS({
   }
 });
 
-// src/modules/copy-path/constants.js
+// src/modules/command-uri-enhancer/constants.js
 var require_constants3 = __commonJS({
-  "src/modules/copy-path/constants.js"(exports2, module2) {
+  "src/modules/command-uri-enhancer/constants.js"(exports2, module2) {
     "use strict";
-    var DEFAULT_COPY_PATH_SETTINGS = {
+    var DEFAULT_COMMAND_URI_ENHANCER_SETTINGS = {
       addTrailingSlashToFolders: false
     };
-    var MENU_TARGET_MAX_AGE = 3e4;
     module2.exports = {
-      DEFAULT_COPY_PATH_SETTINGS,
-      MENU_TARGET_MAX_AGE
+      DEFAULT_COMMAND_URI_ENHANCER_SETTINGS
     };
   }
 });
@@ -1019,7 +1017,7 @@ var require_constants8 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
     var anchorGraphConstants = require_constants2();
-    var copyPathConstants = require_constants3();
+    var commandUriEnhancerConstants = require_constants3();
     var fileMarkerConstants = require_constants();
     var menuCustomizerConstants = require_constants4();
     var statusBarEnhancerConstants = require_constants5();
@@ -1032,7 +1030,7 @@ var require_constants8 = __commonJS({
       fileMarker: "file-marker",
       anchorGraph: "anchor-graph",
       menuCustomizer: "menu-customizer",
-      copyPath: "copy-path",
+      commandUriEnhancer: "command-uri-enhancer",
       statusBarEnhancer: "status-bar-enhancer",
       tabBarEnhancer: "tab-bar-enhancer",
       fileExplorerEnhancer: "file-explorer-enhancer"
@@ -1048,7 +1046,7 @@ var require_constants8 = __commonJS({
         menuCustomizer: {
           enabled: false
         },
-        copyPath: {
+        commandUriEnhancer: {
           enabled: false
         },
         statusBarEnhancer: {
@@ -1066,7 +1064,7 @@ var require_constants8 = __commonJS({
       fileMarker: fileMarkerConstants.DEFAULT_FILE_MARKER_SETTINGS,
       anchorGraph: anchorGraphConstants.DEFAULT_ANCHOR_GRAPH_SETTINGS,
       menuCustomizer: menuCustomizerConstants.DEFAULT_MENU_CUSTOMIZER_SETTINGS,
-      copyPath: copyPathConstants.DEFAULT_COPY_PATH_SETTINGS,
+      commandUriEnhancer: commandUriEnhancerConstants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS,
       statusBarEnhancer: Object.assign({}, statusBarEnhancerConstants.DEFAULT_STATUS_BAR_ENHANCER_SETTINGS, {
         organizer: statusBarEnhancerConstants.DEFAULT_ORGANIZER_SETTINGS,
         snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
@@ -1208,7 +1206,7 @@ var require_store2 = __commonJS({
         this.featureData.fileMarker = await this.loadFeatureSlice("fileMarker", rawData?.fileMarker);
         this.featureData.anchorGraph = await this.loadFeatureSlice("anchorGraph", rawData?.anchorGraph);
         this.featureData.menuCustomizer = await this.loadFeatureSlice("menuCustomizer", rawData?.menuCustomizer);
-        this.featureData.copyPath = await this.loadFeatureSlice("copyPath", rawData?.copyPath);
+        this.featureData.commandUriEnhancer = await this.loadFeatureSlice("commandUriEnhancer", rawData?.commandUriEnhancer);
         this.featureData.statusBarEnhancer = await this.loadFeatureSlice("statusBarEnhancer", rawData?.statusBarEnhancer);
         this.featureData.tabBarEnhancer = await this.loadFeatureSlice("tabBarEnhancer", rawData?.tabBarEnhancer);
         this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice("fileExplorerEnhancer", rawData?.fileExplorerEnhancer);
@@ -1257,13 +1255,13 @@ var require_store2 = __commonJS({
       setMenuCustomizerData(menuCustomizerData) {
         this.featureData.menuCustomizer = this.normalizeMenuCustomizerData(menuCustomizerData);
       }
-      // 返回复制路径模块的独立配置切片。
-      getCopyPathData() {
-        return this.featureData.copyPath;
+      // 返回命令&URI增强模块的独立配置切片。
+      getCommandUriEnhancerData() {
+        return this.featureData.commandUriEnhancer;
       }
-      // 更新复制路径模块的独立配置切片缓存。
-      setCopyPathData(copyPathData) {
-        this.featureData.copyPath = this.normalizeCopyPathData(copyPathData);
+      // 更新命令&URI增强模块的独立配置切片缓存。
+      setCommandUriEnhancerData(commandUriEnhancerData) {
+        this.featureData.commandUriEnhancer = this.normalizeCommandUriEnhancerData(commandUriEnhancerData);
       }
       // 返回状态栏增强模块的独立配置切片。
       getStatusBarEnhancerData() {
@@ -1304,10 +1302,10 @@ var require_store2 = __commonJS({
         this.setMenuCustomizerData(menuCustomizerData);
         await this.featureConfigManager.save("menuCustomizer", this.featureData.menuCustomizer);
       }
-      // 保存复制路径模块数据到独立配置文件。
-      async saveCopyPathData(copyPathData) {
-        this.setCopyPathData(copyPathData);
-        await this.featureConfigManager.save("copyPath", this.featureData.copyPath);
+      // 保存命令&URI增强模块数据到独立配置文件。
+      async saveCommandUriEnhancerData(commandUriEnhancerData) {
+        this.setCommandUriEnhancerData(commandUriEnhancerData);
+        await this.featureConfigManager.save("commandUriEnhancer", this.featureData.commandUriEnhancer);
       }
       // 保存状态栏增强模块数据到独立配置文件。
       async saveStatusBarEnhancerData(statusBarEnhancerData) {
@@ -1331,7 +1329,7 @@ var require_store2 = __commonJS({
         await this.featureConfigManager.save("fileMarker", this.featureData.fileMarker);
         await this.featureConfigManager.save("anchorGraph", this.featureData.anchorGraph);
         await this.featureConfigManager.save("menuCustomizer", this.featureData.menuCustomizer);
-        await this.featureConfigManager.save("copyPath", this.featureData.copyPath);
+        await this.featureConfigManager.save("commandUriEnhancer", this.featureData.commandUriEnhancer);
         await this.featureConfigManager.save("statusBarEnhancer", this.featureData.statusBarEnhancer);
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
       }
@@ -1342,7 +1340,7 @@ var require_store2 = __commonJS({
         const fileMarkerPath = this.featureConfigManager.getFeatureConfigPath("fileMarker");
         const anchorGraphPath = this.featureConfigManager.getFeatureConfigPath("anchorGraph");
         const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath("menuCustomizer");
-        const copyPathPath = this.featureConfigManager.getFeatureConfigPath("copyPath");
+        const commandUriEnhancerPath = this.featureConfigManager.getFeatureConfigPath("commandUriEnhancer");
         const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("statusBarEnhancer");
         const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("tabBarEnhancer");
         const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath("fileExplorerEnhancer");
@@ -1377,12 +1375,12 @@ var require_store2 = __commonJS({
             exists: await this.featureConfigManager.exists("menuCustomizer"),
             summary: `当前含 ${Object.values(this.featureData.menuCustomizer.menus || {}).reduce((count, menuConfig) => count + (Array.isArray(menuConfig.groups) ? menuConfig.groups.length : 0), 0)} 个分组`
           },
-          copyPath: {
-            key: "copyPath",
-            name: "复制路径配置",
-            path: copyPathPath,
-            exists: await this.featureConfigManager.exists("copyPath"),
-            summary: `文件夹末尾补 /：${this.featureData.copyPath.addTrailingSlashToFolders === true ? "已开启" : "已关闭"}`
+          commandUriEnhancer: {
+            key: "commandUriEnhancer",
+            name: "命令&URI增强配置",
+            path: commandUriEnhancerPath,
+            exists: await this.featureConfigManager.exists("commandUriEnhancer"),
+            summary: `文件夹末尾补 /：${this.featureData.commandUriEnhancer.addTrailingSlashToFolders === true ? "已开启" : "已关闭"}`
           },
           statusBarEnhancer: {
             key: "statusBarEnhancer",
@@ -1443,8 +1441,8 @@ var require_store2 = __commonJS({
           this.featureData.anchorGraph = defaultFeatureData;
         } else if (featureKey === "menuCustomizer") {
           this.featureData.menuCustomizer = defaultFeatureData;
-        } else if (featureKey === "copyPath") {
-          this.featureData.copyPath = defaultFeatureData;
+        } else if (featureKey === "commandUriEnhancer") {
+          this.featureData.commandUriEnhancer = defaultFeatureData;
         } else if (featureKey === "statusBarEnhancer") {
           this.featureData.statusBarEnhancer = defaultFeatureData;
         } else if (featureKey === "tabBarEnhancer") {
@@ -1470,7 +1468,7 @@ var require_store2 = __commonJS({
           fileMarker: this.normalizeFileMarkerData(source.fileMarker),
           anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
-          copyPath: this.normalizeCopyPathData(source.copyPath),
+          commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
           fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
@@ -1483,7 +1481,7 @@ var require_store2 = __commonJS({
         delete normalizedCoreData.fileMarker;
         delete normalizedCoreData.anchorGraph;
         delete normalizedCoreData.menuCustomizer;
-        delete normalizedCoreData.copyPath;
+        delete normalizedCoreData.commandUriEnhancer;
         delete normalizedCoreData.statusBarEnhancer;
         delete normalizedCoreData.tabBarEnhancer;
         delete normalizedCoreData.fileExplorerEnhancer;
@@ -1497,7 +1495,7 @@ var require_store2 = __commonJS({
           fileMarker: this.normalizeFileMarkerData(source.fileMarker),
           anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
           menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
-          copyPath: this.normalizeCopyPathData(source.copyPath),
+          commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
           fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
@@ -1515,8 +1513,8 @@ var require_store2 = __commonJS({
           menuCustomizer: {
             enabled: features?.menuCustomizer?.enabled === true
           },
-          copyPath: {
-            enabled: features?.copyPath?.enabled === true
+          commandUriEnhancer: {
+            enabled: features?.commandUriEnhancer?.enabled === true
           },
           statusBarEnhancer: {
             enabled: features?.statusBarEnhancer?.enabled === true
@@ -1579,12 +1577,12 @@ var require_store2 = __commonJS({
           menus: normalizedMenus
         };
       }
-      // 归一化复制路径模块配置结构，保证首次安装与旧数据迁移后形状稳定。
-      normalizeCopyPathData(copyPathData) {
-        const source = this.isPlainObject(copyPathData) ? copyPathData : {};
-        const defaultCopyPath = constants.DEFAULT_FEATURE_DATA.copyPath;
+      // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+      normalizeCommandUriEnhancerData(commandUriEnhancerData) {
+        const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
+        const defaultCommandUriEnhancer = constants.DEFAULT_FEATURE_DATA.commandUriEnhancer;
         return {
-          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false && defaultCopyPath.addTrailingSlashToFolders !== false
+          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false && defaultCommandUriEnhancer.addTrailingSlashToFolders !== false
         };
       }
       // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
@@ -1696,8 +1694,8 @@ var require_store2 = __commonJS({
         if (featureKey === "menuCustomizer") {
           return this.normalizeMenuCustomizerData(featureData);
         }
-        if (featureKey === "copyPath") {
-          return this.normalizeCopyPathData(featureData);
+        if (featureKey === "commandUriEnhancer") {
+          return this.normalizeCommandUriEnhancerData(featureData);
         }
         if (featureKey === "statusBarEnhancer") {
           return this.normalizeStatusBarEnhancerData(featureData);
@@ -1713,7 +1711,7 @@ var require_store2 = __commonJS({
       // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
       hasLegacyFeatureSlices(data) {
         const source = this.isPlainObject(data) ? data : {};
-        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.copyPath) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer) || this.isPlainObject(source.fileExplorerEnhancer);
+        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer) || this.isPlainObject(source.fileExplorerEnhancer);
       }
       // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
       getCoreConfigPath() {
@@ -1729,7 +1727,7 @@ var require_store2 = __commonJS({
           fileMarker: bundle.featureData?.fileMarker || bundle.fileMarker,
           anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
           menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
-          copyPath: bundle.featureData?.copyPath || bundle.copyPath,
+          commandUriEnhancer: bundle.featureData?.commandUriEnhancer || bundle.commandUriEnhancer,
           statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
           tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
           fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
@@ -1792,7 +1790,7 @@ var require_constants9 = __commonJS({
       menuCustomizer: {
         enabled: false
       },
-      copyPath: {
+      commandUriEnhancer: {
         enabled: false
       },
       statusBarEnhancer: {
@@ -1861,15 +1859,15 @@ var require_store3 = __commonJS({
         await this.save();
         return this.isMenuCustomizerEnabled();
       }
-      // 返回复制路径模块是否启用，供主入口和设置页统一读取。
-      isCopyPathEnabled() {
-        return Boolean(this.settings.copyPath.enabled);
+      // 返回命令&URI增强模块是否启用，供主入口和设置页统一读取。
+      isCommandUriEnhancerEnabled() {
+        return Boolean(this.settings.commandUriEnhancer.enabled);
       }
-      // 切换复制路径模块的启用状态，并立即持久化到本地。
-      async setCopyPathEnabled(enabled) {
-        this.settings.copyPath.enabled = Boolean(enabled);
+      // 切换命令&URI增强模块的启用状态，并立即持久化到本地。
+      async setCommandUriEnhancerEnabled(enabled) {
+        this.settings.commandUriEnhancer.enabled = Boolean(enabled);
         await this.save();
-        return this.isCopyPathEnabled();
+        return this.isCommandUriEnhancerEnabled();
       }
       // 返回状态栏增强模块是否启用，供主入口和设置页统一读取。
       isStatusBarEnhancerEnabled() {
@@ -1918,8 +1916,8 @@ var require_store3 = __commonJS({
           menuCustomizer: {
             enabled: source.menuCustomizer?.enabled === true
           },
-          copyPath: {
-            enabled: source.copyPath?.enabled === true
+          commandUriEnhancer: {
+            enabled: source.commandUriEnhancer?.enabled === true
           },
           statusBarEnhancer: {
             enabled: source.statusBarEnhancer?.enabled === true
@@ -2717,9 +2715,9 @@ var require_graph_view_enhancer = __commonJS({
   }
 });
 
-// src/modules/copy-path/service.js
+// src/modules/command-uri-enhancer/service.js
 var require_service = __commonJS({
-  "src/modules/copy-path/service.js"(exports2, module2) {
+  "src/modules/command-uri-enhancer/service.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
     async function copyTextToClipboard(text) {
@@ -2740,7 +2738,7 @@ var require_service = __commonJS({
         throw new Error("Clipboard copy is not supported");
       }
     }
-    var CopyPathService = class {
+    var CommandUriEnhancerService = class {
       constructor(plugin) {
         this.plugin = plugin;
       }
@@ -2758,14 +2756,14 @@ var require_service = __commonJS({
       }
       // 根据命令类型解析目标并完成复制。
       async copyTargetPath(pathType) {
-        if (!this.plugin.isCopyPathEnabled()) {
-          this.plugin.copyPathStore.clearRecentMenuTarget();
-          new obsidian2.Notice("复制路径模块当前已关闭，请先在设置页中启用。");
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
+          new obsidian2.Notice("命令&URI增强模块当前已关闭，请先在设置页中启用。");
           return;
         }
         const target = this.resolveCommandTarget();
         if (!target) {
-          this.plugin.copyPathStore.clearRecentMenuTarget();
+          this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
           new obsidian2.Notice("未找到可复制的目标，请先聚焦笔记，或从文件/文件夹右键菜单中触发该命令。");
           return;
         }
@@ -2778,15 +2776,15 @@ ${targetPath}`,
             2e3
           );
         } catch (error) {
-          console.error("[ねね] 复制路径失败", error);
+          console.error("[ねね] 命令&URI增强复制失败", error);
           new obsidian2.Notice(`复制失败：${error.message || "请检查当前平台是否支持该操作"}`);
         } finally {
-          this.plugin.copyPathStore.clearRecentMenuTarget();
+          this.plugin.commandUriEnhancerStore.clearRecentMenuTarget();
         }
       }
       // 优先使用最近一次文件右键菜单目标，其次回退到当前活动笔记。
       resolveCommandTarget() {
-        const menuTarget = this.plugin.copyPathStore.getRecentMenuTarget();
+        const menuTarget = this.plugin.commandUriEnhancerStore.getRecentMenuTarget();
         if (menuTarget instanceof obsidian2.TFile || menuTarget instanceof obsidian2.TFolder) {
           return menuTarget;
         }
@@ -2798,7 +2796,7 @@ ${targetPath}`,
       }
       // 生成最终需要复制的路径文本。
       buildTargetPath(target, pathType) {
-        const shouldAppendTrailingSlash = pathType !== "uriLink" && target instanceof obsidian2.TFolder && this.plugin.copyPathStore.getSettings().addTrailingSlashToFolders === true;
+        const shouldAppendTrailingSlash = pathType !== "uriLink" && target instanceof obsidian2.TFolder && this.plugin.commandUriEnhancerStore.getSettings().addTrailingSlashToFolders === true;
         if (pathType === "full") {
           return this.getAbsolutePath(target, shouldAppendTrailingSlash);
         }
@@ -2866,32 +2864,31 @@ ${targetPath}`,
       }
     };
     module2.exports = {
-      CopyPathService
+      CommandUriEnhancerService
     };
   }
 });
 
-// src/modules/copy-path/store.js
+// src/modules/command-uri-enhancer/store.js
 var require_store4 = __commonJS({
-  "src/modules/copy-path/store.js"(exports2, module2) {
+  "src/modules/command-uri-enhancer/store.js"(exports2, module2) {
     "use strict";
     var constants = require_constants3();
-    var CopyPathStore = class {
+    var CommandUriEnhancerStore = class {
       constructor(plugin) {
         this.plugin = plugin;
         this.settings = this.normalizeSettings();
         this.lastMenuTarget = null;
-        this.lastMenuTargetAt = 0;
       }
       // 挂载从独立配置文件读出的设置切片。
       load(settings) {
         this.settings = this.normalizeSettings(settings);
       }
-      // 持久化当前复制路径配置到独立 JSON 文件。
+      // 持久化当前命令&URI增强配置到独立 JSON 文件。
       async save() {
         this.settings = this.normalizeSettings(this.settings);
-        this.plugin.dataStore.setCopyPathData(this.settings);
-        await this.plugin.dataStore.saveCopyPathData(this.settings);
+        this.plugin.dataStore.setCommandUriEnhancerData(this.settings);
+        await this.plugin.dataStore.saveCommandUriEnhancerData(this.settings);
       }
       // 返回当前完整配置。
       getSettings() {
@@ -2906,41 +2903,32 @@ var require_store4 = __commonJS({
       // 记录最近一次文件或文件夹右键菜单的目标对象。
       rememberMenuTarget(file) {
         this.lastMenuTarget = file || null;
-        this.lastMenuTargetAt = Date.now();
       }
-      // 返回仍处于有效期内的右键菜单目标，过期后自动清空。
+      // 返回最近一次右键菜单目标；生命周期由主入口在菜单关闭时统一清空。
       getRecentMenuTarget() {
-        if (!this.lastMenuTarget) {
-          return null;
-        }
-        if (Date.now() - this.lastMenuTargetAt > constants.MENU_TARGET_MAX_AGE) {
-          this.clearRecentMenuTarget();
-          return null;
-        }
         return this.lastMenuTarget;
       }
       // 主动清空最近一次菜单目标，避免后续无关命令误用。
       clearRecentMenuTarget() {
         this.lastMenuTarget = null;
-        this.lastMenuTargetAt = 0;
       }
-      // 归一化复制路径模块的配置结构。
+      // 归一化命令&URI增强模块的配置结构。
       normalizeSettings(settings) {
-        const source = settings || constants.DEFAULT_COPY_PATH_SETTINGS;
+        const source = settings || constants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS;
         return {
           addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
         };
       }
     };
     module2.exports = {
-      CopyPathStore
+      CommandUriEnhancerStore
     };
   }
 });
 
-// src/modules/copy-path/view.js
+// src/modules/command-uri-enhancer/view.js
 var require_view2 = __commonJS({
-  "src/modules/copy-path/view.js"(exports2, module2) {
+  "src/modules/command-uri-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
     function renderModalHeader(containerEl, title, description) {
@@ -2961,20 +2949,20 @@ var require_view2 = __commonJS({
         text: value
       });
     }
-    var CopyPathManagementModal = class extends obsidian2.Modal {
+    var CommandUriEnhancerManagementModal = class extends obsidian2.Modal {
       constructor(app, plugin, onSettingsChanged) {
         super(app);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
-      // 打开弹窗时渲染复制路径模块详情与配置项。
+      // 打开弹窗时渲染命令&URI增强模块详情与配置项。
       onOpen() {
         this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
         this.contentEl.empty();
         this.contentEl.addClass("nene-settings-modal");
         void this.render();
       }
-      // 根据当前最新状态渲染复制路径模块管理界面。
+      // 根据当前最新状态渲染命令&URI增强模块管理界面。
       async render() {
         const { contentEl } = this;
         const summary = this.plugin.getSettingsSummary();
@@ -2982,20 +2970,20 @@ var require_view2 = __commonJS({
         contentEl.empty();
         renderModalHeader(
           contentEl,
-          "复制路径模块",
+          "命令&URI增强模块",
           "该模块只注册命令，不会直接向文件或文件夹右键菜单注入入口。若需要出现在右键菜单中，请在“右键菜单自定义”模块中手动添加这些命令。"
         );
         const detailListEl = contentEl.createDiv({ cls: "nene-settings-detail-list" });
-        renderDetailItem(detailListEl, "当前状态", summary.copyPathEnabled ? "已启用" : "已关闭");
+        renderDetailItem(detailListEl, "当前状态", summary.commandUriEnhancerEnabled ? "已启用" : "已关闭");
         renderDetailItem(
           detailListEl,
           "文件夹末尾补 /",
-          summary.copyPathTrailingSlashEnabled ? "已开启" : "已关闭"
+          summary.commandUriEnhancerTrailingSlashEnabled ? "已开启" : "已关闭"
         );
-        renderDetailItem(detailListEl, "配置文件", configSummary.copyPath.path, true);
+        renderDetailItem(detailListEl, "配置文件", configSummary.commandUriEnhancer.path, true);
         new obsidian2.Setting(contentEl).setName("文件夹路径末尾补 /").setDesc("开启后，复制文件夹路径时会自动在末尾追加 /，便于与文件路径区分。").addToggle((toggle) => {
-          toggle.setValue(summary.copyPathTrailingSlashEnabled).onChange(async (value) => {
-            await this.plugin.updateCopyPathTrailingSlashEnabled(value);
+          toggle.setValue(summary.commandUriEnhancerTrailingSlashEnabled).onChange(async (value) => {
+            await this.plugin.updateCommandUriEnhancerTrailingSlashEnabled(value);
             new obsidian2.Notice(value ? "已开启文件夹路径末尾补 /" : "已关闭文件夹路径末尾补 /");
             await this.onSettingsChanged();
             await this.render();
@@ -3014,14 +3002,14 @@ var require_view2 = __commonJS({
       }
     };
     module2.exports = {
-      CopyPathManagementModal
+      CommandUriEnhancerManagementModal
     };
   }
 });
 
-// src/modules/copy-path/index.js
-var require_copy_path = __commonJS({
-  "src/modules/copy-path/index.js"(exports2, module2) {
+// src/modules/command-uri-enhancer/index.js
+var require_command_uri_enhancer = __commonJS({
+  "src/modules/command-uri-enhancer/index.js"(exports2, module2) {
     "use strict";
     var constants = require_constants3();
     var service = require_service();
@@ -10768,9 +10756,6 @@ var require_view6 = __commonJS({
       var contentEl = this.contentEl;
       contentEl.empty();
       contentEl.addClasses(["file-explorer-plus", "filters-activated-modal"]);
-      var actionText = this.actionType === "PIN" ? "置顶" : "隐藏";
-      var titleText = "「" + (this.filter.name || this.filter.pattern || "未命名") + "」规则生效的" + actionText + "列表";
-      contentEl.createEl("h3", { text: titleText });
       var allFiles = this.plugin.app.vault.getAllLoadedFiles();
       var matched = [];
       var checkFn = require_runtime4().checkPathFilter;
@@ -10827,11 +10812,6 @@ var require_view6 = __commonJS({
         tbody.appendChild(row);
       }
       contentEl.appendChild(table);
-      var actionEl = contentEl.createDiv({ cls: "nene-settings-modal-actions" });
-      var closeBtn = actionEl.createEl("button", { text: "关闭" });
-      closeBtn.addEventListener("click", function() {
-        self.close();
-      });
     };
     SingleFilterActivatedModal.prototype.onClose = function() {
       this.contentEl.empty();
@@ -10896,7 +10876,7 @@ var require_settings_tab = __commonJS({
   "src/modules/settings-tab/index.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var copyPathModule2 = require_copy_path();
+    var commandUriEnhancerModule2 = require_command_uri_enhancer();
     var menuCustomizerModule = require_context_menu_enhancer();
     var statusBarEnhancerModule2 = require_status_bar_enhancer();
     var tabBarEnhancerModule2 = require_tab_bar_enhancer();
@@ -11205,7 +11185,7 @@ var require_settings_tab = __commonJS({
     };
     var MenuCustomizerManagementModal = class extends menuCustomizerModule.MenuCustomizerManagementModal {
     };
-    var CopyPathManagementModal = class extends copyPathModule2.CopyPathManagementModal {
+    var CommandUriEnhancerManagementModal = class extends commandUriEnhancerModule2.CommandUriEnhancerManagementModal {
     };
     var StatusBarEnhancerManagementModal = class extends statusBarEnhancerModule2.StatusBarEnhancerManagementModal {
     };
@@ -11239,7 +11219,7 @@ var require_settings_tab = __commonJS({
         renderDetailItem(detailListEl, "文件标记配置", `${configSummary.fileMarker.exists ? "已存在" : "未发现"}，${configSummary.fileMarker.summary}`);
         renderDetailItem(detailListEl, "关系图谱配置", `${configSummary.anchorGraph.exists ? "已存在" : "未发现"}，${configSummary.anchorGraph.summary}`);
         renderDetailItem(detailListEl, "右键菜单配置", `${configSummary.menuCustomizer.exists ? "已存在" : "未发现"}，${configSummary.menuCustomizer.summary}`);
-        renderDetailItem(detailListEl, "复制路径配置", `${configSummary.copyPath.exists ? "已存在" : "未发现"}，${configSummary.copyPath.summary}`);
+        renderDetailItem(detailListEl, "命令&URI增强配置", `${configSummary.commandUriEnhancer.exists ? "已存在" : "未发现"}，${configSummary.commandUriEnhancer.summary}`);
         renderDetailItem(detailListEl, "状态栏增强配置", `${configSummary.statusBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.statusBarEnhancer.summary}`);
         renderDetailItem(detailListEl, "标签栏增强配置", `${configSummary.tabBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.tabBarEnhancer.summary}`);
         renderDetailItem(detailListEl, "配置目录", configSummary.directoryPath, true);
@@ -11276,12 +11256,12 @@ var require_settings_tab = __commonJS({
             }).open();
           });
         });
-        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、复制路径、状态栏增强和标签栏增强设置都会恢复为首次安装状态。").addButton((button) => {
+        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强和标签栏增强设置都会恢复为首次安装状态。").addButton((button) => {
           button.setButtonText("重置全部").setWarning().onClick(() => {
             new ConfirmActionModal(
               this.app,
               "重置全部插件配置",
-              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、copy-path.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。",
+              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。",
               "确认全部重置",
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -11320,7 +11300,7 @@ var require_settings_tab = __commonJS({
         this.renderFileMarkerSection(featureGroupEl, summary);
         this.renderAnchorGraphSection(featureGroupEl, summary);
         this.renderMenuCustomizerSection(featureGroupEl, summary);
-        this.renderCopyPathSection(featureGroupEl, summary);
+        this.renderCommandUriEnhancerSection(featureGroupEl, summary);
         this.renderStatusBarEnhancerSection(featureGroupEl, summary);
         this.renderTabBarEnhancerSection(featureGroupEl, summary);
         this.renderCorePluginEnhancerSection(featureGroupEl, summary);
@@ -11389,19 +11369,19 @@ var require_settings_tab = __commonJS({
           });
         });
       }
-      // 渲染复制路径模块分区，仅保留状态概览、开关与弹窗入口。
-      renderCopyPathSection(containerEl, summary) {
-        new obsidian2.Setting(containerEl).setName("复制路径").setDesc(
-          summary.copyPathEnabled ? summary.copyPathTrailingSlashEnabled ? "已启用，文件夹路径复制时会自动在末尾追加 /。模块只注册命令，不会直接向右键菜单添加入口。" : "已启用，当前不会为文件夹路径自动补 /。模块只注册命令，不会直接向右键菜单添加入口。" : "未启用。启用后会注册中文命令，并可被“右键菜单自定义”模块自动探测并手动加入菜单。"
+      // 渲染命令&URI增强模块分区，仅保留状态概览、开关与弹窗入口。
+      renderCommandUriEnhancerSection(containerEl, summary) {
+        new obsidian2.Setting(containerEl).setName("命令&URI增强").setDesc(
+          summary.commandUriEnhancerEnabled ? summary.commandUriEnhancerTrailingSlashEnabled ? "已启用，文件夹路径复制时会自动在末尾追加 /。模块只注册命令，不会直接向右键菜单添加入口。" : "已启用，当前不会为文件夹路径自动补 /。模块只注册命令，不会直接向右键菜单添加入口。" : "未启用。启用后会注册中文命令，并可被“右键菜单自定义”模块自动探测并手动加入菜单。"
         ).addToggle((toggle) => {
-          toggle.setValue(summary.copyPathEnabled).onChange(async (value) => {
-            await this.plugin.updateCopyPathEnabled(value);
-            new obsidian2.Notice(value ? "已启用复制路径模块" : "已关闭复制路径模块");
+          toggle.setValue(summary.commandUriEnhancerEnabled).onChange(async (value) => {
+            await this.plugin.updateCommandUriEnhancerEnabled(value);
+            new obsidian2.Notice(value ? "已启用命令&URI增强模块" : "已关闭命令&URI增强模块");
             await this.display();
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new CopyPathManagementModal(this.app, this.plugin, async () => {
+            new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
             }).open();
           });
@@ -11465,7 +11445,7 @@ var require_settings_tab = __commonJS({
           text: "右键菜单自定义基于 Obsidian v1.4.16 的菜单结构设计，启用后会保留原始命令回调，但会重新组织 DOM 顺序。"
         });
         listEl.createEl("li", {
-          text: "复制路径模块默认不直接向右键菜单注入入口，只注册命令；如需显示在右键菜单中，可通过“右键菜单自定义”手动添加。"
+          text: "命令&URI增强模块默认不直接向右键菜单注入入口，只注册命令；如需显示在右键菜单中，可通过“右键菜单自定义”手动添加。"
         });
         listEl.createEl("li", {
           text: "状态栏增强模块主要面向桌面端；移动端通常不显示状态栏，因此只会保留配置，不会实际显示路径。"
@@ -11510,7 +11490,7 @@ var pluginData = require_plugin_data();
 var pluginSettings = require_plugin_settings();
 var pluginListEnhancerModule = require_plugin_list_enhancer();
 var graphViewEnhancerModule = require_graph_view_enhancer();
-var copyPathModule = require_copy_path();
+var commandUriEnhancerModule = require_command_uri_enhancer();
 var statusBarEnhancerModule = require_status_bar_enhancer();
 var tabBarEnhancerModule = require_tab_bar_enhancer();
 var contextMenuEnhancerModule = require_context_menu_enhancer();
@@ -11524,8 +11504,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.fileMarkerStore = new fileMarker.FileMarkerStore(this);
     this.pluginListEnhancer = new pluginListEnhancerModule.PluginListEnhancer(this);
     this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this);
-    this.copyPathStore = new copyPathModule.CopyPathStore(this);
-    this.copyPathService = new copyPathModule.CopyPathService(this);
+    this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this);
+    this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
     this.organizerSpooler = null;
@@ -11555,7 +11535,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures());
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
-    this.copyPathStore.load(this.dataStore.getCopyPathData());
+    this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.snippetsStore.load();
@@ -11613,7 +11593,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
         this.menuCustomizerRuntime.annotateFileMenu(menu, file);
-        this.copyPathStore.rememberMenuTarget(file);
+        this.commandUriEnhancerStore.rememberMenuTarget(file);
+        menu.onClose(() => {
+          this.commandUriEnhancerStore.clearRecentMenuTarget();
+        });
         if (!this.isFileMarkerEnabled()) return;
         if (!(file instanceof obsidian.TFile)) return;
         const hasMark = Boolean(this.getMarkRecord(file.path));
@@ -11714,21 +11697,21 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       id: "copy-vault-path",
       name: "复制当前目标的库内路径",
       callback: async () => {
-        await this.copyPathService.copyVaultPathFromCommand();
+        await this.commandUriEnhancerService.copyVaultPathFromCommand();
       }
     });
     this.addCommand({
       id: "copy-full-path",
       name: "复制当前目标的完整路径",
       callback: async () => {
-        await this.copyPathService.copyFullPathFromCommand();
+        await this.commandUriEnhancerService.copyFullPathFromCommand();
       }
     });
     this.addCommand({
       id: "copy-uri-link",
       name: "复制当前目标的URI链接",
       callback: async () => {
-        await this.copyPathService.copyUriLinkFromCommand();
+        await this.commandUriEnhancerService.copyUriLinkFromCommand();
       }
     });
   }
@@ -11821,9 +11804,9 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isMenuCustomizerEnabled() {
     return this.pluginSettingsStore.isMenuCustomizerEnabled();
   }
-  // 返回复制路径模块当前是否被用户启用。
-  isCopyPathEnabled() {
-    return this.pluginSettingsStore.isCopyPathEnabled();
+  // 返回命令&URI增强模块当前是否被用户启用。
+  isCommandUriEnhancerEnabled() {
+    return this.pluginSettingsStore.isCommandUriEnhancerEnabled();
   }
   // 返回状态栏增强模块当前是否被用户启用。
   isStatusBarEnhancerEnabled() {
@@ -11862,8 +11845,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       menuCustomizerEnabled: this.isMenuCustomizerEnabled(),
       menuCustomizerMenuCount: this.menuCustomizerStore.getEnabledMenuCount(),
       menuCustomizerGroupCount: this.menuCustomizerStore.getGroupCount(),
-      copyPathEnabled: this.isCopyPathEnabled(),
-      copyPathTrailingSlashEnabled: this.copyPathStore.getSettings().addTrailingSlashToFolders === true,
+      commandUriEnhancerEnabled: this.isCommandUriEnhancerEnabled(),
+      commandUriEnhancerTrailingSlashEnabled: this.commandUriEnhancerStore.getSettings().addTrailingSlashToFolders === true,
       statusBarEnhancerEnabled: this.isStatusBarEnhancerEnabled(),
       statusBarEnhancerShowFileName: this.statusBarEnhancerStore.getSettings().showFileName === true,
       statusBarEnhancerShowIcons: this.statusBarEnhancerStore.getSettings().showIcons === true,
@@ -11971,13 +11954,13 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncMenuCustomizerState();
     return nextEnabled;
   }
-  // 更新复制路径模块开关。
-  async updateCopyPathEnabled(enabled) {
-    return this.pluginSettingsStore.setCopyPathEnabled(enabled);
+  // 更新命令&URI增强模块开关。
+  async updateCommandUriEnhancerEnabled(enabled) {
+    return this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
   }
-  // 更新复制路径模块的文件夹末尾斜杠配置。
-  async updateCopyPathTrailingSlashEnabled(enabled) {
-    return this.copyPathStore.setAddTrailingSlashToFolders(enabled);
+  // 更新命令&URI增强模块的文件夹末尾斜杠配置。
+  async updateCommandUriEnhancerTrailingSlashEnabled(enabled) {
+    return this.commandUriEnhancerStore.setAddTrailingSlashToFolders(enabled);
   }
   // 更新状态栏增强模块开关，并立即同步状态栏显示状态。
   async updateStatusBarEnhancerEnabled(enabled) {
@@ -12308,7 +12291,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.pluginSettingsStore.load(this.dataStore.getFeatures());
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
-    this.copyPathStore.load(this.dataStore.getCopyPathData());
+    this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());

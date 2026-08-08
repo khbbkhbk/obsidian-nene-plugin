@@ -15,7 +15,7 @@
   - `src/modules/file-marker/`：只管理文件标记自己的数据切片，即 `configs/file-marker.json` 中的 `marks` 与 `groups`。
   - `src/modules/graph-view-enhancer/`：管理关系图谱增强逻辑及 `configs/anchor-graph.json` 中的模块设置。
   - `src/modules/context-menu-enhancer/`：管理右键菜单自定义逻辑及 `configs/menu-customizer.json` 中的模块设置。
-  - `src/modules/copy-path/`：管理路径复制相关命令及 `configs/copy-path.json` 中的模块设置。
+  - `src/modules/command-uri-enhancer/`：管理路径复制与 URI 相关命令及 `configs/command-uri-enhancer.json` 中的模块设置。
   - `src/modules/status-bar-enhancer/`：管理状态栏路径显示、点击复制逻辑及 `configs/status-bar-enhancer.json` 中的模块设置。
 - 当前 `data.json` 结构如下：
 

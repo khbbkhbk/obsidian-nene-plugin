@@ -9,7 +9,7 @@
     "menuCustomizer": {
       "enabled": true
     },
-    "copyPath": {
+    "commandUriEnhancer": {
       "enabled": true
     },
     "statusBarEnhancer": {

@@ -11,7 +11,7 @@ const DEFAULT_FEATURE_SETTINGS = {
   menuCustomizer: {
     enabled: false
   },
-  copyPath: {
+  commandUriEnhancer: {
     enabled: false
   },
   statusBarEnhancer: {

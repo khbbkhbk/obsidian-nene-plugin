@@ -21,7 +21,7 @@ class PluginDataStore {
     this.featureData.fileMarker = await this.loadFeatureSlice('fileMarker', rawData?.fileMarker);
     this.featureData.anchorGraph = await this.loadFeatureSlice('anchorGraph', rawData?.anchorGraph);
     this.featureData.menuCustomizer = await this.loadFeatureSlice('menuCustomizer', rawData?.menuCustomizer);
-    this.featureData.copyPath = await this.loadFeatureSlice('copyPath', rawData?.copyPath);
+    this.featureData.commandUriEnhancer = await this.loadFeatureSlice('commandUriEnhancer', rawData?.commandUriEnhancer);
     this.featureData.statusBarEnhancer = await this.loadFeatureSlice('statusBarEnhancer', rawData?.statusBarEnhancer);
     this.featureData.tabBarEnhancer = await this.loadFeatureSlice('tabBarEnhancer', rawData?.tabBarEnhancer);
     this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice('fileExplorerEnhancer', rawData?.fileExplorerEnhancer);
@@ -82,14 +82,14 @@ class PluginDataStore {
     this.featureData.menuCustomizer = this.normalizeMenuCustomizerData(menuCustomizerData);
   }
 
-  // 返回复制路径模块的独立配置切片。
-  getCopyPathData() {
-    return this.featureData.copyPath;
+  // 返回命令&URI增强模块的独立配置切片。
+  getCommandUriEnhancerData() {
+    return this.featureData.commandUriEnhancer;
   }
 
-  // 更新复制路径模块的独立配置切片缓存。
-  setCopyPathData(copyPathData) {
-    this.featureData.copyPath = this.normalizeCopyPathData(copyPathData);
+  // 更新命令&URI增强模块的独立配置切片缓存。
+  setCommandUriEnhancerData(commandUriEnhancerData) {
+    this.featureData.commandUriEnhancer = this.normalizeCommandUriEnhancerData(commandUriEnhancerData);
   }
 
   // 返回状态栏增强模块的独立配置切片。
@@ -140,10 +140,10 @@ class PluginDataStore {
     await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
   }
 
-  // 保存复制路径模块数据到独立配置文件。
-  async saveCopyPathData(copyPathData) {
-    this.setCopyPathData(copyPathData);
-    await this.featureConfigManager.save('copyPath', this.featureData.copyPath);
+  // 保存命令&URI增强模块数据到独立配置文件。
+  async saveCommandUriEnhancerData(commandUriEnhancerData) {
+    this.setCommandUriEnhancerData(commandUriEnhancerData);
+    await this.featureConfigManager.save('commandUriEnhancer', this.featureData.commandUriEnhancer);
   }
 
   // 保存状态栏增强模块数据到独立配置文件。
@@ -171,7 +171,7 @@ class PluginDataStore {
     await this.featureConfigManager.save('fileMarker', this.featureData.fileMarker);
     await this.featureConfigManager.save('anchorGraph', this.featureData.anchorGraph);
     await this.featureConfigManager.save('menuCustomizer', this.featureData.menuCustomizer);
-    await this.featureConfigManager.save('copyPath', this.featureData.copyPath);
+    await this.featureConfigManager.save('commandUriEnhancer', this.featureData.commandUriEnhancer);
     await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
     await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
   }
@@ -183,7 +183,7 @@ class PluginDataStore {
     const fileMarkerPath = this.featureConfigManager.getFeatureConfigPath('fileMarker');
     const anchorGraphPath = this.featureConfigManager.getFeatureConfigPath('anchorGraph');
     const menuCustomizerPath = this.featureConfigManager.getFeatureConfigPath('menuCustomizer');
-    const copyPathPath = this.featureConfigManager.getFeatureConfigPath('copyPath');
+    const commandUriEnhancerPath = this.featureConfigManager.getFeatureConfigPath('commandUriEnhancer');
     const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('statusBarEnhancer');
     const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('tabBarEnhancer');
     const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath('fileExplorerEnhancer');
@@ -219,12 +219,12 @@ class PluginDataStore {
         exists: await this.featureConfigManager.exists('menuCustomizer'),
         summary: `当前含 ${Object.values(this.featureData.menuCustomizer.menus || {}).reduce((count, menuConfig) => count + (Array.isArray(menuConfig.groups) ? menuConfig.groups.length : 0), 0)} 个分组`
       },
-      copyPath: {
-        key: 'copyPath',
-        name: '复制路径配置',
-        path: copyPathPath,
-        exists: await this.featureConfigManager.exists('copyPath'),
-        summary: `文件夹末尾补 /：${this.featureData.copyPath.addTrailingSlashToFolders === true ? '已开启' : '已关闭'}`
+      commandUriEnhancer: {
+        key: 'commandUriEnhancer',
+        name: '命令&URI增强配置',
+        path: commandUriEnhancerPath,
+        exists: await this.featureConfigManager.exists('commandUriEnhancer'),
+        summary: `文件夹末尾补 /：${this.featureData.commandUriEnhancer.addTrailingSlashToFolders === true ? '已开启' : '已关闭'}`
       },
       statusBarEnhancer: {
         key: 'statusBarEnhancer',
@@ -291,8 +291,8 @@ class PluginDataStore {
       this.featureData.anchorGraph = defaultFeatureData;
     } else if (featureKey === 'menuCustomizer') {
       this.featureData.menuCustomizer = defaultFeatureData;
-    } else if (featureKey === 'copyPath') {
-      this.featureData.copyPath = defaultFeatureData;
+    } else if (featureKey === 'commandUriEnhancer') {
+      this.featureData.commandUriEnhancer = defaultFeatureData;
     } else if (featureKey === 'statusBarEnhancer') {
       this.featureData.statusBarEnhancer = defaultFeatureData;
     } else if (featureKey === 'tabBarEnhancer') {
@@ -322,7 +322,7 @@ class PluginDataStore {
       fileMarker: this.normalizeFileMarkerData(source.fileMarker),
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
-      copyPath: this.normalizeCopyPathData(source.copyPath),
+      commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
       fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
@@ -337,7 +337,7 @@ class PluginDataStore {
     delete normalizedCoreData.fileMarker;
     delete normalizedCoreData.anchorGraph;
     delete normalizedCoreData.menuCustomizer;
-    delete normalizedCoreData.copyPath;
+    delete normalizedCoreData.commandUriEnhancer;
     delete normalizedCoreData.statusBarEnhancer;
     delete normalizedCoreData.tabBarEnhancer;
     delete normalizedCoreData.fileExplorerEnhancer;
@@ -354,7 +354,7 @@ class PluginDataStore {
       fileMarker: this.normalizeFileMarkerData(source.fileMarker),
       anchorGraph: this.normalizeAnchorGraphData(source.anchorGraph),
       menuCustomizer: this.normalizeMenuCustomizerData(source.menuCustomizer),
-      copyPath: this.normalizeCopyPathData(source.copyPath),
+      commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
       fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
@@ -373,8 +373,8 @@ class PluginDataStore {
       menuCustomizer: {
         enabled: features?.menuCustomizer?.enabled === true
       },
-      copyPath: {
-        enabled: features?.copyPath?.enabled === true
+      commandUriEnhancer: {
+        enabled: features?.commandUriEnhancer?.enabled === true
       },
       statusBarEnhancer: {
         enabled: features?.statusBarEnhancer?.enabled === true
@@ -450,14 +450,14 @@ class PluginDataStore {
     };
   }
 
-  // 归一化复制路径模块配置结构，保证首次安装与旧数据迁移后形状稳定。
-  normalizeCopyPathData(copyPathData) {
-    const source = this.isPlainObject(copyPathData) ? copyPathData : {};
-    const defaultCopyPath = constants.DEFAULT_FEATURE_DATA.copyPath;
+  // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeCommandUriEnhancerData(commandUriEnhancerData) {
+    const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
+    const defaultCommandUriEnhancer = constants.DEFAULT_FEATURE_DATA.commandUriEnhancer;
 
     return {
       addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
-        && defaultCopyPath.addTrailingSlashToFolders !== false
+        && defaultCommandUriEnhancer.addTrailingSlashToFolders !== false
     };
   }
 
@@ -603,8 +603,8 @@ class PluginDataStore {
       return this.normalizeMenuCustomizerData(featureData);
     }
 
-    if (featureKey === 'copyPath') {
-      return this.normalizeCopyPathData(featureData);
+    if (featureKey === 'commandUriEnhancer') {
+      return this.normalizeCommandUriEnhancerData(featureData);
     }
 
     if (featureKey === 'statusBarEnhancer') {
@@ -628,7 +628,6 @@ class PluginDataStore {
     return this.isPlainObject(source.fileMarker)
       || this.isPlainObject(source.anchorGraph)
       || this.isPlainObject(source.menuCustomizer)
-      || this.isPlainObject(source.copyPath)
       || this.isPlainObject(source.statusBarEnhancer)
       || this.isPlainObject(source.tabBarEnhancer)
       || this.isPlainObject(source.fileExplorerEnhancer);
@@ -651,7 +650,7 @@ class PluginDataStore {
         fileMarker: bundle.featureData?.fileMarker || bundle.fileMarker,
         anchorGraph: bundle.featureData?.anchorGraph || bundle.anchorGraph,
         menuCustomizer: bundle.featureData?.menuCustomizer || bundle.menuCustomizer,
-        copyPath: bundle.featureData?.copyPath || bundle.copyPath,
+        commandUriEnhancer: bundle.featureData?.commandUriEnhancer || bundle.commandUriEnhancer,
         statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
         tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
         fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
