@@ -22,6 +22,9 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   fileExplorerEnhancer: {
     enabled: false
+  },
+  editorEnhancer: {
+    enabled: false
   }
 };
 

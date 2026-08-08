@@ -25,6 +25,7 @@ class PluginDataStore {
     this.featureData.statusBarEnhancer = await this.loadFeatureSlice('statusBarEnhancer', rawData?.statusBarEnhancer);
     this.featureData.tabBarEnhancer = await this.loadFeatureSlice('tabBarEnhancer', rawData?.tabBarEnhancer);
     this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice('fileExplorerEnhancer', rawData?.fileExplorerEnhancer);
+    this.featureData.editorEnhancer = await this.loadFeatureSlice('editorEnhancer', rawData?.editorEnhancer);
 
     if (this.hasLegacyFeatureSlices(rawData)) {
       await this.save();
@@ -122,6 +123,16 @@ class PluginDataStore {
     this.featureData.fileExplorerEnhancer = this.normalizeFileExplorerEnhancerData(fileExplorerEnhancerData);
   }
 
+  // 返回编辑增强模块的独立配置切片。
+  getEditorEnhancerData() {
+    return this.featureData.editorEnhancer;
+  }
+
+  // 更新编辑增强模块的独立配置切片缓存。
+  setEditorEnhancerData(editorEnhancerData) {
+    this.featureData.editorEnhancer = this.normalizeEditorEnhancerData(editorEnhancerData);
+  }
+
   // 保存文件标记功能数据到独立配置文件。
   async saveFileMarkerData(fileMarkerData) {
     this.setFileMarkerData(fileMarkerData);
@@ -159,6 +170,12 @@ class PluginDataStore {
     await this.featureConfigManager.save('fileExplorerEnhancer', this.featureData.fileExplorerEnhancer);
   }
 
+  // 保存编辑增强模块数据到独立配置文件。
+  async saveEditorEnhancerData(editorEnhancerData) {
+    this.setEditorEnhancerData(editorEnhancerData);
+    await this.featureConfigManager.save('editorEnhancer', this.featureData.editorEnhancer);
+  }
+
   // 保存文件资源管理器增强模块数据到独立配置文件。
   async saveFileExplorerEnhancerData(fileExplorerEnhancerData) {
     this.setFileExplorerEnhancerData(fileExplorerEnhancerData);
@@ -174,6 +191,7 @@ class PluginDataStore {
     await this.featureConfigManager.save('commandUriEnhancer', this.featureData.commandUriEnhancer);
     await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
     await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
+    await this.featureConfigManager.save('editorEnhancer', this.featureData.editorEnhancer);
   }
 
   // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
@@ -187,6 +205,7 @@ class PluginDataStore {
     const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('statusBarEnhancer');
     const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('tabBarEnhancer');
     const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath('fileExplorerEnhancer');
+    const editorEnhancerPath = this.featureConfigManager.getFeatureConfigPath('editorEnhancer');
 
     return {
       directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
@@ -246,6 +265,13 @@ class PluginDataStore {
         path: fileExplorerEnhancerPath,
         exists: await this.featureConfigManager.exists('fileExplorerEnhancer'),
         summary: `置顶路径规则：${(this.featureData.fileExplorerEnhancer.pinFilters.paths || []).length} 条，隐藏路径规则：${(this.featureData.fileExplorerEnhancer.hideFilters.paths || []).length} 条`
+      },
+      editorEnhancer: {
+        key: 'editorEnhancer',
+        name: '编辑增强配置',
+        path: editorEnhancerPath,
+        exists: await this.featureConfigManager.exists('editorEnhancer'),
+        summary: `自动补全：${this.featureData.editorEnhancer.autoCompleteEnabled !== false ? '开' : '关'}，粘贴自动补全：${this.featureData.editorEnhancer.enablePasteAutoClose === true ? '开' : '关'}`
       }
     };
   }
@@ -299,6 +325,8 @@ class PluginDataStore {
       this.featureData.tabBarEnhancer = defaultFeatureData;
     } else if (featureKey === 'fileExplorerEnhancer') {
       this.featureData.fileExplorerEnhancer = defaultFeatureData;
+    } else if (featureKey === 'editorEnhancer') {
+      this.featureData.editorEnhancer = defaultFeatureData;
     }
 
     await this.featureConfigManager.save(featureKey, defaultFeatureData);
@@ -325,7 +353,8 @@ class PluginDataStore {
       commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
-      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
+      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
+      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
     });
   }
 
@@ -341,6 +370,7 @@ class PluginDataStore {
     delete normalizedCoreData.statusBarEnhancer;
     delete normalizedCoreData.tabBarEnhancer;
     delete normalizedCoreData.fileExplorerEnhancer;
+    delete normalizedCoreData.editorEnhancer;
 
     normalizedCoreData.features = this.normalizeFeatures(source.features);
     return normalizedCoreData;
@@ -357,7 +387,8 @@ class PluginDataStore {
       commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
-      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
+      fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
+      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
     };
   }
 
@@ -384,6 +415,9 @@ class PluginDataStore {
       },
       fileExplorerEnhancer: {
         enabled: features?.fileExplorerEnhancer?.enabled === true
+      },
+      editorEnhancer: {
+        enabled: features?.editorEnhancer?.enabled === true
       }
     };
   }
@@ -549,6 +583,21 @@ class PluginDataStore {
     };
   }
 
+  // 归一化编辑增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  normalizeEditorEnhancerData(editorEnhancerData) {
+    var source = this.isPlainObject(editorEnhancerData) ? editorEnhancerData : {};
+    var defaults = constants.DEFAULT_FEATURE_DATA.editorEnhancer;
+
+    return {
+      excludedTags: typeof source.excludedTags === 'string' ? source.excludedTags : defaults.excludedTags,
+      cursorPosition: source.cursorPosition === 'after' ? 'after' : 'between',
+      ignoreInCodeBlocks: source.ignoreInCodeBlocks !== false,
+      ignoreInlineCode: source.ignoreInlineCode !== false,
+      enablePasteAutoClose: source.enablePasteAutoClose === true,
+      autoCompleteEnabled: source.autoCompleteEnabled !== false
+    };
+  }
+
   // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
   normalizePathFilters(filters) {
     return filters
@@ -619,6 +668,10 @@ class PluginDataStore {
       return this.normalizeFileExplorerEnhancerData(featureData);
     }
 
+    if (featureKey === 'editorEnhancer') {
+      return this.normalizeEditorEnhancerData(featureData);
+    }
+
     return this.isPlainObject(featureData) ? featureData : {};
   }
 
@@ -630,7 +683,8 @@ class PluginDataStore {
       || this.isPlainObject(source.menuCustomizer)
       || this.isPlainObject(source.statusBarEnhancer)
       || this.isPlainObject(source.tabBarEnhancer)
-      || this.isPlainObject(source.fileExplorerEnhancer);
+      || this.isPlainObject(source.fileExplorerEnhancer)
+      || this.isPlainObject(source.editorEnhancer);
   }
 
   // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
@@ -653,7 +707,8 @@ class PluginDataStore {
         commandUriEnhancer: bundle.featureData?.commandUriEnhancer || bundle.commandUriEnhancer,
         statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
         tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
-        fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
+        fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer,
+        editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer
       })
       : bundle;
 

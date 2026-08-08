@@ -20,6 +20,9 @@
     },
     "fileExplorerEnhancer": {
       "enabled": true
+    },
+    "editorEnhancer": {
+      "enabled": true
     }
   }
 }

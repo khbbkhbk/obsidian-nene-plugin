@@ -105,6 +105,18 @@ class PluginSettingsStore {
     return Boolean(this.settings.fileExplorerEnhancer.enabled);
   }
 
+  // 返回编辑增强模块是否启用，供主入口和设置页统一读取。
+  isEditorEnhancerEnabled() {
+    return Boolean(this.settings.editorEnhancer.enabled);
+  }
+
+  // 切换编辑增强模块的启用状态，并立即持久化到本地。
+  async setEditorEnhancerEnabled(enabled) {
+    this.settings.editorEnhancer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isEditorEnhancerEnabled();
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -134,6 +146,9 @@ class PluginSettingsStore {
       },
       fileExplorerEnhancer: {
         enabled: source.fileExplorerEnhancer?.enabled === true
+      },
+      editorEnhancer: {
+        enabled: source.editorEnhancer?.enabled === true
       }
     };
   }

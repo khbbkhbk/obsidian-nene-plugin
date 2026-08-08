@@ -12,6 +12,21 @@ var tabBarEnhancerModule = require('./modules/tab-bar-enhancer/index.js');
 var contextMenuEnhancerModule = require('./modules/context-menu-enhancer/index.js');
 var settingsTabModule = require('./modules/settings-tab/index.js');
 var fileExplorerEnhancerModule = require('./modules/file-explorer-enhancer/index.js');
+var editorEnhancerModule = require('./modules/editor-enhancer/index.js');
+
+// 热更新桥接键名：插件被 hot-reload 重载时，借助 window 全局对象跨旧实例与新实例传递
+// 需要恢复的状态（已打开的子界面类型、设置面板是否正显示本插件设置页）。
+// 因为重载会重新执行整个打包产物（main.js），模块级变量会全部丢失，只有 window 上的状态能保留下来。
+const HOT_RELOAD_BRIDGE_KEY = '__nene_hot_reload_bridge__';
+// 热更新时间窗口（毫秒）：仅当“关闭后重新启用”发生在该窗口内时，才视为开发热更新并自动恢复子界面；
+// 超出窗口则视为用户手动禁用插件后再次启用，不自动弹窗，避免打扰。
+const HOT_RELOAD_WINDOW_MS = 8000;
+// 设置页可见性轮询：core 禁用插件时会先于插件 onunload 关闭设置面板，
+// 导致 onunload 中无法检测到“用户正显示本插件设置页”（实测 isOpen 已为 false），
+// 因此通过低频轮询把可见性实时记录到 window，供重载后的新实例判断是否需要重新打开设置面板。
+const SETTINGS_TAB_VISIBILITY_KEY = '__nene_settings_tab_visibility__';
+const SETTINGS_TAB_POLL_MS = 500; // 可见性轮询间隔（毫秒）
+const SETTINGS_TAB_FRESH_MS = 3000; // 可见性记录的新鲜度窗口（毫秒），超出视为过期
 
 // 定义插件主类，作为模块装配层，统一协调各功能目录。
 class ObsidianNenePlugin extends obsidian.Plugin {
@@ -24,6 +39,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this); // 管理关系图谱 HTML 内部链接增强逻辑
     this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this); // 管理命令&URI增强模块配置与右键菜单目标缓存
     this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this); // 管理命令&URI增强命令执行逻辑
+    this.commandUriRuntime = new commandUriEnhancerModule.CommandUriRuntime(this); // 管理 goto-plugin URI 协议跳转逻辑
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
     this.organizerSpooler = null; // 状态栏元素管理 Spooler，在 onload 中初始化
@@ -34,9 +50,222 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this); // 管理 Snippets 管理模块配置
     this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this); // 管理 Snippets 运行时
     this.fileExplorerEnhancerStore = new fileExplorerEnhancerModule.FileExplorerEnhancerStore(this); // 管理文件资源管理器增强配置切片
+    this.editorEnhancerStore = new editorEnhancerModule.EditorEnhancerStore(this); // 管理编辑增强模块配置
+    this.editorEnhancerOverlay = new editorEnhancerModule.AutoCloseOverlay(this, this.editorEnhancerStore); // 管理 HTML 标签自动补全浮层（自建，替代官方 EditorSuggest）
+    this.editorEnhancerRuntime = new editorEnhancerModule.EditorEnhancerRuntime(this, this.editorEnhancerStore, this.editorEnhancerOverlay); // 管理编辑增强运行时
     this._fileExplorerView = null; // 缓存文件资源管理器视图引用
     this._lastFocusedFile = null; // 文件列表中最后点击的文件/文件夹
     this._eyeToggleHistory = []; // 眼睛按钮停用的隐藏规则索引记录
+    this.settingTab = null; // 设置页实例引用，供热更新恢复子界面时刷新页面
+    this._trackedSettingsModals = new Map(); // 已打开设置子界面的登记表（modal -> 类型），供热更新统一关闭与恢复
+  }
+
+  // 登记一个已打开的设置子界面，供热更新重载时统一关闭与恢复。
+  trackSettingsModal(modal, kind) {
+    this._trackedSettingsModals.set(modal, kind);
+  }
+
+  // 关闭全部仍打开的子界面并把类型写入全局桥接，同时记录设置面板是否正显示本插件设置页，
+  // 供重载后的新实例恢复，避免子界面失效与设置面板内容消失。
+  captureAndCloseSettingsModals() {
+    const pendingKinds = [];
+    const bridge = window[HOT_RELOAD_BRIDGE_KEY] || { pending: [], timestamp: 0 };
+
+    this._trackedSettingsModals.forEach((kind, modal) => {
+      if (modal && modal.isOpen) {
+        pendingKinds.push(kind);
+        modal.close();
+      }
+    });
+    this._trackedSettingsModals.clear();
+
+    // 检测设置面板当前是否正显示本插件的设置页，若是则记录，
+    // 重载后自动重新激活新设置页签，避免面板空白需要重新进入。
+    // 注：app.setting 为半公开 API，异常时静默降级，不影响主流程。
+    // 判断方式：直接比较激活页签与本插件页签实例（onunload 时 core 尚未移除页签，
+    // 该对象比较最可靠）；再以页签容器“仍在文档中且可见”兜底，兼容 core 提前清空 activeTab 的情况。
+    try {
+      const setting = this.app.setting;
+      const tabContainer = this.settingTab && this.settingTab.containerEl;
+      const settingsTabWasActive = Boolean(
+        setting &&
+          ((setting.isOpen && setting.activeTab === this.settingTab) ||
+            (tabContainer &&
+              tabContainer.isConnected &&
+              typeof tabContainer.isShown === 'function' &&
+              tabContainer.isShown()))
+      );
+      if (settingsTabWasActive) {
+        bridge.reopenSettingsTab = true;
+      }
+    } catch (error) {
+      // 半公开 API 不可用时忽略，仅影响热更新恢复体验
+    }
+
+    // 无条件记录卸载时间戳：即便上述检测漏判，onload 侧仍可在时间窗口内
+    // 通过“设置面板开着但激活页签已失效”的兜底条件恢复设置页
+    bridge.pending.push(...pendingKinds);
+    bridge.timestamp = Date.now();
+    window[HOT_RELOAD_BRIDGE_KEY] = bridge;
+  }
+
+  // 恢复热更新重载前的状态：重新激活设置面板中的新设置页签，并用新插件实例重建已打开的子界面。
+  restoreSettingsSubinterfaces() {
+    const bridge = window[HOT_RELOAD_BRIDGE_KEY];
+    if (!bridge) {
+      return;
+    }
+
+    const pendingKinds = Array.isArray(bridge.pending) ? bridge.pending.slice() : [];
+    const shouldReopenSettingsTab = bridge.reopenSettingsTab === true;
+    const isRecentReload = Date.now() - (bridge.timestamp || 0) <= HOT_RELOAD_WINDOW_MS;
+    delete window[HOT_RELOAD_BRIDGE_KEY];
+
+    // 超过时间窗口视为手动禁用后重新启用，不自动恢复子界面
+    if (!isRecentReload) {
+      return;
+    }
+
+    // 读取旧实例轮询留存的设置页可见性：core 禁用插件时会先于 onunload 关闭设置面板，
+    // 只能依据轮询留存的最后可见状态判断用户之前是否正显示本插件设置页
+    const visibilityMarker = window[SETTINGS_TAB_VISIBILITY_KEY];
+    const settingsTabWasVisible = Boolean(
+      visibilityMarker &&
+        visibilityMarker.visible === true &&
+        Date.now() - (visibilityMarker.timestamp || 0) <= SETTINGS_TAB_FRESH_MS
+    );
+    delete window[SETTINGS_TAB_VISIBILITY_KEY];
+
+    // 通道一：onunload 检测或可见性轮询确认用户正显示本插件设置页，
+    // 延迟重试重新打开设置面板（core 已将其关闭）并激活新页签
+    if ((shouldReopenSettingsTab || settingsTabWasVisible) && this.settingTab) {
+      this.scheduleReopenSettingsTab(0);
+    } else {
+      // 通道二（兜底）：onunload 检测可能因旧版本代码或 core 行为差异而漏判，
+      // 延迟检查设置面板是否处于“开着但激活页签已失效”的空白残留状态，若是则恢复本插件页签
+      this.scheduleRecoverBlankSettingsTab(0);
+    }
+
+    pendingKinds.forEach((kind) => {
+      try {
+        settingsTabModule.reopenSettingsSubinterface(this, kind);
+      } catch (error) {
+        console.error('[ねね] 热更新恢复设置子界面失败', kind, error);
+      }
+    });
+  }
+
+  // 兜底恢复：热更新时间窗口内，若设置面板开着但当前激活页签已失效
+  // （core 禁用插件时移除了本插件页签，面板残留空白），则自动激活本插件新设置页签。
+  // 若用户正正常浏览其他设置页（激活页签有效且可见），则不打扰。
+  scheduleRecoverBlankSettingsTab(attempt) {
+    const self = this;
+    const maxAttempts = 6; // 最多重试次数
+    const retryIntervalMs = 100; // 基础重试间隔（毫秒），随次数递增
+
+    setTimeout(() => {
+      try {
+        const setting = self.app.setting;
+        if (!setting || !setting.isOpen) {
+          return; // 设置面板未打开，无需恢复
+        }
+        const activeTab = setting.activeTab;
+        const activeTabVisible = Boolean(
+          activeTab &&
+            activeTab.containerEl &&
+            activeTab.containerEl.isConnected &&
+            typeof activeTab.containerEl.isShown === 'function' &&
+            activeTab.containerEl.isShown()
+        );
+        if (activeTabVisible) {
+          return; // 用户正正常浏览某个设置页，不打扰
+        }
+        // 面板处于空白残留状态：激活本插件新设置页签
+        self.scheduleReopenSettingsTab(0);
+      } catch (error) {
+        // 半公开 API 异常时按失败处理，进入重试
+        if (attempt < maxAttempts) {
+          self.scheduleRecoverBlankSettingsTab(attempt + 1);
+        }
+      }
+    }, retryIntervalMs * (attempt + 1));
+  }
+
+  // 启动设置页可见性轮询：把“设置面板当前是否正显示本插件设置页”实时记录到 window。
+  // 背景：core 禁用插件时会先于 onunload 关闭设置面板，onunload 中已读取不到真实状态，
+  // 只能依靠轮询留存的最后可见状态，供热更新后的新实例决定是否重新打开设置面板。
+  startSettingsTabVisibilityTracking() {
+    const self = this;
+    self.registerInterval(
+      window.setInterval(() => {
+        try {
+          const tabContainer = self.settingTab && self.settingTab.containerEl;
+          const visible = Boolean(
+            tabContainer &&
+              tabContainer.isConnected &&
+              typeof tabContainer.isShown === 'function' &&
+              tabContainer.isShown()
+          );
+          window[SETTINGS_TAB_VISIBILITY_KEY] = { visible: visible, timestamp: Date.now() };
+        } catch (error) {
+          // 半公开 API 异常时忽略本轮轮询
+        }
+      }, SETTINGS_TAB_POLL_MS)
+    );
+  }
+
+  // 延迟重试重新激活设置面板中的本插件设置页签。
+  // 说明：core 的 enablePlugin 在插件 onload 完成后才完成设置页签登记，
+  // 且禁用插件时 core 可能直接关闭整个设置面板；此方法按固定间隔重试数次：
+  // 若设置面板已被关闭则先重新打开，再优先用 openTabById 激活页签，
+  // 该半公开方法不存在时降级为 openTab(页签实例)；全部重试仍失败则输出警告，
+  // 不影响插件主流程。
+  scheduleReopenSettingsTab(attempt) {
+    const self = this;
+    const maxAttempts = 6; // 最多重试次数
+    const retryIntervalMs = 100; // 每次重试间隔（毫秒）
+
+    setTimeout(() => {
+      let reopened = false;
+      try {
+        const setting = self.app.setting;
+        if (!setting) {
+          return; // 设置对象不存在时重试无意义，直接放弃
+        }
+        // 设置面板若被 core 在禁用插件时关闭，先重新打开再激活页签。
+        // 注意：core 关闭面板时可能未重置 isOpen，因此以面板 DOM 是否仍在文档中为准
+        const modalElement = setting.modalEl || setting.containerEl;
+        const modalInDom = Boolean(modalElement && modalElement.isConnected);
+        if (!modalInDom) {
+          setting.open();
+        }
+        if (typeof setting.openTabById === 'function') {
+          reopened = Boolean(setting.openTabById(self.manifest.id));
+        } else if (typeof setting.openTab === 'function' && self.settingTab) {
+          setting.openTab(self.settingTab);
+          reopened = true;
+        }
+        // 激活后当前页签已是本插件新页签，视为成功（兼容 openTabById 无返回值）
+        if (!reopened && setting.activeTab === self.settingTab) {
+          reopened = true;
+        }
+        // 最终校验：面板 DOM 确实在文档中且当前页签是本插件新页签，避免 core 状态误报假成功
+        const modalElementAfter = setting.modalEl || setting.containerEl;
+        reopened = Boolean(
+          reopened &&
+            modalElementAfter &&
+            modalElementAfter.isConnected &&
+            setting.activeTab === self.settingTab
+        );
+      } catch (error) {
+        // 半公开 API 异常时按失败处理，进入重试
+      }
+      if (!reopened && attempt < maxAttempts) {
+        self.scheduleReopenSettingsTab(attempt + 1);
+      } else if (!reopened) {
+        console.warn('[ねね] 热更新恢复设置面板失败：设置页签尚未就绪');
+      }
+    }, retryIntervalMs);
   }
 
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
@@ -62,6 +291,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData()); // 将标签栏增强配置切片挂载到业务仓库
     this.snippetsStore.load(); // 从状态栏增强配置中提取 snippets 切片
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData()); // 将文件资源管理器增强配置切片挂载到业务仓库
+    this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData()); // 将编辑增强配置切片挂载到业务仓库
     this.initializeOrganizerSpooler(); // 初始化状态栏元素管理 Spooler
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
@@ -73,9 +303,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
+    this.commandUriRuntime.registerProtocolHandlers(); // 注册 goto-plugin 与 open 扩展 URI 协议处理器，随插件卸载自动清理
     this.setupAnchorGraphEvents();
     this.setupFileExplorerEnhancer(); // 装配文件资源管理器增强（缓存右键目标 + 注册命令 + 布局监听）
-    this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
+    this.editorEnhancerRuntime.registerCommands(); // 无条件注册编辑增强命令
+    this.settingTab = new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
+    // 启动设置页可见性轮询，把可见状态实时写入 window，供热更新重载后的新实例恢复设置面板
+    this.startSettingsTabVisibilityTracking();
+    // 热更新重载后恢复此前已打开的设置子界面，保证开发过程中弹窗随新代码刷新
+    this.restoreSettingsSubinterfaces();
 
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
@@ -84,11 +321,14 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.syncTabBarEnhancerState();
     this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
+    this.syncEditorEnhancerState();
   }
 
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
     console.log('Unloading obsidian-nene-plugin');
+    // 关闭已打开的全部设置子界面并记录类型，供热更新后的新实例自动恢复
+    this.captureAndCloseSettingsModals();
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
     this.statusBarEnhancerRuntime.stop();
@@ -99,6 +339,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
     this.fileExplorerEnhancerUnload();
+    this.editorEnhancerRuntime.stop();
+    this.editorEnhancerOverlay.destroy();
 
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
@@ -394,6 +636,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isTabBarEnhancerEnabled();
   }
 
+  // 返回编辑增强模块当前是否被用户启用。
+  isEditorEnhancerEnabled() {
+    return this.pluginSettingsStore.isEditorEnhancerEnabled();
+  }
+
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -448,7 +695,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true,
       fileExplorerEnhancerEnabled: this.isFileExplorerEnhancerEnabled(),
       fileExplorerEnhancerPinFilterCount: (this.fileExplorerEnhancerStore.getSettings().pinFilters.paths || []).length,
-      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length
+      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length,
+      editorEnhancerEnabled: this.isEditorEnhancerEnabled(),
+      editorEnhancerAutoCompleteEnabled: this.editorEnhancerStore.getSettings().autoCompleteEnabled !== false,
+      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true
     };
   }
 
@@ -741,6 +991,52 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextEnabled;
   }
 
+  // 更新编辑增强模块开关，并立即同步运行时状态。
+  async updateEditorEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setEditorEnhancerEnabled(enabled);
+    this.syncEditorEnhancerState();
+    return nextEnabled;
+  }
+
+  // 更新编辑增强模块的排除标签列表。
+  async updateEditorEnhancerExcludedTags(value) {
+    return this.editorEnhancerStore.setExcludedTags(value);
+  }
+
+  // 更新编辑增强模块的自动补全后光标位置。
+  async updateEditorEnhancerCursorPosition(value) {
+    return this.editorEnhancerStore.setCursorPosition(value);
+  }
+
+  // 更新编辑增强模块的"忽略代码块"配置。
+  async updateEditorEnhancerIgnoreInCodeBlocks(enabled) {
+    return this.editorEnhancerStore.setIgnoreInCodeBlocks(enabled);
+  }
+
+  // 更新编辑增强模块的"忽略行内代码"配置。
+  async updateEditorEnhancerIgnoreInlineCode(enabled) {
+    return this.editorEnhancerStore.setIgnoreInlineCode(enabled);
+  }
+
+  // 更新编辑增强模块的"粘贴行为的自动补全"配置（默认关闭）。
+  async updateEditorEnhancerEnablePasteAutoClose(enabled) {
+    return this.editorEnhancerStore.setEnablePasteAutoClose(enabled);
+  }
+
+  // 更新状态栏按钮控制的自动补全开关，并同步浮层启停与按钮图标。
+  async updateEditorEnhancerAutoCompleteEnabled(enabled) {
+    const nextValue = await this.editorEnhancerStore.setAutoCompleteEnabled(enabled);
+    if (this.isEditorEnhancerEnabled()) {
+      if (nextValue) {
+        this.editorEnhancerOverlay.enable();
+      } else {
+        this.editorEnhancerOverlay.disable();
+      }
+      this.editorEnhancerRuntime.refreshStatusBarIcon();
+    }
+    return nextValue;
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -947,6 +1243,26 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileExplorerEnhancerUnload(true);
   }
 
+  // 根据当前设置同步编辑增强模块的启停状态。
+  // 模块启用时：启动状态栏按钮与粘贴监听，并按"自动补全开关"决定是否激活浮层；
+  // 模块禁用时：停止运行时并停用浮层。
+  syncEditorEnhancerState() {
+    this.editorEnhancerRuntime.load(this.editorEnhancerStore.getSettings());
+
+    if (this.isEditorEnhancerEnabled()) {
+      this.editorEnhancerRuntime.start();
+      if (this.editorEnhancerStore.getSettings().autoCompleteEnabled) {
+        this.editorEnhancerOverlay.enable();
+      } else {
+        this.editorEnhancerOverlay.disable();
+      }
+      return;
+    }
+
+    this.editorEnhancerRuntime.stop();
+    this.editorEnhancerOverlay.disable();
+  }
+
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -968,6 +1284,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
+    this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
     this.snippetsStore.load();
 
     this.syncFileMarkerFeatureState();
@@ -976,6 +1293,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.syncStatusBarEnhancerState();
     this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
+    this.syncEditorEnhancerState();
 
     if (this.isAnchorGraphEnabled()) {
       await this.refreshAnchorGraphLinks(false);

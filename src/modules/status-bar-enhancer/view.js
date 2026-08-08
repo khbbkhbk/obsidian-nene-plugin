@@ -244,6 +244,8 @@ class StatusBarEnhancerManagementModal extends obsidian.Modal {
             var modal = new organizerView.StatusBarOrganizerModal(this.app, this.plugin, async () => {
               await this.render();
             });
+            // 登记到插件，使热更新重载时该子界面也能随新代码恢复
+            this.plugin.trackSettingsModal(modal, 'status-bar-organizer');
             modal.open();
           });
       });

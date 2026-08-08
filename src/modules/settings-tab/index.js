@@ -2,10 +2,64 @@
 
 var obsidian = require('obsidian');
 var commandUriEnhancerModule = require('../command-uri-enhancer/index.js');
+var editorEnhancerModule = require('../editor-enhancer/index.js');
 var menuCustomizerModule = require('../context-menu-enhancer/index.js');
 var statusBarEnhancerModule = require('../status-bar-enhancer/index.js');
 var tabBarEnhancerModule = require('../tab-bar-enhancer/index.js');
 var fileExplorerEnhancerModule = require('../file-explorer-enhancer/index.js');
+
+// 打开设置子界面并登记到插件，供热更新重载时统一关闭与恢复。
+// kind 为子界面类型标识，重载后按该标识用新插件实例重建弹窗。
+function openSettingsModal(plugin, modal, kind) {
+  plugin.trackSettingsModal(modal, kind);
+  modal.open();
+  return modal;
+}
+
+// 热更新重载后按类型重新打开对应的设置子界面，全部使用新插件实例重建，
+// 使弹窗内容随最新代码与数据即时刷新。
+function reopenSettingsSubinterface(plugin, kind) {
+  const refreshSettings = async () => {
+    if (plugin.settingTab) {
+      await plugin.settingTab.display();
+    }
+  };
+
+  switch (kind) {
+    case 'file-marker':
+      openSettingsModal(plugin, new FileMarkerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'anchor-graph':
+      openSettingsModal(plugin, new AnchorGraphManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'menu-customizer':
+      openSettingsModal(plugin, new MenuCustomizerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'command-uri':
+      openSettingsModal(plugin, new CommandUriEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'status-bar':
+      openSettingsModal(plugin, new StatusBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'tab-bar':
+      openSettingsModal(plugin, new TabBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'config':
+      openSettingsModal(plugin, new ConfigManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'file-explorer':
+      openSettingsModal(plugin, new fileExplorerEnhancerModule.FileExplorerManagerModal(plugin), kind);
+      break;
+    case 'editor-enhancer':
+      openSettingsModal(plugin, new EditorEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    case 'status-bar-organizer':
+      openSettingsModal(plugin, new statusBarEnhancerModule.StatusBarOrganizerModal(plugin.app, plugin, refreshSettings), kind);
+      break;
+    default:
+      break;
+  }
+}
 
 // 优先使用现代剪贴板 API，失败时回退到传统复制命令。
 async function copyTextToClipboard(text) {
@@ -412,6 +466,10 @@ class StatusBarEnhancerManagementModal extends statusBarEnhancerModule.StatusBar
 class TabBarEnhancerManagementModal extends tabBarEnhancerModule.TabBarEnhancerManagementModal {
 }
 
+// 定义编辑增强模块管理弹窗入口，实际内容由独立模块实现。
+class EditorEnhancerManagementModal extends editorEnhancerModule.EditorEnhancerManagementModal {
+}
+
 // 定义配置文件管理弹窗，集中处理导入、导出与全量重置。
 class ConfigManagementModal extends obsidian.Modal {
   constructor(app, plugin, onSettingsChanged) {
@@ -448,6 +506,8 @@ class ConfigManagementModal extends obsidian.Modal {
     renderDetailItem(detailListEl, '命令&URI增强配置', `${configSummary.commandUriEnhancer.exists ? '已存在' : '未发现'}，${configSummary.commandUriEnhancer.summary}`);
     renderDetailItem(detailListEl, '状态栏增强配置', `${configSummary.statusBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.statusBarEnhancer.summary}`);
     renderDetailItem(detailListEl, '标签栏增强配置', `${configSummary.tabBarEnhancer.exists ? '已存在' : '未发现'}，${configSummary.tabBarEnhancer.summary}`);
+    renderDetailItem(detailListEl, '文件列表增强配置', `${configSummary.fileExplorerEnhancer.exists ? '已存在' : '未发现'}，${configSummary.fileExplorerEnhancer.summary}`);
+    renderDetailItem(detailListEl, '编辑增强配置', `${configSummary.editorEnhancer.exists ? '已存在' : '未发现'}，${configSummary.editorEnhancer.summary}`);
     renderDetailItem(detailListEl, '配置目录', configSummary.directoryPath, true);
     renderDetailItem(detailListEl, '导出目录', configSummary.exportDirectoryPath, true);
 
@@ -509,7 +569,7 @@ class ConfigManagementModal extends obsidian.Modal {
 
     new obsidian.Setting(contentEl)
       .setName('重置全部配置')
-      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强和标签栏增强设置都会恢复为首次安装状态。')
+      .setDesc('同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强、标签栏增强、文件列表增强和编辑增强设置都会恢复为首次安装状态。')
       .addButton((button) => {
         button
           .setButtonText('重置全部')
@@ -518,7 +578,7 @@ class ConfigManagementModal extends obsidian.Modal {
             new ConfirmActionModal(
               this.app,
               '重置全部插件配置',
-              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。',
+              '此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json、tab-bar-enhancer.json、file-explorer-enhancer.json 和 editor-enhancer.json。请仅在确认需要恢复初始状态时执行。',
               '确认全部重置',
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -564,6 +624,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.renderFileMarkerSection(featureGroupEl, summary);
     this.renderAnchorGraphSection(featureGroupEl, summary);
     this.renderMenuCustomizerSection(featureGroupEl, summary);
+    this.renderEditorEnhancerSection(featureGroupEl, summary);
     this.renderCommandUriEnhancerSection(featureGroupEl, summary);
     this.renderStatusBarEnhancerSection(featureGroupEl, summary);
     this.renderTabBarEnhancerSection(featureGroupEl, summary);
@@ -602,9 +663,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new FileMarkerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new FileMarkerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'file-marker');
           });
       });
   }
@@ -636,9 +697,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new AnchorGraphManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new AnchorGraphManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'anchor-graph');
           });
       });
   }
@@ -665,9 +726,41 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'menu-customizer');
+          });
+      });
+  }
+
+  // 渲染编辑增强模块分区，仅保留状态概览、开关与弹窗入口。
+  renderEditorEnhancerSection(containerEl, summary) {
+    new obsidian.Setting(containerEl)
+      .setName('编辑增强')
+      .setDesc(
+        summary.editorEnhancerEnabled
+          ? (
+            `已启用，自动补全${summary.editorEnhancerAutoCompleteEnabled ? '已开启' : '已关闭'}，`
+            + `粘贴行为自动补全${summary.editorEnhancerPasteAutoCloseEnabled ? '已开启' : '已关闭'}。`
+          )
+          : '未启用。启用后输入 HTML 标签可自动补全闭合标签，并提供标签跳过、匹配标签跳转与同步修改配对标签等命令。'
+      )
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.editorEnhancerEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerEnabled(value);
+            new obsidian.Notice(value ? '已启用编辑增强模块' : '已关闭编辑增强模块');
+            await this.display();
+          });
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('管理')
+          .onClick(() => {
+            openSettingsModal(this.plugin, new EditorEnhancerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }), 'editor-enhancer');
           });
       });
   }
@@ -698,9 +791,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'command-uri');
           });
       });
   }
@@ -732,9 +825,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new StatusBarEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new StatusBarEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'status-bar');
           });
       });
   }
@@ -765,9 +858,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('管理')
           .onClick(() => {
-            new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'tab-bar');
           });
       });
   }
@@ -781,9 +874,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
         button
           .setButtonText('打开管理窗口')
           .onClick(() => {
-            new ConfigManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new ConfigManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), 'config');
           });
       });
   }
@@ -811,6 +904,9 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     });
     listEl.createEl('li', {
       text: '文件列表增强模块仅面向桌面端，通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏。右键菜单命令可配合"右键菜单自定义"模块手动配置。'
+    });
+    listEl.createEl('li', {
+      text: '编辑增强模块在输入完开始标签的 > 后弹出闭合标签补全，按 Tab 完成补全、Esc 退出，不占用上下左右方向键；单标签（如 <br>、<img>）不触发自动补全。'
     });
   }
 
@@ -844,12 +940,13 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
           .setButtonText('管理')
           .setDisabled(!summary.fileExplorerEnhancerEnabled)
           .onClick(function () {
-            new fileExplorerEnhancerModule.FileExplorerManagerModal(plugin).open();
+            openSettingsModal(plugin, new fileExplorerEnhancerModule.FileExplorerManagerModal(plugin), 'file-explorer');
           });
       });
   }
 }
 
 module.exports = {
-  ObsidianNenePluginSettingTab
+  ObsidianNenePluginSettingTab,
+  reopenSettingsSubinterface
 };

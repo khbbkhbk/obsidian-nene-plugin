@@ -703,8 +703,89 @@ var require_constants3 = __commonJS({
   }
 });
 
-// src/modules/context-menu-enhancer/constants.js
+// src/modules/editor-enhancer/constants.js
 var require_constants4 = __commonJS({
+  "src/modules/editor-enhancer/constants.js"(exports2, module2) {
+    "use strict";
+    var FEATURE_NAME = "editorEnhancer";
+    var VOID_ELEMENTS = [
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "link",
+      "meta",
+      "source",
+      "track",
+      "wbr"
+    ];
+    var DEFAULT_EDITOR_ENHANCER_SETTINGS = {
+      excludedTags: "",
+      cursorPosition: "between",
+      ignoreInCodeBlocks: true,
+      ignoreInlineCode: true,
+      enablePasteAutoClose: false,
+      autoCompleteEnabled: true
+    };
+    var COMMAND_IDS = {
+      skipTagBackward: "editor-enhancer-skip-tag-backward",
+      skipTagForward: "editor-enhancer-skip-tag-forward",
+      goToMatchingTag: "editor-enhancer-go-to-matching-tag",
+      syncMatchingTag: "editor-enhancer-sync-matching-tag"
+    };
+    var COMMAND_DEFINITIONS = [
+      {
+        id: COMMAND_IDS.skipTagBackward,
+        name: "向左跳过标签",
+        hotkeys: [{ modifiers: ["Ctrl"], key: "ArrowLeft" }]
+      },
+      {
+        id: COMMAND_IDS.skipTagForward,
+        name: "向右跳过标签",
+        hotkeys: [{ modifiers: ["Ctrl"], key: "ArrowRight" }]
+      },
+      {
+        id: COMMAND_IDS.goToMatchingTag,
+        name: "跳转至匹配标签",
+        hotkeys: [{ modifiers: ["Ctrl"], key: "m" }]
+      },
+      {
+        id: COMMAND_IDS.syncMatchingTag,
+        name: "同步修改配对标签",
+        hotkeys: []
+      }
+    ];
+    var STATUS_BAR_ICONS = {
+      enabled: "code-2",
+      disabled: "code"
+    };
+    var NOTICE_MESSAGES = {
+      commandNotInTag: "「%s」命令仅在光标位于标签内部时生效",
+      goToMatchingTagOnVoid: '"跳转至匹配标签"命令对单标签无效！',
+      syncMatchingTagOnVoid: '"同步修改配对标签"命令对单标签无效！',
+      tagExcluded: "当前标签已在排除列表中，命令不会生效",
+      tagInCodeContext: "当前标签位于代码块或行内代码中，命令不会生效",
+      noMatchingTag: "未找到匹配的配对标签",
+      tagNamesAlreadySame: "配对标签名称已一致，无需修改"
+    };
+    module2.exports = {
+      FEATURE_NAME,
+      VOID_ELEMENTS,
+      DEFAULT_EDITOR_ENHANCER_SETTINGS,
+      COMMAND_IDS,
+      COMMAND_DEFINITIONS,
+      STATUS_BAR_ICONS,
+      NOTICE_MESSAGES
+    };
+  }
+});
+
+// src/modules/context-menu-enhancer/constants.js
+var require_constants5 = __commonJS({
   "src/modules/context-menu-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var MENU_TYPE_OPTIONS = [
@@ -924,7 +1005,7 @@ var require_constants4 = __commonJS({
 });
 
 // src/modules/status-bar-enhancer/constants.js
-var require_constants5 = __commonJS({
+var require_constants6 = __commonJS({
   "src/modules/status-bar-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_STATUS_BAR_ENHANCER_SETTINGS = {
@@ -977,7 +1058,7 @@ var require_snippets_constants = __commonJS({
 });
 
 // src/modules/tab-bar-enhancer/constants.js
-var require_constants6 = __commonJS({
+var require_constants7 = __commonJS({
   "src/modules/tab-bar-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_TAB_BAR_ENHANCER_SETTINGS = {
@@ -993,7 +1074,7 @@ var require_constants6 = __commonJS({
 });
 
 // src/modules/file-explorer-enhancer/constants.js
-var require_constants7 = __commonJS({
+var require_constants8 = __commonJS({
   "src/modules/file-explorer-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS = {
@@ -1013,17 +1094,18 @@ var require_constants7 = __commonJS({
 });
 
 // src/modules/plugin-data/constants.js
-var require_constants8 = __commonJS({
+var require_constants9 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
     var anchorGraphConstants = require_constants2();
     var commandUriEnhancerConstants = require_constants3();
+    var editorEnhancerConstants = require_constants4();
     var fileMarkerConstants = require_constants();
-    var menuCustomizerConstants = require_constants4();
-    var statusBarEnhancerConstants = require_constants5();
+    var menuCustomizerConstants = require_constants5();
+    var statusBarEnhancerConstants = require_constants6();
     var snippetsConstants = require_snippets_constants();
-    var tabBarEnhancerConstants = require_constants6();
-    var fileExplorerEnhancerConstants = require_constants7();
+    var tabBarEnhancerConstants = require_constants7();
+    var fileExplorerEnhancerConstants = require_constants8();
     var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
     var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
     var FEATURE_CONFIG_FILE_NAMES = {
@@ -1033,7 +1115,8 @@ var require_constants8 = __commonJS({
       commandUriEnhancer: "command-uri-enhancer",
       statusBarEnhancer: "status-bar-enhancer",
       tabBarEnhancer: "tab-bar-enhancer",
-      fileExplorerEnhancer: "file-explorer-enhancer"
+      fileExplorerEnhancer: "file-explorer-enhancer",
+      editorEnhancer: "editor-enhancer"
     };
     var DEFAULT_PLUGIN_DATA = {
       features: {
@@ -1057,6 +1140,9 @@ var require_constants8 = __commonJS({
         },
         fileExplorerEnhancer: {
           enabled: false
+        },
+        editorEnhancer: {
+          enabled: false
         }
       }
     };
@@ -1070,7 +1156,8 @@ var require_constants8 = __commonJS({
         snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
       }),
       tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS,
-      fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS
+      fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
+      editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS
     };
     module2.exports = {
       DEFAULT_FEATURE_DATA,
@@ -1087,7 +1174,7 @@ var require_feature_config_manager = __commonJS({
   "src/modules/plugin-data/feature-config-manager.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var constants = require_constants8();
+    var constants = require_constants9();
     var FeatureConfigManager = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1190,7 +1277,7 @@ var require_store2 = __commonJS({
   "src/modules/plugin-data/store.js"(exports2, module2) {
     "use strict";
     var featureConfigManagerModule = require_feature_config_manager();
-    var constants = require_constants8();
+    var constants = require_constants9();
     var PluginDataStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1210,6 +1297,7 @@ var require_store2 = __commonJS({
         this.featureData.statusBarEnhancer = await this.loadFeatureSlice("statusBarEnhancer", rawData?.statusBarEnhancer);
         this.featureData.tabBarEnhancer = await this.loadFeatureSlice("tabBarEnhancer", rawData?.tabBarEnhancer);
         this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice("fileExplorerEnhancer", rawData?.fileExplorerEnhancer);
+        this.featureData.editorEnhancer = await this.loadFeatureSlice("editorEnhancer", rawData?.editorEnhancer);
         if (this.hasLegacyFeatureSlices(rawData)) {
           await this.save();
         }
@@ -1287,6 +1375,14 @@ var require_store2 = __commonJS({
       setFileExplorerEnhancerData(fileExplorerEnhancerData) {
         this.featureData.fileExplorerEnhancer = this.normalizeFileExplorerEnhancerData(fileExplorerEnhancerData);
       }
+      // 返回编辑增强模块的独立配置切片。
+      getEditorEnhancerData() {
+        return this.featureData.editorEnhancer;
+      }
+      // 更新编辑增强模块的独立配置切片缓存。
+      setEditorEnhancerData(editorEnhancerData) {
+        this.featureData.editorEnhancer = this.normalizeEditorEnhancerData(editorEnhancerData);
+      }
       // 保存文件标记功能数据到独立配置文件。
       async saveFileMarkerData(fileMarkerData) {
         this.setFileMarkerData(fileMarkerData);
@@ -1318,6 +1414,11 @@ var require_store2 = __commonJS({
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
         await this.featureConfigManager.save("fileExplorerEnhancer", this.featureData.fileExplorerEnhancer);
       }
+      // 保存编辑增强模块数据到独立配置文件。
+      async saveEditorEnhancerData(editorEnhancerData) {
+        this.setEditorEnhancerData(editorEnhancerData);
+        await this.featureConfigManager.save("editorEnhancer", this.featureData.editorEnhancer);
+      }
       // 保存文件资源管理器增强模块数据到独立配置文件。
       async saveFileExplorerEnhancerData(fileExplorerEnhancerData) {
         this.setFileExplorerEnhancerData(fileExplorerEnhancerData);
@@ -1332,6 +1433,7 @@ var require_store2 = __commonJS({
         await this.featureConfigManager.save("commandUriEnhancer", this.featureData.commandUriEnhancer);
         await this.featureConfigManager.save("statusBarEnhancer", this.featureData.statusBarEnhancer);
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
+        await this.featureConfigManager.save("editorEnhancer", this.featureData.editorEnhancer);
       }
       // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
       async getConfigFileStatuses() {
@@ -1344,6 +1446,7 @@ var require_store2 = __commonJS({
         const statusBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("statusBarEnhancer");
         const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("tabBarEnhancer");
         const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath("fileExplorerEnhancer");
+        const editorEnhancerPath = this.featureConfigManager.getFeatureConfigPath("editorEnhancer");
         return {
           directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
           exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
@@ -1402,6 +1505,13 @@ var require_store2 = __commonJS({
             path: fileExplorerEnhancerPath,
             exists: await this.featureConfigManager.exists("fileExplorerEnhancer"),
             summary: `置顶路径规则：${(this.featureData.fileExplorerEnhancer.pinFilters.paths || []).length} 条，隐藏路径规则：${(this.featureData.fileExplorerEnhancer.hideFilters.paths || []).length} 条`
+          },
+          editorEnhancer: {
+            key: "editorEnhancer",
+            name: "编辑增强配置",
+            path: editorEnhancerPath,
+            exists: await this.featureConfigManager.exists("editorEnhancer"),
+            summary: `自动补全：${this.featureData.editorEnhancer.autoCompleteEnabled !== false ? "开" : "关"}，粘贴自动补全：${this.featureData.editorEnhancer.enablePasteAutoClose === true ? "开" : "关"}`
           }
         };
       }
@@ -1449,6 +1559,8 @@ var require_store2 = __commonJS({
           this.featureData.tabBarEnhancer = defaultFeatureData;
         } else if (featureKey === "fileExplorerEnhancer") {
           this.featureData.fileExplorerEnhancer = defaultFeatureData;
+        } else if (featureKey === "editorEnhancer") {
+          this.featureData.editorEnhancer = defaultFeatureData;
         }
         await this.featureConfigManager.save(featureKey, defaultFeatureData);
         return defaultFeatureData;
@@ -1471,7 +1583,8 @@ var require_store2 = __commonJS({
           commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
-          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
+          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
+          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
         });
       }
       // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
@@ -1485,6 +1598,7 @@ var require_store2 = __commonJS({
         delete normalizedCoreData.statusBarEnhancer;
         delete normalizedCoreData.tabBarEnhancer;
         delete normalizedCoreData.fileExplorerEnhancer;
+        delete normalizedCoreData.editorEnhancer;
         normalizedCoreData.features = this.normalizeFeatures(source.features);
         return normalizedCoreData;
       }
@@ -1498,7 +1612,8 @@ var require_store2 = __commonJS({
           commandUriEnhancer: this.normalizeCommandUriEnhancerData(source.commandUriEnhancer),
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
-          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer)
+          fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
+          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
         };
       }
       // 归一化插件级功能开关结构。
@@ -1524,6 +1639,9 @@ var require_store2 = __commonJS({
           },
           fileExplorerEnhancer: {
             enabled: features?.fileExplorerEnhancer?.enabled === true
+          },
+          editorEnhancer: {
+            enabled: features?.editorEnhancer?.enabled === true
           }
         };
       }
@@ -1639,7 +1757,7 @@ var require_store2 = __commonJS({
       // 归一化文件资源管理器增强配置结构，保证首次安装与旧数据迁移后形状稳定。
       normalizeFileExplorerEnhancerData(fileExplorerEnhancerData) {
         var source = this.isPlainObject(fileExplorerEnhancerData) ? fileExplorerEnhancerData : {};
-        var defaults = require_constants7().DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS;
+        var defaults = require_constants8().DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS;
         return {
           pinFilters: {
             active: source.pinFilters && source.pinFilters.active === true,
@@ -1649,6 +1767,19 @@ var require_store2 = __commonJS({
             active: source.hideFilters && source.hideFilters.active === true,
             paths: Array.isArray(source.hideFilters && source.hideFilters.paths) ? this.normalizePathFilters(source.hideFilters.paths) : defaults.hideFilters.paths
           }
+        };
+      }
+      // 归一化编辑增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+      normalizeEditorEnhancerData(editorEnhancerData) {
+        var source = this.isPlainObject(editorEnhancerData) ? editorEnhancerData : {};
+        var defaults = constants.DEFAULT_FEATURE_DATA.editorEnhancer;
+        return {
+          excludedTags: typeof source.excludedTags === "string" ? source.excludedTags : defaults.excludedTags,
+          cursorPosition: source.cursorPosition === "after" ? "after" : "between",
+          ignoreInCodeBlocks: source.ignoreInCodeBlocks !== false,
+          ignoreInlineCode: source.ignoreInlineCode !== false,
+          enablePasteAutoClose: source.enablePasteAutoClose === true,
+          autoCompleteEnabled: source.autoCompleteEnabled !== false
         };
       }
       // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
@@ -1706,12 +1837,15 @@ var require_store2 = __commonJS({
         if (featureKey === "fileExplorerEnhancer") {
           return this.normalizeFileExplorerEnhancerData(featureData);
         }
+        if (featureKey === "editorEnhancer") {
+          return this.normalizeEditorEnhancerData(featureData);
+        }
         return this.isPlainObject(featureData) ? featureData : {};
       }
       // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
       hasLegacyFeatureSlices(data) {
         const source = this.isPlainObject(data) ? data : {};
-        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer) || this.isPlainObject(source.fileExplorerEnhancer);
+        return this.isPlainObject(source.fileMarker) || this.isPlainObject(source.anchorGraph) || this.isPlainObject(source.menuCustomizer) || this.isPlainObject(source.statusBarEnhancer) || this.isPlainObject(source.tabBarEnhancer) || this.isPlainObject(source.fileExplorerEnhancer) || this.isPlainObject(source.editorEnhancer);
       }
       // 返回 Obsidian 实际使用的核心配置文件路径，便于设置页展示。
       getCoreConfigPath() {
@@ -1730,7 +1864,8 @@ var require_store2 = __commonJS({
           commandUriEnhancer: bundle.featureData?.commandUriEnhancer || bundle.commandUriEnhancer,
           statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
           tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
-          fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer
+          fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer,
+          editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer
         }) : bundle;
         const coreSource = hasSeparatedPayload ? Object.assign({}, bundle.coreData, {
           features: bundle.coreData?.features || bundle.features
@@ -1769,7 +1904,7 @@ var require_store2 = __commonJS({
 var require_plugin_data = __commonJS({
   "src/modules/plugin-data/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants8();
+    var constants = require_constants9();
     var featureConfigManager = require_feature_config_manager();
     var store = require_store2();
     module2.exports = Object.assign({}, constants, featureConfigManager, store);
@@ -1777,7 +1912,7 @@ var require_plugin_data = __commonJS({
 });
 
 // src/modules/plugin-settings/constants.js
-var require_constants9 = __commonJS({
+var require_constants10 = __commonJS({
   "src/modules/plugin-settings/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FEATURE_SETTINGS = {
@@ -1801,6 +1936,9 @@ var require_constants9 = __commonJS({
       },
       fileExplorerEnhancer: {
         enabled: false
+      },
+      editorEnhancer: {
+        enabled: false
       }
     };
     module2.exports = {
@@ -1813,7 +1951,7 @@ var require_constants9 = __commonJS({
 var require_store3 = __commonJS({
   "src/modules/plugin-settings/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants9();
+    var constants = require_constants10();
     var PluginSettingsStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1899,6 +2037,16 @@ var require_store3 = __commonJS({
       isFileExplorerEnhancerEnabled() {
         return Boolean(this.settings.fileExplorerEnhancer.enabled);
       }
+      // 返回编辑增强模块是否启用，供主入口和设置页统一读取。
+      isEditorEnhancerEnabled() {
+        return Boolean(this.settings.editorEnhancer.enabled);
+      }
+      // 切换编辑增强模块的启用状态，并立即持久化到本地。
+      async setEditorEnhancerEnabled(enabled) {
+        this.settings.editorEnhancer.enabled = Boolean(enabled);
+        await this.save();
+        return this.isEditorEnhancerEnabled();
+      }
       // 返回功能设置对象，供主入口与设置页读取当前切片。
       getSettings() {
         return this.settings;
@@ -1927,6 +2075,9 @@ var require_store3 = __commonJS({
           },
           fileExplorerEnhancer: {
             enabled: source.fileExplorerEnhancer?.enabled === true
+          },
+          editorEnhancer: {
+            enabled: source.editorEnhancer?.enabled === true
           }
         };
       }
@@ -1941,7 +2092,7 @@ var require_store3 = __commonJS({
 var require_plugin_settings = __commonJS({
   "src/modules/plugin-settings/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants9();
+    var constants = require_constants10();
     var store = require_store3();
     module2.exports = Object.assign({}, constants, store);
   }
@@ -2937,13 +3088,18 @@ var require_view2 = __commonJS({
       "copy-uri-link"
     ];
     var OBSIDIAN_URI_SYNTAXES = [
-      { key: "open", syntax: "obsidian://open?vault=<vault>&file=<file_path>", comment: "打开指定笔记" },
-      { key: "open-line", syntax: "obsidian://open?vault=<vault>&file=<file_path>&line=<line>", comment: "打开笔记并定位到指定行" },
-      { key: "open-preview", syntax: "obsidian://open?vault=<vault>&file=<file_path>&mode=preview", comment: "以阅读模式打开笔记" },
-      { key: "new", syntax: "obsidian://new?vault=<vault>&name=<name>", comment: "新建指定名称的笔记" },
-      { key: "new-content", syntax: "obsidian://new?vault=<vault>&file=<file_path>&content=<content>", comment: "新建笔记并写入初始内容" },
-      { key: "search", syntax: "obsidian://search?vault=<vault>&query=<query>", comment: "在库内搜索指定关键词" },
-      { key: "daily", syntax: "obsidian://daily?vault=<vault>", comment: "打开或创建今日日记" }
+      { key: "open", syntax: "obsidian://open?vault=<vault>&file=<file_path>", comment: "打开指定仓库的指定笔记" },
+      { key: "open-method", syntax: "obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>", comment: "打开笔记：tab=新标签页、window=新窗口、split=新面板" },
+      { key: "open-block", syntax: "obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>", comment: "打开笔记并定位到指定文本块（例如 ^1rww6s），块不存在时回退打开笔记并提示" },
+      { key: "open-header", syntax: "obsidian://open?vault=<vault>&file=<file_path>&header=<标题>", comment: "打开笔记并定位到指定标题，标题不存在时回退打开笔记并提示" },
+      { key: "search", syntax: "obsidian://search?vault=<vault>&query=<query>", comment: "在指定仓库内搜索指定关键词" },
+      { key: "show-plugin", syntax: "obsidian://show-plugin?id=<plugin_id>", comment: "在社区插件市场搜索指定的第三方插件" },
+      // 由命令&URI增强运行时注册的自定义协议：用于快速定位插件设置或快捷键配置页。
+      // 参数按插件显示名称匹配，大小写敏感；show=config/show=hotkeys 会按名称自动解析出插件 id。
+      { key: "goto-plugin", syntax: "obsidian://goto-plugin", comment: "仅打开插件市场" },
+      { key: "goto-plugin-id", syntax: "obsidian://goto-plugin?name=<manifest.json_name>", comment: "在社区插件市场定位已安装的指定第三方插件" },
+      { key: "goto-plugin-config", syntax: "obsidian://goto-plugin?name=<manifest.json_name>&show=config", comment: "打开已安装的指定插件的设置页" },
+      { key: "goto-plugin-hotkeys", syntax: "obsidian://goto-plugin?name=<manifest.json_name>&show=hotkeys", comment: "打开已安装的指定插件的快捷键配置页" }
     ];
     async function copyTextToClipboard(text) {
       if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -3178,6 +3334,404 @@ var require_view2 = __commonJS({
   }
 });
 
+// node_modules/monkey-around/index.js
+var require_monkey_around = __commonJS({
+  "node_modules/monkey-around/index.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.serialize = exports2.after = exports2.dedupe = exports2.around = void 0;
+    function around(obj, factories) {
+      const removers = Object.keys(factories).map((key) => around1(obj, key, factories[key]));
+      return removers.length === 1 ? removers[0] : function() {
+        removers.forEach((r) => r());
+      };
+    }
+    exports2.around = around;
+    function around1(obj, method, createWrapper) {
+      const original = obj[method], hadOwn = obj.hasOwnProperty(method);
+      let current = createWrapper(original);
+      if (original)
+        Object.setPrototypeOf(current, original);
+      Object.setPrototypeOf(wrapper, current);
+      obj[method] = wrapper;
+      return remove;
+      function wrapper(...args) {
+        if (current === original && obj[method] === wrapper)
+          remove();
+        return current.apply(this, args);
+      }
+      function remove() {
+        if (obj[method] === wrapper) {
+          if (hadOwn)
+            obj[method] = original;
+          else
+            delete obj[method];
+        }
+        if (current === original)
+          return;
+        current = original;
+        Object.setPrototypeOf(wrapper, original || Function);
+      }
+    }
+    function dedupe(key, oldFn, newFn) {
+      check[key] = key;
+      return check;
+      function check(...args) {
+        return (oldFn[key] === key ? oldFn : newFn).apply(this, args);
+      }
+    }
+    exports2.dedupe = dedupe;
+    function after(promise, cb) {
+      return promise.then(cb, cb);
+    }
+    exports2.after = after;
+    function serialize(asyncFunction) {
+      let lastRun = Promise.resolve();
+      function wrapper(...args) {
+        return lastRun = new Promise((res, rej) => {
+          after(lastRun, () => {
+            asyncFunction.apply(this, args).then(res, rej);
+          });
+        });
+      }
+      wrapper.after = function() {
+        return lastRun = new Promise((res, rej) => {
+          after(lastRun, res);
+        });
+      };
+      return wrapper;
+    }
+    exports2.serialize = serialize;
+  }
+});
+
+// src/modules/command-uri-enhancer/command-uri-runtime.js
+var require_command_uri_runtime = __commonJS({
+  "src/modules/command-uri-enhancer/command-uri-runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var around = require_monkey_around().around || require_monkey_around();
+    var AUTO_OPEN_CLEANUP_TIMEOUT_MS = 1e4;
+    var MARKET_ITEM_TIMEOUT_MS = 15e3;
+    function settingsAreOpen(app) {
+      return app.setting.containerEl.parentElement !== null;
+    }
+    function getMarketItemName(item) {
+      const nameEl = item.querySelector(".community-item-name");
+      if (!nameEl) {
+        return "";
+      }
+      const clone = nameEl.cloneNode(true);
+      clone.querySelectorAll(".flair").forEach((el) => el.remove());
+      return clone.textContent.trim();
+    }
+    function tryClickMarketPluginItemByName(contentEl, expectedName) {
+      if (!contentEl) {
+        return false;
+      }
+      const resultsContainer = contentEl.querySelector(".community-modal-search-results");
+      if (!resultsContainer) {
+        return false;
+      }
+      const items = Array.from(resultsContainer.children);
+      for (const item of items) {
+        if (getMarketItemName(item) === expectedName) {
+          item.click();
+          return true;
+        }
+      }
+      return false;
+    }
+    function openPluginDetail(viewer, pluginId, expectedName, timeoutMs) {
+      return new Promise((resolve) => {
+        const startedAt = Date.now();
+        const timer = setInterval(() => {
+          if (!viewer || !viewer.contentEl || !viewer.contentEl.isConnected) {
+            clearInterval(timer);
+            resolve(false);
+            return;
+          }
+          if (pluginId && Array.isArray(viewer.pluginData) && viewer.pluginData.some((plugin) => plugin && plugin.id === pluginId) && typeof viewer.openPlugin === "function") {
+            clearInterval(timer);
+            try {
+              viewer.openPlugin(pluginId);
+              resolve(true);
+            } catch (error) {
+              resolve(false);
+            }
+            return;
+          }
+          if (tryClickMarketPluginItemByName(viewer.contentEl, expectedName)) {
+            clearInterval(timer);
+            resolve(true);
+            return;
+          }
+          if (Date.now() - startedAt > timeoutMs) {
+            clearInterval(timer);
+            resolve(false);
+          }
+        }, 120);
+      });
+    }
+    var CommandUriRuntime = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.openUriListener = null;
+      }
+      // 注册插件自定义协议处理器，生命周期由插件统一管理。
+      // 包含 goto-plugin（插件定位）与 open（笔记打开扩展）两个协议。
+      registerProtocolHandlers() {
+        this.registerGotoPluginHandler();
+        this.registerOpenProtocolHandler();
+      }
+      // 注册 goto-plugin 协议处理器。
+      // 协议参数为 ?name=<插件名称>，按显示名称匹配，大小写敏感。
+      registerGotoPluginHandler() {
+        this.plugin.registerObsidianProtocolHandler("goto-plugin", ({ name, show }) => {
+          this.plugin.app.workspace.onLayoutReady(() => {
+            this.gotoPlugin(name, show);
+          });
+        });
+      }
+      // 注册 obsidian://open 扩展协议处理器，在原协议基础上增加 method、block、header 参数。
+      // 说明：Obsidian 核心已内置注册 "open" 协议（obsidian://open），同一 action 无法重复注册。
+      // 因此改走官方稳定的 url-parse 事件，在核心解析 URL 之前拦截：
+      //  - 仅当 URL 携带本模块的扩展参数（method / block / header）时才接管处理并返回 true（阻止核心）；
+      //  - 普通 obsidian://open（无扩展参数）原样放行给核心，不影响原生行为。
+      registerOpenProtocolHandler() {
+        this.openUriListener = (url) => {
+          if (!url) {
+            return void 0;
+          }
+          let urlObj;
+          try {
+            urlObj = new URL(url);
+          } catch (error) {
+            return void 0;
+          }
+          if (urlObj.protocol !== "obsidian:" || urlObj.hostname !== "open") {
+            return void 0;
+          }
+          const params = urlObj.searchParams;
+          const file = params.get("file");
+          const method = params.get("method");
+          const block = params.get("block");
+          const header = params.get("header");
+          if (!file || !method && !block && !header) {
+            return void 0;
+          }
+          this.plugin.app.workspace.onLayoutReady(() => {
+            this.handleOpenUri({ file, method, block, header });
+          });
+          return true;
+        };
+        this.plugin.registerEvent(this.plugin.app.workspace.on("url-parse", this.openUriListener));
+      }
+      // 处理 obsidian://open 扩展 URI：解析 method（打开方式）、block（文本块定位）、header（标题定位）参数。
+      async handleOpenUri(params) {
+        const { file, method, block, header } = params;
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          if (file) {
+            const decodedFile2 = decodeURIComponent(file);
+            this.plugin.app.workspace.openLinkText(decodedFile2, "", false);
+          }
+          return;
+        }
+        if (!file) {
+          new obsidian2.Notice("URI 缺少 file 参数，无法打开笔记");
+          return;
+        }
+        const decodedFile = decodeURIComponent(file);
+        let openMode = false;
+        if (method === "tab") {
+          openMode = "tab";
+        } else if (method === "window") {
+          openMode = "window";
+        } else if (method === "split") {
+          openMode = "split";
+        }
+        let linktext = decodedFile;
+        let anchorType = null;
+        let anchorValue = null;
+        if (block) {
+          linktext = `${decodedFile}#^${block}`;
+          anchorType = "block";
+          anchorValue = block;
+        } else if (header) {
+          const decodedHeader = decodeURIComponent(header);
+          linktext = `${decodedFile}#${decodedHeader}`;
+          anchorType = "header";
+          anchorValue = decodedHeader;
+        }
+        await this.plugin.app.workspace.openLinkText(linktext, "", openMode);
+        if (anchorType) {
+          setTimeout(() => this.verifyAnchor(decodedFile, anchorType, anchorValue), 300);
+        }
+      }
+      // 校验文本块或标题锚点是否在目标文件中存在，不存在则给出 toast 提示。
+      verifyAnchor(filePath, anchorType, anchorValue) {
+        const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+        if (!(file instanceof obsidian2.TFile)) {
+          return;
+        }
+        const cache = this.plugin.app.metadataCache.getFileCache(file);
+        if (!cache) {
+          setTimeout(() => {
+            const retryCache = this.plugin.app.metadataCache.getFileCache(file);
+            if (retryCache) {
+              this.checkAnchorInCache(filePath, anchorType, anchorValue, retryCache);
+            }
+          }, 500);
+          return;
+        }
+        this.checkAnchorInCache(filePath, anchorType, anchorValue, cache);
+      }
+      // 在文件元数据缓存中查找锚点，未找到时 toast 提示。
+      checkAnchorInCache(filePath, anchorType, anchorValue, cache) {
+        let found = false;
+        if (anchorType === "block" && cache.blocks) {
+          found = Object.prototype.hasOwnProperty.call(cache.blocks, anchorValue);
+        } else if (anchorType === "header" && cache.headings) {
+          found = cache.headings.some((h) => h.heading === anchorValue);
+        }
+        if (!found) {
+          const label = anchorType === "block" ? `文本块 "${anchorValue}"` : `标题 "${anchorValue}"`;
+          new obsidian2.Notice(`${label} 不存在，链接失败`);
+        }
+      }
+      // 按 manifest 的 name 字段精确匹配插件 id（大小写敏感），匹配不到时返回 null。
+      resolvePluginId(name) {
+        return this.findPluginIdByName(name);
+      }
+      // 在已安装第三方插件与核心插件清单中，按 manifest 的 name 字段精确查找插件 id。
+      // 名称匹配采用严格相等比较，大小写敏感；仅接受 manifest.name，插件 id 不会被匹配。
+      findPluginIdByName(name) {
+        const app = this.plugin.app;
+        const thirdPartyEntry = Object.entries(app.plugins.manifests || {}).find(
+          ([, manifest]) => manifest && manifest.name === name
+        );
+        if (thirdPartyEntry) {
+          return thirdPartyEntry[0];
+        }
+        const coreEntry = Object.entries(app.internalPlugins.plugins || {}).find(
+          ([, corePlugin]) => corePlugin && corePlugin.instance && corePlugin.instance.manifest && corePlugin.instance.manifest.name === name
+        );
+        if (coreEntry) {
+          return coreEntry[0];
+        }
+        return null;
+      }
+      // goto-plugin URI 主分发逻辑：
+      // - name + show=hotkeys → 打开快捷键设置页并过滤该插件命令
+      // - name + show=config  → 打开该插件的设置页
+      // - 其他情况            → 打开社区插件市场并定位已安装插件（无 name 时仅打开市场）
+      gotoPlugin(name, show) {
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          new obsidian2.Notice("命令&URI增强模块当前已关闭，请先在设置页中启用。");
+          return;
+        }
+        if (name && show === "hotkeys") {
+          this.showHotkeysFor(name);
+          return;
+        }
+        if (name && show === "config") {
+          if (!this.showConfigFor(name)) {
+            this.plugin.app.setting.close();
+          }
+          return;
+        }
+        if (name && !this.findPluginIdByName(name)) {
+          new obsidian2.Notice(`未找到插件 "${name}"：请确认名称拼写正确、插件已安装。`);
+          return;
+        }
+        const pluginsTab = this.showSettings("community-plugins");
+        if (!pluginsTab) {
+          new obsidian2.Notice('未找到"第三方插件"设置页：请确认已启用社区插件功能。');
+          return;
+        }
+        let remove = null;
+        const cleanupTimer = setTimeout(() => {
+          if (remove) {
+            remove();
+          }
+        }, AUTO_OPEN_CLEANUP_TIMEOUT_MS);
+        const runtime = this;
+        remove = around(obsidian2.Modal.prototype, {
+          open(old) {
+            return function open(...args) {
+              remove();
+              clearTimeout(cleanupTimer);
+              if (name) {
+                this.autoload = name;
+                if (typeof this.setAutoOpen === "function") {
+                  this.setAutoOpen(name);
+                }
+                const viewer = this;
+                const pluginId = runtime.resolvePluginId(name);
+                openPluginDetail(viewer, pluginId, name, MARKET_ITEM_TIMEOUT_MS).then((opened) => {
+                  if (!opened) {
+                    new obsidian2.Notice(`已定位到 "${name}" 的搜索结果，但未自动打开详情页。`);
+                  }
+                });
+              }
+              return old.apply(this, args);
+            };
+          }
+        });
+        const browseButtonEl = pluginsTab.containerEl && pluginsTab.containerEl.find(".mod-cta");
+        if (browseButtonEl) {
+          browseButtonEl.click();
+        } else {
+          remove();
+          clearTimeout(cleanupTimer);
+          new obsidian2.Notice('未找到"浏览"按钮，请手动打开社区插件市场。');
+        }
+      }
+      // 打开设置面板并切换到指定标签页，返回标签页实例；切换失败时返回 false。
+      showSettings(id) {
+        const app = this.plugin.app;
+        if (!settingsAreOpen(app)) {
+          app.setting.open();
+        }
+        if (id) {
+          if (app.setting.activeTab && app.setting.activeTab.id !== id) {
+            app.setting.openTabById(id);
+          }
+          return app.setting.activeTab && app.setting.activeTab.id === id ? app.setting.activeTab : false;
+        }
+        return null;
+      }
+      // 打开快捷键设置页，并把"插件id:"前缀填入搜索框以过滤该插件命令。
+      // 搜索框字段与 updateHotkeyVisibility 均为未文档化 API。
+      showHotkeysFor(name) {
+        const id = this.resolvePluginId(name);
+        if (!id) {
+          new obsidian2.Notice(`未找到插件 "${name}"：请确认名称拼写正确、插件已安装并启用。`);
+          return;
+        }
+        const tab = this.showSettings("hotkeys");
+        const inputEl = tab && (tab.searchInputEl || tab.searchComponent && tab.searchComponent.inputEl);
+        if (tab && inputEl && typeof tab.updateHotkeyVisibility === "function") {
+          inputEl.value = `${id}:`;
+          tab.updateHotkeyVisibility();
+        }
+      }
+      // 打开指定插件的设置页；插件不存在或没有设置页时给出中文提示。
+      showConfigFor(name) {
+        const id = this.resolvePluginId(name);
+        if (id && this.showSettings(id)) {
+          return true;
+        }
+        new obsidian2.Notice(`未找到插件 "${name}"：请确认名称拼写正确、插件已安装并启用。`);
+        return false;
+      }
+    };
+    module2.exports = {
+      CommandUriRuntime
+    };
+  }
+});
+
 // src/modules/command-uri-enhancer/index.js
 var require_command_uri_enhancer = __commonJS({
   "src/modules/command-uri-enhancer/index.js"(exports2, module2) {
@@ -3186,7 +3740,8 @@ var require_command_uri_enhancer = __commonJS({
     var service = require_service();
     var store = require_store4();
     var view = require_view2();
-    module2.exports = Object.assign({}, constants, service, store, view);
+    var runtime = require_command_uri_runtime();
+    module2.exports = Object.assign({}, constants, service, store, view, runtime);
   }
 });
 
@@ -3499,7 +4054,7 @@ var require_runtime = __commonJS({
 var require_store5 = __commonJS({
   "src/modules/status-bar-enhancer/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants5();
+    var constants = require_constants6();
     var snippetsConstants = require_snippets_constants();
     var StatusBarEnhancerStore = class {
       constructor(plugin) {
@@ -4332,6 +4887,7 @@ var require_view3 = __commonJS({
             var modal = new organizerView.StatusBarOrganizerModal(this.app, this.plugin, async () => {
               await this.render();
             });
+            this.plugin.trackSettingsModal(modal, "status-bar-organizer");
             modal.open();
           });
         });
@@ -4845,7 +5401,7 @@ var require_snippets_runtime = __commonJS({
 var require_status_bar_enhancer = __commonJS({
   "src/modules/status-bar-enhancer/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants5();
+    var constants = require_constants6();
     var runtime = require_runtime();
     var store = require_store5();
     var view = require_view3();
@@ -5137,7 +5693,7 @@ var require_runtime2 = __commonJS({
 var require_store6 = __commonJS({
   "src/modules/tab-bar-enhancer/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants6();
+    var constants = require_constants7();
     var TabBarEnhancerStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -5300,7 +5856,7 @@ var require_view4 = __commonJS({
 var require_tab_bar_enhancer = __commonJS({
   "src/modules/tab-bar-enhancer/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants6();
+    var constants = require_constants7();
     var runtime = require_runtime2();
     var store = require_store6();
     var view = require_view4();
@@ -5313,7 +5869,7 @@ var require_runtime3 = __commonJS({
   "src/modules/context-menu-enhancer/runtime.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var constants = require_constants4();
+    var constants = require_constants5();
     var MenuCustomizerRuntime = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -5970,7 +6526,7 @@ var require_runtime3 = __commonJS({
 var require_store7 = __commonJS({
   "src/modules/context-menu-enhancer/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants4();
+    var constants = require_constants5();
     var MenuCustomizerStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -7750,11 +8306,1164 @@ var require_view5 = __commonJS({
 var require_context_menu_enhancer = __commonJS({
   "src/modules/context-menu-enhancer/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants4();
+    var constants = require_constants5();
     var runtime = require_runtime3();
     var store = require_store7();
     var view = require_view5();
     module2.exports = Object.assign({}, constants, runtime, store, view);
+  }
+});
+
+// src/modules/editor-enhancer/store.js
+var require_store8 = __commonJS({
+  "src/modules/editor-enhancer/store.js"(exports2, module2) {
+    "use strict";
+    var {
+      DEFAULT_EDITOR_ENHANCER_SETTINGS
+    } = require_constants4();
+    var EditorEnhancerStore = class {
+      /**
+       * 构造函数。
+       * @param {object} plugin 宿主插件实例
+       */
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = this.normalizeSettings();
+      }
+      /**
+       * 从数据存储加载配置。
+       * @param {object} settings 已持久化的配置（可能不完整）
+       */
+      load(settings) {
+        this.settings = this.normalizeSettings(settings);
+      }
+      /**
+       * 将当前配置保存到数据存储。
+       */
+      async save() {
+        this.settings = this.normalizeSettings(this.settings);
+        this.plugin.dataStore.setEditorEnhancerData(this.settings);
+        await this.plugin.dataStore.saveEditorEnhancerData(this.settings);
+      }
+      /**
+       * 获取当前配置对象。
+       * @returns {object} 配置对象
+       */
+      getSettings() {
+        return this.settings;
+      }
+      /**
+       * 归一化配置，补齐缺失字段并校正非法取值。
+       * @param {object} source 原始配置
+       * @returns {object} 归一化后的配置
+       */
+      normalizeSettings(source) {
+        const base = source || {};
+        return {
+          excludedTags: typeof base.excludedTags === "string" ? base.excludedTags : DEFAULT_EDITOR_ENHANCER_SETTINGS.excludedTags,
+          cursorPosition: base.cursorPosition === "after" ? "after" : "between",
+          ignoreInCodeBlocks: base.ignoreInCodeBlocks !== false,
+          ignoreInlineCode: base.ignoreInlineCode !== false,
+          enablePasteAutoClose: base.enablePasteAutoClose === true,
+          autoCompleteEnabled: base.autoCompleteEnabled !== false
+        };
+      }
+      /**
+       * 更新排除标签列表并保存。
+       * 输入时自动转为小写，匹配时保持大小写敏感。
+       * @param {string} value 排除标签列表（逗号分隔）
+       */
+      async setExcludedTags(value) {
+        this.settings.excludedTags = String(value || "").toLowerCase();
+        await this.save();
+      }
+      /**
+       * 更新光标位置并保存。
+       * @param {string} value 'between' 或 'after'
+       */
+      async setCursorPosition(value) {
+        this.settings.cursorPosition = value === "after" ? "after" : "between";
+        await this.save();
+      }
+      /**
+       * 更新是否忽略代码块并保存。
+       * @param {boolean} enabled 是否忽略
+       */
+      async setIgnoreInCodeBlocks(enabled) {
+        this.settings.ignoreInCodeBlocks = enabled === true;
+        await this.save();
+      }
+      /**
+       * 更新是否忽略行内代码并保存。
+       * @param {boolean} enabled 是否忽略
+       */
+      async setIgnoreInlineCode(enabled) {
+        this.settings.ignoreInlineCode = enabled === true;
+        await this.save();
+      }
+      /**
+       * 更新粘贴行为的自动补全开关并保存。
+       * @param {boolean} enabled 是否在粘贴 HTML 标签后触发自动补全
+       */
+      async setEnablePasteAutoClose(enabled) {
+        this.settings.enablePasteAutoClose = enabled === true;
+        await this.save();
+      }
+      /**
+       * 更新自动补全总开关（状态栏按钮状态）并保存。
+       * 该开关仅控制自动补全提示框的启停。
+       * @param {boolean} enabled 是否启用自动补全
+       */
+      async setAutoCompleteEnabled(enabled) {
+        this.settings.autoCompleteEnabled = enabled === true;
+        await this.save();
+      }
+    };
+    module2.exports = {
+      EditorEnhancerStore
+    };
+  }
+});
+
+// src/modules/editor-enhancer/tag-utils.js
+var require_tag_utils = __commonJS({
+  "src/modules/editor-enhancer/tag-utils.js"(exports2, module2) {
+    "use strict";
+    var {
+      VOID_ELEMENTS
+    } = require_constants4();
+    var TAG_PATTERN = /<\/?([\w\d-]+)(?:\s[^<>]*?)?(\/?)>/g;
+    function isSingleTag(tag) {
+      return tag.selfClosing === true || VOID_ELEMENTS.includes(tag.name.toLowerCase());
+    }
+    function scanLineTags(line) {
+      const result = [];
+      let match;
+      TAG_PATTERN.lastIndex = 0;
+      while ((match = TAG_PATTERN.exec(line)) !== null) {
+        const full = match[0];
+        result.push({
+          full,
+          name: match[1],
+          isClosing: full.startsWith("</"),
+          selfClosing: match[2] === "/",
+          index: match.index,
+          length: full.length
+        });
+      }
+      return result;
+    }
+    function cursorTag(cursor, editor, includeStart) {
+      const line = editor.getLine(cursor.line);
+      if (!line || line.length === 0) return null;
+      const lineSplit = line[cursor.ch - 1] === "<" || includeStart && line[cursor.ch] === "<" ? cursor.ch : cursor.ch - 1;
+      if (lineSplit < 0) return null;
+      const startIndex = line.lastIndexOf("<", lineSplit);
+      if (startIndex < 0) return null;
+      const endIndex = line.indexOf(">", lineSplit);
+      if (endIndex < 0) return null;
+      const segment = line.slice(startIndex, endIndex + 1);
+      const match = TAG_PATTERN.exec(segment);
+      if (match === null) return null;
+      const tagIndex = startIndex + match.index;
+      const tagLength = match[0].length;
+      if (tagIndex + tagLength <= lineSplit) return null;
+      return {
+        full: match[0],
+        name: match[1],
+        isClosing: match[0].startsWith("</"),
+        selfClosing: match[2] === "/",
+        index: tagIndex,
+        length: tagLength,
+        line: cursor.line,
+        lineSplit
+      };
+    }
+    function isCursorInsideTag(cursor, tag) {
+      return cursor.ch > tag.index && cursor.ch < tag.index + tag.length;
+    }
+    function tagNameEndPosition(tag) {
+      return tag.index + (tag.isClosing ? 2 : 1) + tag.name.length;
+    }
+    function isFenceStart(editor, lineNumber) {
+      const line = editor.getLine(lineNumber).trim();
+      return line.startsWith("```") || line.startsWith("~~~");
+    }
+    function isInFencedCodeBlock(editor, lineNumber) {
+      let count = 0;
+      for (let i = 0; i < lineNumber; i++) {
+        if (isFenceStart(editor, i)) count++;
+      }
+      return count % 2 === 1;
+    }
+    function isInInlineCode(line, ch) {
+      const start = line.lastIndexOf("`", ch - 1);
+      if (start < 0) return false;
+      const next = line.indexOf("`", start + 1);
+      return next > ch || next < 0;
+    }
+    function isTagExcluded(excludedTags, name) {
+      const list = String(excludedTags || "").split(",").map(function(item) {
+        return item.trim();
+      }).filter(Boolean);
+      return list.includes(name);
+    }
+    function getTagConstraintError(editor, cursor, tag, settings, messages) {
+      if (isTagExcluded(settings.excludedTags, tag.name)) {
+        return messages.tagExcluded;
+      }
+      if (settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, cursor.line)) {
+        return messages.tagInCodeContext;
+      }
+      if (settings.ignoreInlineCode && isInInlineCode(editor.getLine(cursor.line), cursor.ch)) {
+        return messages.tagInCodeContext;
+      }
+      return null;
+    }
+    function findMatchingTag(editor, cursorTagInfo, options) {
+      const name = cursorTagInfo.name.toLowerCase();
+      const settings = options || {};
+      let depth = 1;
+      if (cursorTagInfo.isClosing) {
+        for (let line = cursorTagInfo.line; line >= 0; line--) {
+          const lineText = editor.getLine(line);
+          const tags = scanLineTags(lineText).reverse();
+          const inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+          for (const tag of tags) {
+            if (line === cursorTagInfo.line && tag.index >= cursorTagInfo.index) continue;
+            if (inCodeBlock) continue;
+            if (settings.ignoreInlineCode && isInInlineCode(lineText, tag.index)) continue;
+            if (isSingleTag(tag)) continue;
+            if (settings.excludedTags && isTagExcluded(settings.excludedTags, tag.name)) continue;
+            if (tag.name.toLowerCase() !== name) continue;
+            if (!tag.isClosing) {
+              depth--;
+              if (depth === 0) return tag;
+            } else {
+              depth++;
+            }
+          }
+        }
+      } else {
+        for (let line = cursorTagInfo.line; line < editor.lineCount(); line++) {
+          const lineText = editor.getLine(line);
+          const tags = scanLineTags(lineText);
+          const inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+          for (const tag of tags) {
+            if (line === cursorTagInfo.line && tag.index <= cursorTagInfo.index) continue;
+            if (inCodeBlock) continue;
+            if (settings.ignoreInlineCode && isInInlineCode(lineText, tag.index)) continue;
+            if (isSingleTag(tag)) continue;
+            if (settings.excludedTags && isTagExcluded(settings.excludedTags, tag.name)) continue;
+            if (tag.name.toLowerCase() !== name) continue;
+            if (tag.isClosing) {
+              depth--;
+              if (depth === 0) return tag;
+            } else {
+              depth++;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    function shouldAutoClose(editor, tag, options) {
+      var settings = options || {};
+      var name = tag.name.toLowerCase();
+      var initialDepth = 0;
+      for (var line = 0; line <= tag.line; line++) {
+        var lineText = editor.getLine(line);
+        var tags = scanLineTags(lineText);
+        if (line === tag.line) {
+          tags = tags.filter(function(t3) {
+            return t3.index + t3.length <= tag.index;
+          });
+        }
+        var inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+        for (var i = 0; i < tags.length; i++) {
+          var t = tags[i];
+          if (inCodeBlock) continue;
+          if (settings.ignoreInlineCode && isInInlineCode(lineText, t.index)) continue;
+          if (isSingleTag(t)) continue;
+          if (settings.excludedTags && isTagExcluded(settings.excludedTags, t.name)) continue;
+          if (t.name.toLowerCase() !== name) continue;
+          if (t.isClosing) {
+            initialDepth--;
+          } else {
+            initialDepth++;
+          }
+        }
+      }
+      var depth = initialDepth + 1;
+      for (var line2 = tag.line; line2 < editor.lineCount(); line2++) {
+        var lineText2 = editor.getLine(line2);
+        var tags2 = scanLineTags(lineText2);
+        if (line2 === tag.line) {
+          tags2 = tags2.filter(function(t3) {
+            return t3.index > tag.index;
+          });
+        }
+        var inCodeBlock2 = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line2);
+        for (var j = 0; j < tags2.length; j++) {
+          var t2 = tags2[j];
+          if (inCodeBlock2) continue;
+          if (settings.ignoreInlineCode && isInInlineCode(lineText2, t2.index)) continue;
+          if (isSingleTag(t2)) continue;
+          if (settings.excludedTags && isTagExcluded(settings.excludedTags, t2.name)) continue;
+          if (t2.name.toLowerCase() !== name) continue;
+          if (t2.isClosing) {
+            depth--;
+          } else {
+            depth++;
+          }
+          if (initialDepth === 0 && depth <= 0) return false;
+          if (initialDepth > 0 && depth < initialDepth) return false;
+        }
+      }
+      return true;
+    }
+    module2.exports = {
+      scanLineTags,
+      cursorTag,
+      isCursorInsideTag,
+      tagNameEndPosition,
+      isFenceStart,
+      isInFencedCodeBlock,
+      isInInlineCode,
+      isSingleTag,
+      isTagExcluded,
+      getTagConstraintError,
+      findMatchingTag,
+      shouldAutoClose
+    };
+  }
+});
+
+// src/modules/editor-enhancer/overlay.js
+var require_overlay = __commonJS({
+  "src/modules/editor-enhancer/overlay.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var {
+      cursorTag,
+      isSingleTag,
+      isTagExcluded,
+      isInFencedCodeBlock,
+      isInInlineCode,
+      shouldAutoClose
+    } = require_tag_utils();
+    var AutoCloseOverlay = class {
+      /**
+       * 构造函数。
+       * @param {object} plugin 宿主插件实例
+       * @param {object} store EditorEnhancerStore 实例
+       */
+      constructor(plugin, store) {
+        this.plugin = plugin;
+        this.store = store;
+        this.enabled = false;
+        this.suppressUntilTyping = false;
+        this.suppressCursor = null;
+        this.allowPasteAutoClose = false;
+        this.pasteSuppressPos = null;
+        this.visible = false;
+        this.lastQuery = null;
+        this.pendingTag = null;
+        this.activeEditor = null;
+        this.editorChangeHandler = null;
+        this.keydownHandler = null;
+        this.pointerUpHandler = null;
+        this.pendingRecheck = false;
+        this.recheckTimer = null;
+        this.overlayEl = null;
+        this.overlayItemEl = null;
+      }
+      /**
+       * 日志辅助方法（调试用，前缀统一便于筛选）。
+       * @param {Array} args 日志内容
+       */
+      log(...args) {
+        console.log("[自动补全]", ...args);
+      }
+      /**
+       * 启用自动补全浮层（状态栏开关打开时调用）。
+       * 注册 editor-change / keydown / pointerup 监听。
+       */
+      enable() {
+        this.enabled = true;
+        this.suppressUntilTyping = false;
+        this.log("启用自动补全浮层");
+        if (!this.editorChangeHandler) {
+          this.editorChangeHandler = (editor) => this.onEditorEvent(editor);
+          this.plugin.app.workspace.on("editor-change", this.editorChangeHandler);
+        }
+        if (!this.keydownHandler) {
+          this.keydownHandler = this.onDocumentKeyDown.bind(this);
+          window.addEventListener("keydown", this.keydownHandler, true);
+        }
+        if (!this.pointerUpHandler) {
+          this.pointerUpHandler = (evt) => this.onPointerUp(evt);
+          document.addEventListener("pointerup", this.pointerUpHandler, true);
+        }
+      }
+      /**
+       * 停用自动补全浮层（状态栏开关关闭时调用）。
+       * 移除监听并隐藏浮层（保留 DOM，便于快速重新启用）。
+       */
+      disable() {
+        this.enabled = false;
+        this.log("停用自动补全浮层");
+        if (this.editorChangeHandler) {
+          this.plugin.app.workspace.off("editor-change", this.editorChangeHandler);
+          this.editorChangeHandler = null;
+        }
+        if (this.keydownHandler) {
+          window.removeEventListener("keydown", this.keydownHandler, true);
+          this.keydownHandler = null;
+        }
+        if (this.pointerUpHandler) {
+          document.removeEventListener("pointerup", this.pointerUpHandler, true);
+          this.pointerUpHandler = null;
+        }
+        this.cancelRecheck();
+        this.hide("停用");
+      }
+      /**
+       * 完全清理浮层（模块禁用/插件卸载时调用）：停用监听并移除 DOM。
+       */
+      destroy() {
+        this.disable();
+        if (this.overlayEl && this.overlayEl.parentNode) {
+          this.overlayEl.parentNode.removeChild(this.overlayEl);
+        }
+        this.overlayEl = null;
+        this.overlayItemEl = null;
+      }
+      /**
+       * 设置粘贴后一次性触发标记（开启"粘贴行为的自动补全"时由 runtime 调用）。
+       */
+      setPasteAutoCloseFlag() {
+        this.allowPasteAutoClose = true;
+        this.log('粘贴事件：设置"粘贴自动补全"放行标记');
+      }
+      /**
+       * 设置粘贴抑制位置（关闭"粘贴行为的自动补全"时由 runtime 调用）。
+       * @param {object|null} pos 光标位置 { line, ch }
+       */
+      setPasteSuppressPos(pos) {
+        this.pasteSuppressPos = pos;
+        this.log("粘贴事件：设置粘贴抑制位置", JSON.stringify(pos));
+      }
+      /**
+       * 获取最近一次检测时保存的活动编辑器（供 runtime 计算粘贴落点）。
+       * @returns {object|null} CodeMirror 编辑器实例
+       */
+      getActiveEditor() {
+        return this.activeEditor;
+      }
+      /**
+       * 获取当前活动 Markdown 编辑器的编辑器实例。
+       * @returns {object|null} CodeMirror 编辑器实例
+       */
+      getActiveEditorFromWorkspace() {
+        try {
+          const view = this.plugin.app.workspace.getActiveViewOfType(obsidian2.MarkdownView);
+          return view ? view.editor : null;
+        } catch (error) {
+          return null;
+        }
+      }
+      /**
+       * editor-change 回调：每次编辑器内容/光标变化时触发检测。
+       * 整体 try/catch 保护：不将异常冒泡到 Obsidian 事件分发链，
+       * 避免影响其他同样监听 editor-change 事件的模块。
+       * @param {object} editor CodeMirror 编辑器实例
+       */
+      onEditorEvent(editor) {
+        try {
+          this.onEditorEventInternal(editor);
+        } catch (error) {
+          this.log("editor-change 处理异常（已隔离，不影响其他模块）", error);
+        }
+      }
+      // editor-change 实际处理逻辑（供 onEditorEvent 的异常隔离外壳调用）。
+      onEditorEventInternal(editor) {
+        if (!this.enabled || !editor) return;
+        const active = this.getActiveEditorFromWorkspace();
+        if (active !== editor) return;
+        this.cancelRecheck();
+        this.activeEditor = editor;
+        const cursor = editor.getCursor();
+        const closingTag = this.evaluate(editor, cursor);
+        if (closingTag) {
+          this.show(editor, cursor);
+        } else {
+          this.hide();
+        }
+      }
+      /**
+       * 取消挂起的兜底重检定时器并清除标记。
+       */
+      cancelRecheck() {
+        if (this.recheckTimer) {
+          clearTimeout(this.recheckTimer);
+          this.recheckTimer = null;
+        }
+        this.pendingRecheck = false;
+      }
+      /**
+       * 调度方向键兜底重检：方向键移动光标后若 editor-change 未广播，
+       * 则由本定时器在宏任务阶段主动检测一次，确保光标移回 `>` 右邻时可重新触发。
+       * editor-change 同步先于定时器执行时会消费标记，此处自动跳过。
+       */
+      scheduleRecheck() {
+        this.pendingRecheck = true;
+        if (this.recheckTimer) {
+          clearTimeout(this.recheckTimer);
+        }
+        this.recheckTimer = setTimeout(() => {
+          this.recheckTimer = null;
+          if (!this.enabled || !this.pendingRecheck) return;
+          this.pendingRecheck = false;
+          const editor = this.getActiveEditorFromWorkspace();
+          if (!editor) return;
+          this.log("方向键兜底重检（editor-change 未广播，主动检测光标位置）");
+          this.onEditorEventInternal(editor);
+        }, 0);
+      }
+      /**
+       * pointerup 兜底：
+       *  - 点击目标位于编辑器 DOM 内时重新检测（鼠标移动光标后触发）。
+       *  - 点击目标位于编辑器外部时隐藏浮层，避免浮层残留及后续键盘误拦截。
+       * 仅读取与隐藏，不拦截事件，不影响其他模块的鼠标处理。
+       * @param {PointerEvent} evt 指针事件
+       */
+      onPointerUp(evt) {
+        if (!this.enabled) return;
+        const editor = this.getActiveEditorFromWorkspace();
+        if (!editor || !editor.cm || !editor.cm.dom) {
+          this.hide("点击在编辑器外部（无法定位编辑器）");
+          return;
+        }
+        if (editor.cm.dom.contains(evt.target)) {
+          this.log("鼠标点击：光标可能已移动，重新检测");
+          this.onEditorEvent(editor);
+          return;
+        }
+        this.hide("点击在编辑器外部");
+        this.suppressUntilTyping = false;
+        this.suppressCursor = null;
+        this.pasteSuppressPos = null;
+      }
+      /**
+       * 触发检测：判断是否应当显示补全浮层。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {object} cursor 编辑器光标
+       * @returns {string|null} 补全文本，不触发时返回 null
+       */
+      evaluate(editor, cursor) {
+        const settings = this.store.getSettings();
+        const pos = cursor ? cursor.line + ":" + cursor.ch : "null";
+        const fail = (reason) => {
+          this.log("检测 光标=" + pos, "→ 不触发 |", reason);
+          return null;
+        };
+        if (!cursor || cursor.ch === 0) return fail("光标在行首或无光标");
+        const line = editor.getLine(cursor.line);
+        if (line[cursor.ch - 1] !== ">") {
+          return fail('光标前一字符是"' + (line[cursor.ch - 1] || "") + '"而非">"');
+        }
+        const pasteFlag = this.allowPasteAutoClose;
+        this.allowPasteAutoClose = false;
+        if (this.pasteSuppressPos) {
+          const same = cursor.line === this.pasteSuppressPos.line && cursor.ch === this.pasteSuppressPos.ch;
+          this.log(
+            "检测 光标=" + pos,
+            "粘贴抑制位置=" + JSON.stringify(this.pasteSuppressPos),
+            "同位置=" + same,
+            "放行标记=" + pasteFlag
+          );
+          if (same) {
+            if (!pasteFlag) return fail("粘贴抑制生效（光标仍在粘贴落点）");
+            this.pasteSuppressPos = null;
+          } else {
+            this.pasteSuppressPos = null;
+            this.log("检测 光标=" + pos, "→ 解除粘贴抑制（光标已移离粘贴落点）");
+          }
+        }
+        if (this.suppressUntilTyping) {
+          const same = this.suppressCursor && cursor.line === this.suppressCursor.line && cursor.ch === this.suppressCursor.ch;
+          this.log(
+            "检测 光标=" + pos,
+            "补全后抑制中 抑制位置=" + JSON.stringify(this.suppressCursor),
+            "同位置=" + same,
+            "放行标记=" + pasteFlag
+          );
+          if (this.suppressCursor && !same) {
+            this.suppressUntilTyping = false;
+            this.suppressCursor = null;
+            this.log("检测 光标=" + pos, "→ 解除补全后抑制（光标已移离补全落点）");
+          } else if (!pasteFlag) {
+            return fail("补全后抑制中（光标未移离补全落点）");
+          }
+        }
+        const tag = cursorTag(cursor, editor, false);
+        if (!tag) return fail("无法解析光标所在标签");
+        if (tag.isClosing) return fail("光标在闭标签 </" + tag.name + "> 内");
+        if (isSingleTag(tag)) return fail("单标签 <" + tag.name + "> 不触发");
+        if (isTagExcluded(settings.excludedTags, tag.name)) return fail("标签 <" + tag.name + "> 在排除列表中");
+        if (settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, cursor.line)) return fail("位于代码块内");
+        if (settings.ignoreInlineCode && isInInlineCode(line, cursor.ch)) return fail("位于行内代码内");
+        if (!shouldAutoClose(editor, tag, {
+          ignoreInCodeBlocks: settings.ignoreInCodeBlocks,
+          ignoreInlineCode: settings.ignoreInlineCode,
+          excludedTags: settings.excludedTags
+        })) return fail("已存在配对闭标签，不重复补全");
+        const closingTag = "</" + tag.name + ">";
+        this.lastQuery = closingTag;
+        this.pendingTag = tag;
+        this.log("检测 光标=" + pos, "标签=<" + tag.name + "> → 触发补全 | 建议:", closingTag);
+        return closingTag;
+      }
+      /**
+       * 确保浮层 DOM 已创建并挂载。
+       */
+      ensureEl() {
+        if (this.overlayEl) return;
+        this.overlayEl = document.createElement("div");
+        this.overlayEl.className = "nene-autoclose-suggest";
+        this.overlayItemEl = document.createElement("div");
+        this.overlayItemEl.className = "nene-autoclose-suggest-item";
+        this.overlayEl.appendChild(this.overlayItemEl);
+        document.body.appendChild(this.overlayEl);
+      }
+      /**
+       * 显示补全浮层并定位到光标附近。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {object} cursor 编辑器光标
+       */
+      show(editor, cursor) {
+        if (!this.visible) {
+          this.ensureEl();
+          this.overlayItemEl.setText(this.lastQuery || "");
+          this.visible = true;
+          this.log("提示框显示 | 建议:", this.lastQuery || "(未知)");
+        }
+        this.updatePosition(editor, cursor);
+        this.overlayEl.style.display = "flex";
+      }
+      /**
+       * 隐藏补全浮层。
+       * @param {string} reason 关闭原因（日志用）
+       */
+      hide(reason) {
+        if (!this.visible && !reason) return;
+        if (this.visible) {
+          this.log("提示框隐藏 | 原因:", reason || "自动隐藏");
+        }
+        this.visible = false;
+        this.pendingTag = null;
+        if (this.overlayEl) {
+          this.overlayEl.style.display = "none";
+        }
+      }
+      /**
+       * 依据光标像素坐标更新浮层位置（fixed 定位，坐标取自 CodeMirror coordsAtPos）。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {object} cursor 编辑器光标
+       */
+      updatePosition(editor, cursor) {
+        const cm = editor.cm;
+        if (!cm || typeof cm.coordsAtPos !== "function") return;
+        let offset = null;
+        if (typeof editor.posToOffset === "function") {
+          offset = editor.posToOffset(cursor);
+        }
+        if (offset === null || offset === void 0) return;
+        const coords = cm.coordsAtPos(offset);
+        if (!coords) return;
+        this.overlayEl.style.left = coords.left + "px";
+        this.overlayEl.style.top = coords.bottom + 6 + "px";
+      }
+      /**
+       * 采用补全：在开始标签之后插入闭合标签，并按光标位置设置落点。
+       */
+      apply() {
+        if (!this.lastQuery || !this.pendingTag) {
+          this.log("补全被拒绝 | 原因: 缺少补全文本或待补全标签");
+          return;
+        }
+        const editor = this.activeEditor;
+        if (!editor || !editor.cm || typeof editor.replaceRange !== "function") {
+          this.log("补全被拒绝 | 原因: 无法定位编辑器或编辑器已失效");
+          return;
+        }
+        const settings = this.store.getSettings();
+        const insertPos = {
+          line: this.pendingTag.line,
+          ch: this.pendingTag.index + this.pendingTag.length
+        };
+        editor.replaceRange(this.lastQuery, insertPos, insertPos);
+        if (settings.cursorPosition === "after") {
+          editor.setCursor({ line: insertPos.line, ch: insertPos.ch + this.lastQuery.length });
+        } else {
+          editor.setCursor(insertPos);
+        }
+        this.suppressUntilTyping = true;
+        this.suppressCursor = { line: insertPos.line, ch: insertPos.ch };
+        if (settings.cursorPosition === "after") {
+          this.suppressCursor = { line: insertPos.line, ch: insertPos.ch + this.lastQuery.length };
+        }
+        this.log(
+          "补全被采用 | 建议:",
+          this.lastQuery,
+          "插入点=" + insertPos.line + ":" + insertPos.ch,
+          "光标落点=" + this.suppressCursor.line + ":" + this.suppressCursor.ch,
+          "→ 进入补全后抑制"
+        );
+        this.hide("补全采用");
+        this.lastQuery = null;
+      }
+      /**
+       * window 捕获阶段 keydown 处理器：
+       *  - 方向键：浮层完全不拦截，仅隐藏浮层并解除抑制，事件放行让光标正常移动；
+       *    移回 `>` 右邻时由 editor-change 触发重新检测。
+       *  - 可打印字符：解除补全后抑制。
+       *  - Tab 键：仅当焦点仍在活动编辑器内且浮层显示时采用补全；焦点移出编辑器
+       *    （搜索框、设置页等）则完全放行，避免干涉其他输入框的 Tab 行为。
+       *  - Esc 键：仅当焦点仍在活动编辑器内时关闭浮层。
+       * 整体 try/catch 保护：不将异常冒泡到 window 捕获阶段的监听链。
+       * @param {KeyboardEvent} evt 键盘事件
+       */
+      onDocumentKeyDown(evt) {
+        try {
+          this.onDocumentKeyDownInternal(evt);
+        } catch (error) {
+          this.log("keydown 处理异常（已隔离，不影响其他模块）", error);
+        }
+      }
+      // window 捕获阶段 keydown 实际处理逻辑（供异常隔离外壳调用）。
+      onDocumentKeyDownInternal(evt) {
+        if (evt.key.startsWith("Arrow")) {
+          this.log("按键", evt.key, "| 方向键移动（visible=" + this.visible + " 补全后抑制=" + this.suppressUntilTyping + " 粘贴抑制=" + !!this.pasteSuppressPos + "）");
+          if (this.visible) {
+            this.hide("方向键移动");
+          }
+          this.suppressUntilTyping = false;
+          this.suppressCursor = null;
+          this.pasteSuppressPos = null;
+          this.scheduleRecheck();
+          return;
+        }
+        if (evt.key.length === 1 && !evt.ctrlKey && !evt.metaKey && !evt.altKey) {
+          if (this.suppressUntilTyping) {
+            this.log("按键", JSON.stringify(evt.key), "| 键入字符，解除补全后抑制");
+          }
+          this.suppressUntilTyping = false;
+          this.suppressCursor = null;
+        }
+        const editor = this.getActiveEditorFromWorkspace();
+        const focusInEditor = !!(editor && editor.cm && editor.cm.dom && evt.target instanceof Node && editor.cm.dom.contains(evt.target));
+        if (evt.key === "Tab" && this.visible && this.lastQuery && focusInEditor) {
+          this.log("按键 Tab | 采用补全:", this.lastQuery);
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          this.apply();
+          return;
+        }
+        if (evt.key === "Escape" && this.visible && focusInEditor) {
+          this.log("按键 Esc | 关闭浮层");
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          this.hide("Esc");
+        }
+      }
+    };
+    module2.exports = {
+      AutoCloseOverlay
+    };
+  }
+});
+
+// src/modules/editor-enhancer/runtime.js
+var require_runtime4 = __commonJS({
+  "src/modules/editor-enhancer/runtime.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var {
+      COMMAND_DEFINITIONS,
+      STATUS_BAR_ICONS,
+      NOTICE_MESSAGES
+    } = require_constants4();
+    var {
+      cursorTag,
+      isCursorInsideTag,
+      isSingleTag,
+      tagNameEndPosition,
+      getTagConstraintError,
+      findMatchingTag
+    } = require_tag_utils();
+    var EditorEnhancerRuntime = class {
+      /**
+       * 构造函数。
+       * @param {object} plugin 宿主插件实例
+       * @param {object} store EditorEnhancerStore 实例
+       * @param {object} overlay AutoCloseOverlay 实例（自建补全浮层）
+       */
+      constructor(plugin, store, overlay) {
+        this.plugin = plugin;
+        this.store = store;
+        this.overlay = overlay;
+        this.settings = this.store.getSettings();
+        this.statusBarItem = null;
+        this.pasteHandler = null;
+      }
+      /**
+       * 载入最新配置。
+       * @param {object} settings 模块配置
+       */
+      load(settings) {
+        this.settings = settings;
+      }
+      /**
+       * 启动运行时：创建状态栏按钮并注册粘贴监听。
+       */
+      start() {
+        this.ensureStatusBarItem();
+        this.registerPasteListener();
+      }
+      /**
+       * 停止运行时：移除状态栏按钮与粘贴监听。
+       */
+      stop() {
+        if (this.statusBarItem) {
+          this.statusBarItem.remove();
+          this.statusBarItem = null;
+        }
+        if (this.pasteHandler) {
+          document.removeEventListener("paste", this.pasteHandler, true);
+          this.pasteHandler = null;
+        }
+      }
+      /**
+       * 注册全部编辑增强命令（无条件注册，模块开关与状态栏按钮不干预注册）。
+       */
+      registerCommands() {
+        COMMAND_DEFINITIONS.forEach((def) => {
+          const command = {
+            id: def.id,
+            name: def.name,
+            editorCallback: (editor) => this.handleCommand(def.id, editor)
+          };
+          if (def.hotkeys && def.hotkeys.length) {
+            command.hotkeys = def.hotkeys;
+          }
+          this.plugin.addCommand(command);
+        });
+      }
+      /**
+       * 命令分发。
+       * @param {string} commandId 命令 ID
+       * @param {object} editor CodeMirror 编辑器实例
+       */
+      handleCommand(commandId, editor) {
+        if (!this.plugin.isEditorEnhancerEnabled()) {
+          new obsidian2.Notice("编辑增强模块未启用，命令不可用");
+          return;
+        }
+        if (commandId === "editor-enhancer-skip-tag-backward" || commandId === "editor-enhancer-skip-tag-forward") {
+          this.handleSkipTag(editor);
+        } else if (commandId === "editor-enhancer-go-to-matching-tag") {
+          this.handleGoToMatchingTag(editor);
+        } else if (commandId === "editor-enhancer-sync-matching-tag") {
+          this.handleSyncMatchingTag(editor);
+        }
+      }
+      /**
+       * 获取光标所在标签，并校验光标是否位于 '<' 与 '>' 内部。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {string} commandName 命令名（用于 toast 提示）
+       * @returns {object|null} 标签对象，校验失败时返回 null
+       */
+      getCommandTargetTag(editor, commandName) {
+        const cursor = editor.getCursor();
+        const tag = cursorTag(cursor, editor, false);
+        if (!tag || !isCursorInsideTag(cursor, tag)) {
+          new obsidian2.Notice(NOTICE_MESSAGES.commandNotInTag.replace("%s", commandName));
+          return null;
+        }
+        return tag;
+      }
+      /**
+       * 校验标签是否满足设置约束（排除列表、代码块、行内代码）。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {object} tag 标签对象
+       * @returns {boolean} 是否通过约束校验
+       */
+      checkTagConstraints(editor, tag) {
+        const cursor = editor.getCursor();
+        const error = getTagConstraintError(editor, cursor, tag, this.settings, NOTICE_MESSAGES);
+        if (error) {
+          new obsidian2.Notice(error);
+          return false;
+        }
+        return true;
+      }
+      /**
+       * 向左/向右跳过标签：光标落点位于标签名的末尾（'<' 或 '</' 之后标签名最后一个字符之后）。
+       * 两个方向在当前光标标签上的落点一致，均收敛到标签名末尾。
+       * @param {object} editor CodeMirror 编辑器实例
+       */
+      handleSkipTag(editor) {
+        const tag = this.getCommandTargetTag(editor, "向左跳过标签");
+        if (!tag) return;
+        if (!this.checkTagConstraints(editor, tag)) return;
+        const target = { line: tag.line, ch: tagNameEndPosition(tag) };
+        editor.setCursor(target);
+      }
+      /**
+       * 跳转至匹配标签：支持来回跳转，光标落点位于配对标签的标签名末尾。
+       * 单标签无效，并给出中文 toast 警告。
+       * @param {object} editor CodeMirror 编辑器实例
+       */
+      handleGoToMatchingTag(editor) {
+        const tag = this.getCommandTargetTag(editor, "跳转至匹配标签");
+        if (!tag) return;
+        if (isSingleTag(tag)) {
+          new obsidian2.Notice(NOTICE_MESSAGES.goToMatchingTagOnVoid);
+          return;
+        }
+        if (!this.checkTagConstraints(editor, tag)) return;
+        const pair = findMatchingTag(editor, tag, {
+          ignoreInCodeBlocks: this.settings.ignoreInCodeBlocks,
+          ignoreInlineCode: this.settings.ignoreInlineCode,
+          excludedTags: this.settings.excludedTags
+        });
+        if (!pair) {
+          new obsidian2.Notice(NOTICE_MESSAGES.noMatchingTag);
+          return;
+        }
+        const target = { line: pair.line, ch: tagNameEndPosition(pair) };
+        editor.setCursor(target);
+      }
+      /**
+       * 同步修改配对标签：读取光标处标签的当前名称，仅替换配对标签的标签名区域，
+       * 更新前后光标位置保持不变；支持修改结束标签同步开始标签，或反之。
+       * @param {object} editor CodeMirror 编辑器实例
+       */
+      handleSyncMatchingTag(editor) {
+        const tag = this.getCommandTargetTag(editor, "同步修改配对标签");
+        if (!tag) return;
+        if (isSingleTag(tag)) {
+          new obsidian2.Notice(NOTICE_MESSAGES.syncMatchingTagOnVoid);
+          return;
+        }
+        if (!this.checkTagConstraints(editor, tag)) return;
+        const pair = findMatchingTag(editor, tag, {
+          ignoreInCodeBlocks: this.settings.ignoreInCodeBlocks,
+          ignoreInlineCode: this.settings.ignoreInlineCode,
+          excludedTags: this.settings.excludedTags
+        });
+        if (!pair) {
+          new obsidian2.Notice(NOTICE_MESSAGES.noMatchingTag);
+          return;
+        }
+        if (pair.name === tag.name) {
+          new obsidian2.Notice(NOTICE_MESSAGES.tagNamesAlreadySame);
+          return;
+        }
+        const cursor = editor.getCursor();
+        const nameStart = pair.index + (pair.isClosing ? 2 : 1);
+        editor.replaceRange(
+          tag.name,
+          { line: pair.line, ch: nameStart },
+          { line: pair.line, ch: nameStart + pair.name.length }
+        );
+        editor.setCursor(cursor);
+      }
+      /**
+       * 创建状态栏开关按钮（仅创建一次）。
+       * 图标以填充（启用）/描边（关闭）区分状态，参考 Obsidian 书签插件。
+       */
+      ensureStatusBarItem() {
+        if (this.statusBarItem) return;
+        this.statusBarItem = this.plugin.addStatusBarItem();
+        this.statusBarItem.addClass("mod-clickable");
+        this.statusBarItem.addClass("nene-editor-enhancer-toggle");
+        this.statusBarItem.onClickEvent(() => this.toggleAutoComplete());
+        this.refreshStatusBarIcon();
+      }
+      /**
+       * 刷新状态栏按钮图标与提示文案。
+       * 按钮仅控制自动补全提示框的启停，不影响命令与设置面板。
+       */
+      refreshStatusBarIcon() {
+        if (!this.statusBarItem) return;
+        const enabled = this.store.getSettings().autoCompleteEnabled;
+        this.statusBarItem.toggleClass("is-active", enabled);
+        this.statusBarItem.setAttribute("aria-label", enabled ? "自动补全：已开启（点击关闭）" : "自动补全：已关闭（点击开启）");
+        this.statusBarItem.setAttribute("data-tooltip-position", "top");
+        this.statusBarItem.empty();
+        const iconEl = this.statusBarItem.createSpan({ cls: "status-bar-item-icon" });
+        obsidian2.setIcon(iconEl, enabled ? STATUS_BAR_ICONS.enabled : STATUS_BAR_ICONS.disabled);
+      }
+      /**
+       * 切换自动补全启停（仅影响提示框）。
+       */
+      async toggleAutoComplete() {
+        const next = !this.store.getSettings().autoCompleteEnabled;
+        await this.plugin.updateEditorEnhancerAutoCompleteEnabled(next);
+      }
+      /**
+       * 注册粘贴监听：
+       *  - 开启"粘贴行为的自动补全"时，粘贴后通知浮层一次性触发补全。
+       *  - 关闭时，记录粘贴后光标落点为"粘贴抑制位置"：粘贴的 HTML 标签后光标
+       *    停留在 `>` 右邻时不触发补全；光标一旦移离该位置即解除抑制，移回后可再次触发。
+       * 使用捕获阶段监听，避免编辑器的粘贴处理（如 CodeMirror 6）提前消费事件。
+       */
+      registerPasteListener() {
+        if (this.pasteHandler) return;
+        this.pasteHandler = (evt) => {
+          try {
+            this.handlePaste(evt);
+          } catch (error) {
+            console.log("[自动补全] 粘贴事件处理异常（已隔离）", error);
+          }
+        };
+        document.addEventListener("paste", this.pasteHandler, true);
+      }
+      // 粘贴事件实际处理逻辑（供 pasteHandler 的异常隔离外壳调用）。
+      handlePaste(evt) {
+        const settings = this.store.getSettings();
+        if (!this.plugin.isEditorEnhancerEnabled()) return;
+        if (settings.enablePasteAutoClose) {
+          this.overlay.setPasteAutoCloseFlag();
+          return;
+        }
+        const editor = this.overlay.getActiveEditor() || this.overlay.getActiveEditorFromWorkspace();
+        if (!editor) return;
+        const cursor = editor.getCursor("from");
+        let text = "";
+        if (evt.clipboardData && typeof evt.clipboardData.getData === "function") {
+          text = evt.clipboardData.getData("text");
+        }
+        if (!text) return;
+        const parts = text.split("\n");
+        const endPos = {
+          line: cursor.line + parts.length - 1,
+          ch: parts.length === 1 ? cursor.ch + parts[parts.length - 1].length : parts[parts.length - 1].length
+        };
+        console.log(
+          "[自动补全] 粘贴事件：enablePasteAutoClose=false",
+          "选区起点=" + cursor.line + ":" + cursor.ch,
+          "粘贴文本长度=" + text.length,
+          "粘贴落点=" + endPos.line + ":" + endPos.ch
+        );
+        this.overlay.setPasteSuppressPos(endPos);
+      }
+    };
+    module2.exports = {
+      EditorEnhancerRuntime
+    };
+  }
+});
+
+// src/modules/editor-enhancer/view.js
+var require_view6 = __commonJS({
+  "src/modules/editor-enhancer/view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    function renderModalHeader(containerEl, title, description) {
+      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    var EditorEnhancerManagementModal = class extends obsidian2.Modal {
+      constructor(app, plugin, onSettingsChanged) {
+        super(app);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      // 打开弹窗时渲染全部设置项。
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      // 根据当前最新配置渲染模块管理界面。
+      async render() {
+        const { contentEl } = this;
+        const settings = this.plugin.editorEnhancerStore.getSettings();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "编辑增强模块",
+          "自动补全 HTML 标签，并提供向左/向右跳过标签、跳转至匹配标签与同步修改配对标签等命令。以下设置项与 Auto Close Tags 插件保持一致。"
+        );
+        new obsidian2.Setting(contentEl).setName("排除标签").setDesc("排除标签列表（英文逗号分隔），输入时自动转为小写，匹配时大小写敏感。").addText((text) => {
+          text.setPlaceholder("eg: div, span, i").setValue(settings.excludedTags).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerExcludedTags(value);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("光标位置").setDesc("自动补全结束标签后，光标停留的位置。").addDropdown((dropdown) => {
+          dropdown.addOption("between", "标签中间").addOption("after", "结束标签之后").setValue(settings.cursorPosition).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerCursorPosition(value);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("忽略代码块").setDesc("不对代码块（``````）内部的标签进行自动补全。").addToggle((toggle) => {
+          toggle.setValue(settings.ignoreInCodeBlocks).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerIgnoreInCodeBlocks(value);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("忽略行内代码").setDesc("不对行内代码（``）内部的标签进行自动补全。").addToggle((toggle) => {
+          toggle.setValue(settings.ignoreInlineCode).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerIgnoreInlineCode(value);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("粘贴行为的自动补全").setDesc("开启后，粘贴 HTML 标签后将自动弹出结束标签补全提示。").addToggle((toggle) => {
+          toggle.setValue(settings.enablePasteAutoClose).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerEnablePasteAutoClose(value);
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+      }
+      // 关闭弹窗时清理内容，避免重复挂载旧节点。
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    module2.exports = {
+      EditorEnhancerManagementModal
+    };
+  }
+});
+
+// src/modules/editor-enhancer/index.js
+var require_editor_enhancer = __commonJS({
+  "src/modules/editor-enhancer/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants4();
+    var store = require_store8();
+    var tagUtils = require_tag_utils();
+    var overlay = require_overlay();
+    var runtime = require_runtime4();
+    var view = require_view6();
+    module2.exports = Object.assign({}, constants, store, tagUtils, overlay, runtime, view);
   }
 });
 
@@ -7882,10 +9591,10 @@ var require_build = __commonJS({
 });
 
 // src/modules/file-explorer-enhancer/store.js
-var require_store8 = __commonJS({
+var require_store9 = __commonJS({
   "src/modules/file-explorer-enhancer/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants7();
+    var constants = require_constants8();
     var obsidian2 = require("obsidian");
     var FileExplorerEnhancerStore = class {
       constructor(plugin) {
@@ -8080,79 +9789,8 @@ var require_store8 = __commonJS({
   }
 });
 
-// node_modules/monkey-around/index.js
-var require_monkey_around = __commonJS({
-  "node_modules/monkey-around/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.serialize = exports2.after = exports2.dedupe = exports2.around = void 0;
-    function around(obj, factories) {
-      const removers = Object.keys(factories).map((key) => around1(obj, key, factories[key]));
-      return removers.length === 1 ? removers[0] : function() {
-        removers.forEach((r) => r());
-      };
-    }
-    exports2.around = around;
-    function around1(obj, method, createWrapper) {
-      const original = obj[method], hadOwn = obj.hasOwnProperty(method);
-      let current = createWrapper(original);
-      if (original)
-        Object.setPrototypeOf(current, original);
-      Object.setPrototypeOf(wrapper, current);
-      obj[method] = wrapper;
-      return remove;
-      function wrapper(...args) {
-        if (current === original && obj[method] === wrapper)
-          remove();
-        return current.apply(this, args);
-      }
-      function remove() {
-        if (obj[method] === wrapper) {
-          if (hadOwn)
-            obj[method] = original;
-          else
-            delete obj[method];
-        }
-        if (current === original)
-          return;
-        current = original;
-        Object.setPrototypeOf(wrapper, original || Function);
-      }
-    }
-    function dedupe(key, oldFn, newFn) {
-      check[key] = key;
-      return check;
-      function check(...args) {
-        return (oldFn[key] === key ? oldFn : newFn).apply(this, args);
-      }
-    }
-    exports2.dedupe = dedupe;
-    function after(promise, cb) {
-      return promise.then(cb, cb);
-    }
-    exports2.after = after;
-    function serialize(asyncFunction) {
-      let lastRun = Promise.resolve();
-      function wrapper(...args) {
-        return lastRun = new Promise((res, rej) => {
-          after(lastRun, () => {
-            asyncFunction.apply(this, args).then(res, rej);
-          });
-        });
-      }
-      wrapper.after = function() {
-        return lastRun = new Promise((res, rej) => {
-          after(lastRun, res);
-        });
-      };
-      return wrapper;
-    }
-    exports2.serialize = serialize;
-  }
-});
-
 // src/modules/file-explorer-enhancer/runtime.js
-var require_runtime4 = __commonJS({
+var require_runtime5 = __commonJS({
   "src/modules/file-explorer-enhancer/runtime.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
@@ -10236,11 +11874,11 @@ var require_popper = __commonJS({
 });
 
 // src/modules/file-explorer-enhancer/view.js
-var require_view6 = __commonJS({
+var require_view7 = __commonJS({
   "src/modules/file-explorer-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var runtime = require_runtime4();
+    var runtime = require_runtime5();
     var createPopper = require_popper().createPopper;
     function wrapAround(value, size) {
       return (value % size + size) % size;
@@ -10929,7 +12567,7 @@ var require_view6 = __commonJS({
       contentEl.addClasses(["file-explorer-plus", "filters-activated-modal"]);
       var allFiles = this.plugin.app.vault.getAllLoadedFiles();
       var matched = [];
-      var checkFn = require_runtime4().checkPathFilter;
+      var checkFn = require_runtime5().checkPathFilter;
       for (var i = 0; i < allFiles.length; i++) {
         if (checkFn(this.filter, allFiles[i])) {
           matched.push(allFiles[i]);
@@ -11011,10 +12649,10 @@ var require_view6 = __commonJS({
 var require_file_explorer_enhancer = __commonJS({
   "src/modules/file-explorer-enhancer/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants7();
-    var store = require_store8();
-    var runtime = require_runtime4();
-    var view = require_view6();
+    var constants = require_constants8();
+    var store = require_store9();
+    var runtime = require_runtime5();
+    var view = require_view7();
     module2.exports = {
       DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS: constants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
       FileExplorerEnhancerStore: store.FileExplorerEnhancerStore,
@@ -11048,10 +12686,57 @@ var require_settings_tab = __commonJS({
     "use strict";
     var obsidian2 = require("obsidian");
     var commandUriEnhancerModule2 = require_command_uri_enhancer();
+    var editorEnhancerModule2 = require_editor_enhancer();
     var menuCustomizerModule = require_context_menu_enhancer();
     var statusBarEnhancerModule2 = require_status_bar_enhancer();
     var tabBarEnhancerModule2 = require_tab_bar_enhancer();
     var fileExplorerEnhancerModule2 = require_file_explorer_enhancer();
+    function openSettingsModal(plugin, modal, kind) {
+      plugin.trackSettingsModal(modal, kind);
+      modal.open();
+      return modal;
+    }
+    function reopenSettingsSubinterface(plugin, kind) {
+      const refreshSettings = async () => {
+        if (plugin.settingTab) {
+          await plugin.settingTab.display();
+        }
+      };
+      switch (kind) {
+        case "file-marker":
+          openSettingsModal(plugin, new FileMarkerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "anchor-graph":
+          openSettingsModal(plugin, new AnchorGraphManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "menu-customizer":
+          openSettingsModal(plugin, new MenuCustomizerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "command-uri":
+          openSettingsModal(plugin, new CommandUriEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "status-bar":
+          openSettingsModal(plugin, new StatusBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "tab-bar":
+          openSettingsModal(plugin, new TabBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "config":
+          openSettingsModal(plugin, new ConfigManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "file-explorer":
+          openSettingsModal(plugin, new fileExplorerEnhancerModule2.FileExplorerManagerModal(plugin), kind);
+          break;
+        case "editor-enhancer":
+          openSettingsModal(plugin, new EditorEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        case "status-bar-organizer":
+          openSettingsModal(plugin, new statusBarEnhancerModule2.StatusBarOrganizerModal(plugin.app, plugin, refreshSettings), kind);
+          break;
+        default:
+          break;
+      }
+    }
     async function copyTextToClipboard(text) {
       if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         await navigator.clipboard.writeText(text);
@@ -11362,6 +13047,8 @@ var require_settings_tab = __commonJS({
     };
     var TabBarEnhancerManagementModal = class extends tabBarEnhancerModule2.TabBarEnhancerManagementModal {
     };
+    var EditorEnhancerManagementModal = class extends editorEnhancerModule2.EditorEnhancerManagementModal {
+    };
     var ConfigManagementModal = class extends obsidian2.Modal {
       constructor(app, plugin, onSettingsChanged) {
         super(app);
@@ -11393,6 +13080,8 @@ var require_settings_tab = __commonJS({
         renderDetailItem(detailListEl, "命令&URI增强配置", `${configSummary.commandUriEnhancer.exists ? "已存在" : "未发现"}，${configSummary.commandUriEnhancer.summary}`);
         renderDetailItem(detailListEl, "状态栏增强配置", `${configSummary.statusBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.statusBarEnhancer.summary}`);
         renderDetailItem(detailListEl, "标签栏增强配置", `${configSummary.tabBarEnhancer.exists ? "已存在" : "未发现"}，${configSummary.tabBarEnhancer.summary}`);
+        renderDetailItem(detailListEl, "文件列表增强配置", `${configSummary.fileExplorerEnhancer.exists ? "已存在" : "未发现"}，${configSummary.fileExplorerEnhancer.summary}`);
+        renderDetailItem(detailListEl, "编辑增强配置", `${configSummary.editorEnhancer.exists ? "已存在" : "未发现"}，${configSummary.editorEnhancer.summary}`);
         renderDetailItem(detailListEl, "配置目录", configSummary.directoryPath, true);
         renderDetailItem(detailListEl, "导出目录", configSummary.exportDirectoryPath, true);
         new obsidian2.Setting(contentEl).setName("查看导出 JSON").setDesc("").addButton((button) => {
@@ -11427,12 +13116,12 @@ var require_settings_tab = __commonJS({
             }).open();
           });
         });
-        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强和标签栏增强设置都会恢复为首次安装状态。").addButton((button) => {
+        new obsidian2.Setting(contentEl).setName("重置全部配置").setDesc("同时重置 data.json 与所有模块配置文件。功能开关、文件标记、关系图谱、右键菜单、命令&URI增强、状态栏增强、标签栏增强、文件列表增强和编辑增强设置都会恢复为首次安装状态。").addButton((button) => {
           button.setButtonText("重置全部").setWarning().onClick(() => {
             new ConfirmActionModal(
               this.app,
               "重置全部插件配置",
-              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json 和 tab-bar-enhancer.json。请仅在确认需要恢复初始状态时执行。",
+              "此操作会覆盖当前插件的全部配置文件，包括 data.json、file-marker.json、anchor-graph.json、menu-customizer.json、command-uri-enhancer.json、status-bar-enhancer.json、tab-bar-enhancer.json、file-explorer-enhancer.json 和 editor-enhancer.json。请仅在确认需要恢复初始状态时执行。",
               "确认全部重置",
               async () => {
                 await this.plugin.resetAllConfiguration();
@@ -11471,6 +13160,7 @@ var require_settings_tab = __commonJS({
         this.renderFileMarkerSection(featureGroupEl, summary);
         this.renderAnchorGraphSection(featureGroupEl, summary);
         this.renderMenuCustomizerSection(featureGroupEl, summary);
+        this.renderEditorEnhancerSection(featureGroupEl, summary);
         this.renderCommandUriEnhancerSection(featureGroupEl, summary);
         this.renderStatusBarEnhancerSection(featureGroupEl, summary);
         this.renderTabBarEnhancerSection(featureGroupEl, summary);
@@ -11492,9 +13182,9 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new FileMarkerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new FileMarkerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "file-marker");
           });
         });
       }
@@ -11516,9 +13206,9 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new AnchorGraphManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new AnchorGraphManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "anchor-graph");
           });
         });
       }
@@ -11534,9 +13224,27 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new MenuCustomizerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "menu-customizer");
+          });
+        });
+      }
+      // 渲染编辑增强模块分区，仅保留状态概览、开关与弹窗入口。
+      renderEditorEnhancerSection(containerEl, summary) {
+        new obsidian2.Setting(containerEl).setName("编辑增强").setDesc(
+          summary.editorEnhancerEnabled ? `已启用，自动补全${summary.editorEnhancerAutoCompleteEnabled ? "已开启" : "已关闭"}，粘贴行为自动补全${summary.editorEnhancerPasteAutoCloseEnabled ? "已开启" : "已关闭"}。` : "未启用。启用后输入 HTML 标签可自动补全闭合标签，并提供标签跳过、匹配标签跳转与同步修改配对标签等命令。"
+        ).addToggle((toggle) => {
+          toggle.setValue(summary.editorEnhancerEnabled).onChange(async (value) => {
+            await this.plugin.updateEditorEnhancerEnabled(value);
+            new obsidian2.Notice(value ? "已启用编辑增强模块" : "已关闭编辑增强模块");
+            await this.display();
+          });
+        }).addButton((button) => {
+          button.setButtonText("管理").onClick(() => {
+            openSettingsModal(this.plugin, new EditorEnhancerManagementModal(this.app, this.plugin, async () => {
+              await this.display();
+            }), "editor-enhancer");
           });
         });
       }
@@ -11552,9 +13260,9 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new CommandUriEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "command-uri");
           });
         });
       }
@@ -11570,9 +13278,9 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new StatusBarEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new StatusBarEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "status-bar");
           });
         });
       }
@@ -11588,9 +13296,9 @@ var require_settings_tab = __commonJS({
           });
         }).addButton((button) => {
           button.setButtonText("管理").onClick(() => {
-            new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new TabBarEnhancerManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "tab-bar");
           });
         });
       }
@@ -11598,9 +13306,9 @@ var require_settings_tab = __commonJS({
       renderConfigManagementEntry(containerEl) {
         new obsidian2.Setting(containerEl).setName("配置文件管理").setDesc("查看配置文件状态、导出到独立文件、导入 JSON 以及重置全部配置。").addButton((button) => {
           button.setButtonText("打开管理窗口").onClick(() => {
-            new ConfigManagementModal(this.app, this.plugin, async () => {
+            openSettingsModal(this.plugin, new ConfigManagementModal(this.app, this.plugin, async () => {
               await this.display();
-            }).open();
+            }), "config");
           });
         });
       }
@@ -11627,6 +13335,9 @@ var require_settings_tab = __commonJS({
         listEl.createEl("li", {
           text: '文件列表增强模块仅面向桌面端，通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏。右键菜单命令可配合"右键菜单自定义"模块手动配置。'
         });
+        listEl.createEl("li", {
+          text: "编辑增强模块在输入完开始标签的 > 后弹出闭合标签补全，按 Tab 完成补全、Esc 退出，不占用上下左右方向键；单标签（如 <br>、<img>）不触发自动补全。"
+        });
       }
       // 渲染核心插件增强分区，包含文件列表子模块（二级窗口管理置顶/隐藏选择器）。
       renderCorePluginEnhancerSection(containerEl, summary) {
@@ -11643,13 +13354,14 @@ var require_settings_tab = __commonJS({
           }.bind({ plugin }));
         }).addButton(function(button) {
           button.setButtonText("管理").setDisabled(!summary.fileExplorerEnhancerEnabled).onClick(function() {
-            new fileExplorerEnhancerModule2.FileExplorerManagerModal(plugin).open();
+            openSettingsModal(plugin, new fileExplorerEnhancerModule2.FileExplorerManagerModal(plugin), "file-explorer");
           });
         });
       }
     };
     module2.exports = {
-      ObsidianNenePluginSettingTab
+      ObsidianNenePluginSettingTab,
+      reopenSettingsSubinterface
     };
   }
 });
@@ -11667,6 +13379,12 @@ var tabBarEnhancerModule = require_tab_bar_enhancer();
 var contextMenuEnhancerModule = require_context_menu_enhancer();
 var settingsTabModule = require_settings_tab();
 var fileExplorerEnhancerModule = require_file_explorer_enhancer();
+var editorEnhancerModule = require_editor_enhancer();
+var HOT_RELOAD_BRIDGE_KEY = "__nene_hot_reload_bridge__";
+var HOT_RELOAD_WINDOW_MS = 8e3;
+var SETTINGS_TAB_VISIBILITY_KEY = "__nene_settings_tab_visibility__";
+var SETTINGS_TAB_POLL_MS = 500;
+var SETTINGS_TAB_FRESH_MS = 3e3;
 var ObsidianNenePlugin = class extends obsidian.Plugin {
   constructor() {
     super(...arguments);
@@ -11677,6 +13395,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.anchorGraphLinkEnhancer = new graphViewEnhancerModule.AnchorGraphLinkEnhancer(this);
     this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this);
     this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this);
+    this.commandUriRuntime = new commandUriEnhancerModule.CommandUriRuntime(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
     this.organizerSpooler = null;
@@ -11687,9 +13406,166 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.snippetsStore = new statusBarEnhancerModule.SnippetsStore(this);
     this.snippetsRuntime = new statusBarEnhancerModule.SnippetsRuntime(this);
     this.fileExplorerEnhancerStore = new fileExplorerEnhancerModule.FileExplorerEnhancerStore(this);
+    this.editorEnhancerStore = new editorEnhancerModule.EditorEnhancerStore(this);
+    this.editorEnhancerOverlay = new editorEnhancerModule.AutoCloseOverlay(this, this.editorEnhancerStore);
+    this.editorEnhancerRuntime = new editorEnhancerModule.EditorEnhancerRuntime(this, this.editorEnhancerStore, this.editorEnhancerOverlay);
     this._fileExplorerView = null;
     this._lastFocusedFile = null;
     this._eyeToggleHistory = [];
+    this.settingTab = null;
+    this._trackedSettingsModals = /* @__PURE__ */ new Map();
+  }
+  // 登记一个已打开的设置子界面，供热更新重载时统一关闭与恢复。
+  trackSettingsModal(modal, kind) {
+    this._trackedSettingsModals.set(modal, kind);
+  }
+  // 关闭全部仍打开的子界面并把类型写入全局桥接，同时记录设置面板是否正显示本插件设置页，
+  // 供重载后的新实例恢复，避免子界面失效与设置面板内容消失。
+  captureAndCloseSettingsModals() {
+    const pendingKinds = [];
+    const bridge = window[HOT_RELOAD_BRIDGE_KEY] || { pending: [], timestamp: 0 };
+    this._trackedSettingsModals.forEach((kind, modal) => {
+      if (modal && modal.isOpen) {
+        pendingKinds.push(kind);
+        modal.close();
+      }
+    });
+    this._trackedSettingsModals.clear();
+    try {
+      const setting = this.app.setting;
+      const tabContainer = this.settingTab && this.settingTab.containerEl;
+      const settingsTabWasActive = Boolean(
+        setting && (setting.isOpen && setting.activeTab === this.settingTab || tabContainer && tabContainer.isConnected && typeof tabContainer.isShown === "function" && tabContainer.isShown())
+      );
+      if (settingsTabWasActive) {
+        bridge.reopenSettingsTab = true;
+      }
+    } catch (error) {
+    }
+    bridge.pending.push(...pendingKinds);
+    bridge.timestamp = Date.now();
+    window[HOT_RELOAD_BRIDGE_KEY] = bridge;
+  }
+  // 恢复热更新重载前的状态：重新激活设置面板中的新设置页签，并用新插件实例重建已打开的子界面。
+  restoreSettingsSubinterfaces() {
+    const bridge = window[HOT_RELOAD_BRIDGE_KEY];
+    if (!bridge) {
+      return;
+    }
+    const pendingKinds = Array.isArray(bridge.pending) ? bridge.pending.slice() : [];
+    const shouldReopenSettingsTab = bridge.reopenSettingsTab === true;
+    const isRecentReload = Date.now() - (bridge.timestamp || 0) <= HOT_RELOAD_WINDOW_MS;
+    delete window[HOT_RELOAD_BRIDGE_KEY];
+    if (!isRecentReload) {
+      return;
+    }
+    const visibilityMarker = window[SETTINGS_TAB_VISIBILITY_KEY];
+    const settingsTabWasVisible = Boolean(
+      visibilityMarker && visibilityMarker.visible === true && Date.now() - (visibilityMarker.timestamp || 0) <= SETTINGS_TAB_FRESH_MS
+    );
+    delete window[SETTINGS_TAB_VISIBILITY_KEY];
+    if ((shouldReopenSettingsTab || settingsTabWasVisible) && this.settingTab) {
+      this.scheduleReopenSettingsTab(0);
+    } else {
+      this.scheduleRecoverBlankSettingsTab(0);
+    }
+    pendingKinds.forEach((kind) => {
+      try {
+        settingsTabModule.reopenSettingsSubinterface(this, kind);
+      } catch (error) {
+        console.error("[ねね] 热更新恢复设置子界面失败", kind, error);
+      }
+    });
+  }
+  // 兜底恢复：热更新时间窗口内，若设置面板开着但当前激活页签已失效
+  // （core 禁用插件时移除了本插件页签，面板残留空白），则自动激活本插件新设置页签。
+  // 若用户正正常浏览其他设置页（激活页签有效且可见），则不打扰。
+  scheduleRecoverBlankSettingsTab(attempt) {
+    const self = this;
+    const maxAttempts = 6;
+    const retryIntervalMs = 100;
+    setTimeout(() => {
+      try {
+        const setting = self.app.setting;
+        if (!setting || !setting.isOpen) {
+          return;
+        }
+        const activeTab = setting.activeTab;
+        const activeTabVisible = Boolean(
+          activeTab && activeTab.containerEl && activeTab.containerEl.isConnected && typeof activeTab.containerEl.isShown === "function" && activeTab.containerEl.isShown()
+        );
+        if (activeTabVisible) {
+          return;
+        }
+        self.scheduleReopenSettingsTab(0);
+      } catch (error) {
+        if (attempt < maxAttempts) {
+          self.scheduleRecoverBlankSettingsTab(attempt + 1);
+        }
+      }
+    }, retryIntervalMs * (attempt + 1));
+  }
+  // 启动设置页可见性轮询：把“设置面板当前是否正显示本插件设置页”实时记录到 window。
+  // 背景：core 禁用插件时会先于 onunload 关闭设置面板，onunload 中已读取不到真实状态，
+  // 只能依靠轮询留存的最后可见状态，供热更新后的新实例决定是否重新打开设置面板。
+  startSettingsTabVisibilityTracking() {
+    const self = this;
+    self.registerInterval(
+      window.setInterval(() => {
+        try {
+          const tabContainer = self.settingTab && self.settingTab.containerEl;
+          const visible = Boolean(
+            tabContainer && tabContainer.isConnected && typeof tabContainer.isShown === "function" && tabContainer.isShown()
+          );
+          window[SETTINGS_TAB_VISIBILITY_KEY] = { visible, timestamp: Date.now() };
+        } catch (error) {
+        }
+      }, SETTINGS_TAB_POLL_MS)
+    );
+  }
+  // 延迟重试重新激活设置面板中的本插件设置页签。
+  // 说明：core 的 enablePlugin 在插件 onload 完成后才完成设置页签登记，
+  // 且禁用插件时 core 可能直接关闭整个设置面板；此方法按固定间隔重试数次：
+  // 若设置面板已被关闭则先重新打开，再优先用 openTabById 激活页签，
+  // 该半公开方法不存在时降级为 openTab(页签实例)；全部重试仍失败则输出警告，
+  // 不影响插件主流程。
+  scheduleReopenSettingsTab(attempt) {
+    const self = this;
+    const maxAttempts = 6;
+    const retryIntervalMs = 100;
+    setTimeout(() => {
+      let reopened = false;
+      try {
+        const setting = self.app.setting;
+        if (!setting) {
+          return;
+        }
+        const modalElement = setting.modalEl || setting.containerEl;
+        const modalInDom = Boolean(modalElement && modalElement.isConnected);
+        if (!modalInDom) {
+          setting.open();
+        }
+        if (typeof setting.openTabById === "function") {
+          reopened = Boolean(setting.openTabById(self.manifest.id));
+        } else if (typeof setting.openTab === "function" && self.settingTab) {
+          setting.openTab(self.settingTab);
+          reopened = true;
+        }
+        if (!reopened && setting.activeTab === self.settingTab) {
+          reopened = true;
+        }
+        const modalElementAfter = setting.modalEl || setting.containerEl;
+        reopened = Boolean(
+          reopened && modalElementAfter && modalElementAfter.isConnected && setting.activeTab === self.settingTab
+        );
+      } catch (error) {
+      }
+      if (!reopened && attempt < maxAttempts) {
+        self.scheduleReopenSettingsTab(attempt + 1);
+      } else if (!reopened) {
+        console.warn("[ねね] 热更新恢复设置面板失败：设置页签尚未就绪");
+      }
+    }, retryIntervalMs);
   }
   // 暴露只读设置访问入口，兼容后续模块对当前配置的读取。
   get settings() {
@@ -11711,6 +13587,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.snippetsStore.load();
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
+    this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
     this.initializeOrganizerSpooler();
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
@@ -11721,9 +13598,14 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.setupVaultEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
+    this.commandUriRuntime.registerProtocolHandlers();
     this.setupAnchorGraphEvents();
     this.setupFileExplorerEnhancer();
-    this.addSettingTab(new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this));
+    this.editorEnhancerRuntime.registerCommands();
+    this.settingTab = new settingsTabModule.ObsidianNenePluginSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
+    this.startSettingsTabVisibilityTracking();
+    this.restoreSettingsSubinterfaces();
     this.pluginListEnhancer.start();
     this.syncFileMarkerFeatureState();
     this.syncAnchorGraphEnhancerState();
@@ -11731,10 +13613,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncTabBarEnhancerState();
     this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
+    this.syncEditorEnhancerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
     console.log("Unloading obsidian-nene-plugin");
+    this.captureAndCloseSettingsModals();
     this.pluginListEnhancer.stop();
     this.anchorGraphLinkEnhancer.stop();
     this.statusBarEnhancerRuntime.stop();
@@ -11745,6 +13629,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.tabBarEnhancerRuntime.stop();
     this.menuCustomizerRuntime.stop();
     this.fileExplorerEnhancerUnload();
+    this.editorEnhancerRuntime.stop();
+    this.editorEnhancerOverlay.destroy();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
     });
@@ -11987,6 +13873,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isTabBarEnhancerEnabled() {
     return this.pluginSettingsStore.isTabBarEnhancerEnabled();
   }
+  // 返回编辑增强模块当前是否被用户启用。
+  isEditorEnhancerEnabled() {
+    return this.pluginSettingsStore.isEditorEnhancerEnabled();
+  }
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -12037,7 +13927,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       tabBarEnhancerDebug: this.tabBarEnhancerStore.getSettings().debug === true,
       fileExplorerEnhancerEnabled: this.isFileExplorerEnhancerEnabled(),
       fileExplorerEnhancerPinFilterCount: (this.fileExplorerEnhancerStore.getSettings().pinFilters.paths || []).length,
-      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length
+      fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length,
+      editorEnhancerEnabled: this.isEditorEnhancerEnabled(),
+      editorEnhancerAutoCompleteEnabled: this.editorEnhancerStore.getSettings().autoCompleteEnabled !== false,
+      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true
     };
   }
   // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
@@ -12280,6 +14173,45 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncFileExplorerEnhancerState();
     return nextEnabled;
   }
+  // 更新编辑增强模块开关，并立即同步运行时状态。
+  async updateEditorEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setEditorEnhancerEnabled(enabled);
+    this.syncEditorEnhancerState();
+    return nextEnabled;
+  }
+  // 更新编辑增强模块的排除标签列表。
+  async updateEditorEnhancerExcludedTags(value) {
+    return this.editorEnhancerStore.setExcludedTags(value);
+  }
+  // 更新编辑增强模块的自动补全后光标位置。
+  async updateEditorEnhancerCursorPosition(value) {
+    return this.editorEnhancerStore.setCursorPosition(value);
+  }
+  // 更新编辑增强模块的"忽略代码块"配置。
+  async updateEditorEnhancerIgnoreInCodeBlocks(enabled) {
+    return this.editorEnhancerStore.setIgnoreInCodeBlocks(enabled);
+  }
+  // 更新编辑增强模块的"忽略行内代码"配置。
+  async updateEditorEnhancerIgnoreInlineCode(enabled) {
+    return this.editorEnhancerStore.setIgnoreInlineCode(enabled);
+  }
+  // 更新编辑增强模块的"粘贴行为的自动补全"配置（默认关闭）。
+  async updateEditorEnhancerEnablePasteAutoClose(enabled) {
+    return this.editorEnhancerStore.setEnablePasteAutoClose(enabled);
+  }
+  // 更新状态栏按钮控制的自动补全开关，并同步浮层启停与按钮图标。
+  async updateEditorEnhancerAutoCompleteEnabled(enabled) {
+    const nextValue = await this.editorEnhancerStore.setAutoCompleteEnabled(enabled);
+    if (this.isEditorEnhancerEnabled()) {
+      if (nextValue) {
+        this.editorEnhancerOverlay.enable();
+      } else {
+        this.editorEnhancerOverlay.disable();
+      }
+      this.editorEnhancerRuntime.refreshStatusBarIcon();
+    }
+    return nextValue;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -12448,6 +14380,23 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     this.fileExplorerEnhancerUnload(true);
   }
+  // 根据当前设置同步编辑增强模块的启停状态。
+  // 模块启用时：启动状态栏按钮与粘贴监听，并按"自动补全开关"决定是否激活浮层；
+  // 模块禁用时：停止运行时并停用浮层。
+  syncEditorEnhancerState() {
+    this.editorEnhancerRuntime.load(this.editorEnhancerStore.getSettings());
+    if (this.isEditorEnhancerEnabled()) {
+      this.editorEnhancerRuntime.start();
+      if (this.editorEnhancerStore.getSettings().autoCompleteEnabled) {
+        this.editorEnhancerOverlay.enable();
+      } else {
+        this.editorEnhancerOverlay.disable();
+      }
+      return;
+    }
+    this.editorEnhancerRuntime.stop();
+    this.editorEnhancerOverlay.disable();
+  }
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -12466,6 +14415,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
+    this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
     this.snippetsStore.load();
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();
@@ -12473,6 +14423,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncStatusBarEnhancerState();
     this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
+    this.syncEditorEnhancerState();
     if (this.isAnchorGraphEnabled()) {
       await this.refreshAnchorGraphLinks(false);
     }

@@ -2144,3 +2144,70 @@ body>.tooltip {
 .tree-item.nene-eye-revealed {
   opacity: 0.5;
 }
+
+/* ========================================
+   90 - 编辑增强模块运行时样式
+   ======================================== */
+
+/* 状态栏自动补全开关按钮 */
+.nene-editor-enhancer-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 启用态：以填充色区分状态（背景填充强调色，图标反白） */
+/* 关闭态：无填充、默认描边图标，形成填充/描边的视觉对比 */
+.nene-editor-enhancer-toggle.is-active {
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+}
+
+.nene-editor-enhancer-toggle:hover {
+  opacity: 0.85;
+}
+
+/* 状态栏图标与文本保持居中排列 */
+.nene-editor-enhancer-toggle .status-bar-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 自动补全浮层（自建，替代官方 EditorSuggest）：
+   fixed 定位跟随光标像素坐标，样式跟随 Obsidian 主题变量 */
+.nene-autoclose-suggest {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  max-width: 320px;
+  min-width: 80px;
+  padding: 2px;
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: var(--shadow-s);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  pointer-events: none;
+  /* 浮层仅为视觉提示，不拦截鼠标操作 */
+}
+
+/* 浮层单条建议项 */
+.nene-autoclose-suggest-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-s);
+  color: var(--text-accent);
+  background: var(--background-secondary-alt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -2,6 +2,7 @@
 
 var anchorGraphConstants = require('../graph-view-enhancer/constants');
 var commandUriEnhancerConstants = require('../command-uri-enhancer/constants');
+var editorEnhancerConstants = require('../editor-enhancer/constants');
 var fileMarkerConstants = require('../file-marker/constants');
 var menuCustomizerConstants = require('../context-menu-enhancer/constants');
 var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
@@ -23,7 +24,8 @@ const FEATURE_CONFIG_FILE_NAMES = {
   commandUriEnhancer: 'command-uri-enhancer',
   statusBarEnhancer: 'status-bar-enhancer',
   tabBarEnhancer: 'tab-bar-enhancer',
-  fileExplorerEnhancer: 'file-explorer-enhancer'
+  fileExplorerEnhancer: 'file-explorer-enhancer',
+  editorEnhancer: 'editor-enhancer'
 };
 
 // 定义插件级持久化数据的默认结构，拆分后仅保留核心开关与兼容字段。
@@ -49,6 +51,9 @@ const DEFAULT_PLUGIN_DATA = {
     },
     fileExplorerEnhancer: {
       enabled: false
+    },
+    editorEnhancer: {
+      enabled: false
     }
   }
 };
@@ -64,7 +69,8 @@ const DEFAULT_FEATURE_DATA = {
     snippets: snippetsConstants.DEFAULT_SNIPPETS_SETTINGS
   }),
   tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS,
-  fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS
+  fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
+  editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS
 };
 
 module.exports = {

@@ -11,13 +11,18 @@ const COMMAND_ID_WHITELIST = [
 
 // Obsidian 官方内置 URI 语法清单：语法模板 + 中文注释。
 const OBSIDIAN_URI_SYNTAXES = [
-  { key: 'open', syntax: 'obsidian://open?vault=<vault>&file=<file_path>', comment: '打开指定笔记' },
-  { key: 'open-line', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&line=<line>', comment: '打开笔记并定位到指定行' },
-  { key: 'open-preview', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&mode=preview', comment: '以阅读模式打开笔记' },
-  { key: 'new', syntax: 'obsidian://new?vault=<vault>&name=<name>', comment: '新建指定名称的笔记' },
-  { key: 'new-content', syntax: 'obsidian://new?vault=<vault>&file=<file_path>&content=<content>', comment: '新建笔记并写入初始内容' },
-  { key: 'search', syntax: 'obsidian://search?vault=<vault>&query=<query>', comment: '在库内搜索指定关键词' },
-  { key: 'daily', syntax: 'obsidian://daily?vault=<vault>', comment: '打开或创建今日日记' }
+  { key: 'open', syntax: 'obsidian://open?vault=<vault>&file=<file_path>', comment: '打开指定仓库的指定笔记' },
+  { key: 'open-method', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>', comment: '打开笔记：tab=新标签页、window=新窗口、split=新面板' },
+  { key: 'open-block', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>', comment: '打开笔记并定位到指定文本块（例如 ^1rww6s），块不存在时回退打开笔记并提示' },
+  { key: 'open-header', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&header=<标题>', comment: '打开笔记并定位到指定标题，标题不存在时回退打开笔记并提示' },
+  { key: 'search', syntax: 'obsidian://search?vault=<vault>&query=<query>', comment: '在指定仓库内搜索指定关键词' },
+  { key: 'show-plugin', syntax: 'obsidian://show-plugin?id=<plugin_id>', comment: '在社区插件市场搜索指定的第三方插件' },
+  // 由命令&URI增强运行时注册的自定义协议：用于快速定位插件设置或快捷键配置页。
+  // 参数按插件显示名称匹配，大小写敏感；show=config/show=hotkeys 会按名称自动解析出插件 id。
+  { key: 'goto-plugin', syntax: 'obsidian://goto-plugin', comment: '仅打开插件市场' },
+  { key: 'goto-plugin-id', syntax: 'obsidian://goto-plugin?name=<manifest.json_name>', comment: '在社区插件市场定位已安装的指定第三方插件' },
+  { key: 'goto-plugin-config', syntax: 'obsidian://goto-plugin?name=<manifest.json_name>&show=config', comment: '打开已安装的指定插件的设置页' },
+  { key: 'goto-plugin-hotkeys', syntax: 'obsidian://goto-plugin?name=<manifest.json_name>&show=hotkeys', comment: '打开已安装的指定插件的快捷键配置页' },
 ];
 
 // 优先使用现代剪贴板 API，失败时回退到传统复制命令。
