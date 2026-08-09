@@ -12,9 +12,9 @@ const COMMAND_ID_WHITELIST = [
 // Obsidian 官方内置 URI 语法清单：语法模板 + 中文注释。
 const OBSIDIAN_URI_SYNTAXES = [
   { key: 'open', syntax: 'obsidian://open?vault=<vault>&file=<file_path>', comment: '打开指定仓库的指定笔记' },
-  { key: 'open-method', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>', comment: '打开笔记：tab=新标签页、window=新窗口、split=新面板' },
-  { key: 'open-block', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>', comment: '打开笔记并定位到指定文本块（例如 ^1rww6s），块不存在时回退打开笔记并提示' },
-  { key: 'open-header', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&header=<标题>', comment: '打开笔记并定位到指定标题，标题不存在时回退打开笔记并提示' },
+  { key: 'open-method', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>', comment: '控制笔记的打开方式：tab=新标签页、window=新窗口、split=新面板' },
+  { key: 'open-block', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>', comment: '打开笔记并定位到指定文本块' },
+  { key: 'open-header', syntax: 'obsidian://open?vault=<vault>&file=<file_path>&header=<标题>', comment: '打开笔记并定位到指定标题' },
   { key: 'search', syntax: 'obsidian://search?vault=<vault>&query=<query>', comment: '在指定仓库内搜索指定关键词' },
   { key: 'show-plugin', syntax: 'obsidian://show-plugin?id=<plugin_id>', comment: '在社区插件市场搜索指定的第三方插件' },
   // 由命令&URI增强运行时注册的自定义协议：用于快速定位插件设置或快捷键配置页。

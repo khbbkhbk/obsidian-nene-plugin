@@ -112,10 +112,12 @@ class EditorEnhancerStore {
    * 更新自动补全总开关（状态栏按钮状态）并保存。
    * 该开关仅控制自动补全提示框的启停。
    * @param {boolean} enabled 是否启用自动补全
+   * @returns {boolean} 更新后的开关值（供调用方据此同步 enable/disable）
    */
   async setAutoCompleteEnabled(enabled) {
     this.settings.autoCompleteEnabled = enabled === true;
     await this.save();
+    return this.settings.autoCompleteEnabled;
   }
 }
 

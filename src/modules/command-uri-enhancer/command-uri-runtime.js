@@ -108,7 +108,8 @@ function openPluginDetail(viewer, pluginId, expectedName, timeoutMs) {
 class CommandUriRuntime {
   constructor(plugin) {
     this.plugin = plugin; // 保存插件实例，便于访问 app 与模块总开关
-    this.openUriListener = null; // obsidian://open 扩展的 url-parse 监听器引用
+    this.nativeOpenHandler = null; // 暂存 Obsidian 核心 open 处理器引用，插件卸载时恢复
+    this.nativeHandlersRegistry = null; // 暂存核心注册表引用，插件卸载时恢复
   }
 
   // 注册插件自定义协议处理器，生命周期由插件统一管理。
@@ -129,45 +130,88 @@ class CommandUriRuntime {
   }
 
   // 注册 obsidian://open 扩展协议处理器，在原协议基础上增加 method、block、header 参数。
-  // 说明：Obsidian 核心已内置注册 "open" 协议（obsidian://open），同一 action 无法重复注册。
-  // 因此改走官方稳定的 url-parse 事件，在核心解析 URL 之前拦截：
-  //  - 仅当 URL 携带本模块的扩展参数（method / block / header）时才接管处理并返回 true（阻止核心）；
-  //  - 普通 obsidian://open（无扩展参数）原样放行给核心，不影响原生行为。
+  // 说明：Obsidian 核心已内置注册 "open" 协议，registerObsidianProtocolHandler 不允许重复注册。
+  // 因此采用手动注册方案：
+  //   1. 从内部注册表暂存并移除核心处理器
+  //   2. 将扩展处理器手动写入注册表
+  //   3. 通过 this.plugin.register() 注册清理回调：插件卸载时先移除扩展处理器，再恢复核心处理器。
+  // 核心处理器存储位置属于未文档化内部 API，通过遍历 app 属性动态查找。
+  // 注意：不使用 registerObsidianProtocolHandler，因为该方法内部会自动注册清理回调，
+  // 卸载时的清理顺序会导致恢复后的核心处理器被再次删除。
   registerOpenProtocolHandler() {
-    this.openUriListener = (url) => {
-      if (!url) {
-        return undefined;
-      }
+    const app = this.plugin.app;
+    this.nativeHandlersRegistry = this.findNativeProtocolRegistry(app);
 
-      let urlObj;
+    if (this.nativeHandlersRegistry && this.nativeHandlersRegistry.has('open')) {
+      // 暂存核心处理器引用并移除，避免重复注册报错。
+      this.nativeOpenHandler = this.nativeHandlersRegistry.get('open');
+      this.nativeHandlersRegistry.delete('open');
+    } else {
+      // 未找到核心注册表或核心处理器，无法保留原生行为。
+      console.warn('[ねね] 未找到 Obsidian 核心 open 处理器，扩展将替代原生行为。');
+    }
+
+    // 手动写入扩展处理器（不经 registerObsidianProtocolHandler，避免其内部自动注销逻辑冲突）。
+    const extensionHandler = (params) => this.onOpenProtocol(params);
+    this.nativeHandlersRegistry.set('open', extensionHandler);
+
+    // 注册清理回调：插件卸载时移除扩展处理器并恢复核心处理器。
+    this.plugin.register(() => {
+      if (this.nativeHandlersRegistry) {
+        this.nativeHandlersRegistry.delete('open'); // 移除扩展处理器
+        if (this.nativeOpenHandler) {
+          this.nativeHandlersRegistry.set('open', this.nativeOpenHandler); // 恢复核心处理器
+        }
+        this.nativeOpenHandler = null;
+        this.nativeHandlersRegistry = null;
+      }
+    });
+  }
+
+  // 在 app 内部属性中查找协议处理器注册表（Map 结构）。
+  // Obsidian v1.4.16 中协议处理器存储在 app.workspace.protocolHandlers，属于未文档化内部 API。
+  findNativeProtocolRegistry(app) {
+    // 直接探测 Obsidian v1.4.16 已知位置
+    const wsProtocolHandlers = app.workspace && app.workspace.protocolHandlers;
+    if (wsProtocolHandlers instanceof Map && wsProtocolHandlers.has('open')) {
+      return wsProtocolHandlers;
+    }
+
+    // 兜底：遍历 app 第一层属性查找含 'open' 的 Map
+    for (const key of Object.getOwnPropertyNames(app)) {
       try {
-        urlObj = new URL(url);
-      } catch (error) {
-        return undefined;
+        const obj = app[key];
+        if (obj instanceof Map && obj.has('open')) return obj;
+      } catch (e) { /* 忽略访问异常 */ }
+    }
+
+    // 兜底：遍历 app.workspace 属性查找含 'open' 的 Map
+    if (app.workspace) {
+      for (const key of Object.getOwnPropertyNames(app.workspace)) {
+        try {
+          const obj = app.workspace[key];
+          if (obj instanceof Map && obj.has('open')) return obj;
+        } catch (e) { /* 忽略访问异常 */ }
       }
+    }
 
-      // 仅处理 obsidian://open 协议的 URL。
-      if (urlObj.protocol !== 'obsidian:' || urlObj.hostname !== 'open') {
-        return undefined;
-      }
+    return null;
+  }
 
-      const params = urlObj.searchParams;
-      const file = params.get('file');
-      const method = params.get('method');
-      const block = params.get('block');
-      const header = params.get('header');
+  // open 协议统一入口：有扩展参数走自建逻辑，无扩展参数回退核心处理器。
+  onOpenProtocol(params) {
+    const { file, method, block, header } = params;
+    const hasExtension = !!(method || block || header);
 
-      // 无扩展参数时放行给 Obsidian 核心默认处理。
-      if (!file || (!method && !block && !header)) {
-        return undefined;
-      }
-
+    if (hasExtension) {
       this.plugin.app.workspace.onLayoutReady(() => {
-        this.handleOpenUri({ file, method, block, header });
+        this.handleOpenUri({ file, method, block, header }).catch((error) => {
+          console.error('[ねね] obsidian://open 扩展处理异常', error);
+        });
       });
-      return true; // 阻止 Obsidian 默认处理，由扩展逻辑接管
-    };
-    this.plugin.registerEvent(this.plugin.app.workspace.on('url-parse', this.openUriListener));
+    } else if (this.nativeOpenHandler) {
+      this.nativeOpenHandler(params);
+    }
   }
 
   // 处理 obsidian://open 扩展 URI：解析 method（打开方式）、block（文本块定位）、header（标题定位）参数。
@@ -175,10 +219,9 @@ class CommandUriRuntime {
     const { file, method, block, header } = params;
 
     if (!this.plugin.isCommandUriEnhancerEnabled()) {
-      // 模块未启用时，仅执行标准打开逻辑，忽略扩展参数。
+      // 模块未启用时，复用原生 openLinkText 行为，忽略扩展参数。
       if (file) {
-        const decodedFile = decodeURIComponent(file);
-        this.plugin.app.workspace.openLinkText(decodedFile, '', false);
+        this.plugin.app.workspace.openLinkText(file, '', false);
       }
       return;
     }
@@ -187,8 +230,6 @@ class CommandUriRuntime {
       new obsidian.Notice('URI 缺少 file 参数，无法打开笔记');
       return;
     }
-
-    const decodedFile = decodeURIComponent(file);
 
     // 确定打开方式：未指定时使用 false（当前活动页）
     let openMode = false;
@@ -201,19 +242,18 @@ class CommandUriRuntime {
     }
 
     // 构建带锚点的链接文本
-    let linktext = decodedFile;
+    let linktext = file;
     let anchorType = null;   // 'block' | 'header'
     let anchorValue = null;
 
     if (block) {
-      linktext = `${decodedFile}#^${block}`;
+      linktext = `${file}#^${block}`;
       anchorType = 'block';
       anchorValue = block;
     } else if (header) {
-      const decodedHeader = decodeURIComponent(header);
-      linktext = `${decodedFile}#${decodedHeader}`;
+      linktext = `${file}#${header}`;
       anchorType = 'header';
-      anchorValue = decodedHeader;
+      anchorValue = header;
     }
 
     // 打开文件并定位
@@ -221,7 +261,7 @@ class CommandUriRuntime {
 
     // 验证锚点是否存在（延迟确保编辑器就绪）
     if (anchorType) {
-      setTimeout(() => this.verifyAnchor(decodedFile, anchorType, anchorValue), 300);
+      setTimeout(() => this.verifyAnchor(file, anchorType, anchorValue), 300);
     }
   }
 

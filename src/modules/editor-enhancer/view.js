@@ -52,7 +52,7 @@ class EditorEnhancerManagementModal extends obsidian.Modal {
     renderModalHeader(
       contentEl,
       '编辑增强模块',
-      '自动补全 HTML 标签，并提供向左/向右跳过标签、跳转至匹配标签与同步修改配对标签等命令。以下设置项与 Auto Close Tags 插件保持一致。'
+      '自动补全 HTML 标签，并提供向左/向右跳过当前标签、跳转至匹配标签与同步更新匹配标签等命令。以下设置项与 Auto Close Tags 插件保持一致。'
     );
 
     new obsidian.Setting(contentEl)
@@ -65,7 +65,10 @@ class EditorEnhancerManagementModal extends obsidian.Modal {
           .onChange(async (value) => {
             await this.plugin.updateEditorEnhancerExcludedTags(value);
             await this.onSettingsChanged();
-            await this.render();
+            // 注意：此处不能调用 this.render()。
+            // render() 会清空并重建整个设置弹窗，导致输入框 DOM 被销毁、
+            // 每输入一个字符即丢失焦点。文本输入框需连续输入，仅更新数据即可，
+            // 界面显示的用户输入原值无需回填。
           });
       });
 

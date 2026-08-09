@@ -255,6 +255,21 @@ class AutoCloseOverlay {
     }
     if (editor.cm.dom.contains(evt.target)) {
       this.log('鼠标点击：光标可能已移动，重新检测');
+      // 鼠标移动光标后，直接比对抑制位置：移离则解除，留在原位则保持抑制。
+      const cursor = editor.getCursor();
+      if (this.pasteSuppressPos) {
+        if (cursor.line !== this.pasteSuppressPos.line || cursor.ch !== this.pasteSuppressPos.ch) {
+          this.log('鼠标点击：光标已移离粘贴抑制位置，解除粘贴抑制');
+          this.pasteSuppressPos = null;
+        }
+      }
+      if (this.suppressUntilTyping && this.suppressCursor) {
+        if (cursor.line !== this.suppressCursor.line || cursor.ch !== this.suppressCursor.ch) {
+          this.log('鼠标点击：光标已移离补全后抑制位置，解除补全后抑制');
+          this.suppressUntilTyping = false;
+          this.suppressCursor = null;
+        }
+      }
       this.onEditorEvent(editor);
       return;
     }

@@ -52,12 +52,12 @@ const COMMAND_IDS = {
 const COMMAND_DEFINITIONS = [
   {
     id: COMMAND_IDS.skipTagBackward,
-    name: '向左跳过标签',
+    name: '向左跳过当前标签',
     hotkeys: [{ modifiers: ['Ctrl'], key: 'ArrowLeft' }]
   },
   {
     id: COMMAND_IDS.skipTagForward,
-    name: '向右跳过标签',
+    name: '向右跳过当前标签',
     hotkeys: [{ modifiers: ['Ctrl'], key: 'ArrowRight' }]
   },
   {
@@ -67,27 +67,29 @@ const COMMAND_DEFINITIONS = [
   },
   {
     id: COMMAND_IDS.syncMatchingTag,
-    name: '同步修改配对标签',
-    hotkeys: []
+    name: '同步更新匹配标签',
+    hotkeys: [{ modifiers: ['Ctrl'], key: 'u' }]
   }
 ];
 
-// 状态栏开关图标：启用为填充、关闭为描边，参考 Obsidian 书签插件的填充/描边区分方式。
-// 启用态使用 code-2 并通过 CSS 填充着色，关闭态使用 code（描边）。
-const STATUS_BAR_ICONS = {
-  enabled: 'code-2',
-  disabled: 'code'
-};
+// 状态栏开关图标（自定义 SVG，替换内置 code-2/code 图标）。
+// 启停通过 CSS 修改 <path> 的 fill 实现：启用态 fill: var(--text-accent)（填充强调色），
+// 关闭态 fill: var(--text-muted)（弱化描边）。具体规则见 90-editor-enhancer.css 的 .is-active 选择器。
+const STATUS_BAR_ICON_SVG =
+  '<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">' +
+  '<path fill-rule="evenodd" d="M32 256 A160 160 0 0 1 192 96 L832 96 A160 160 0 0 1 992 256 L992 768 A160 160 0 0 1 832 928 L192 928 A160 160 0 0 1 32 768 L32 256 Z M192 192 L832 192 A64 64 0 0 1 896 256 L896 768 A64 64 0 0 1 832 832 L192 832 A64 64 0 0 1 128 768 L128 256 A64 64 0 0 1 192 192 Z M512 511.424 L332.864 704 L256 624.064 l104.576-112.448 L256 400.192 L332.544 320 L512 511.424 z M768 704 H576 V576 h192 v128 z"/>' +
+  '</svg>';
 
 // 中文提示文案。
 const NOTICE_MESSAGES = {
   commandNotInTag: '「%s」命令仅在光标位于标签内部时生效',
   goToMatchingTagOnVoid: '"跳转至匹配标签"命令对单标签无效！',
-  syncMatchingTagOnVoid: '"同步修改配对标签"命令对单标签无效！',
+  syncMatchingTagOnVoid: '"同步更新匹配标签"命令对单标签无效！',
   tagExcluded: '当前标签已在排除列表中，命令不会生效',
   tagInCodeContext: '当前标签位于代码块或行内代码中，命令不会生效',
-  noMatchingTag: '未找到匹配的配对标签',
-  tagNamesAlreadySame: '配对标签名称已一致，无需修改'
+  noMatchingTag: '未找到与之匹配的匹配标签',
+  noSkipTarget: '当前方向没有可跳转的标签',
+  tagNamesAlreadySame: '目标标签名与当前一致，无需修改'
 };
 
 module.exports = {
@@ -96,6 +98,6 @@ module.exports = {
   DEFAULT_EDITOR_ENHANCER_SETTINGS,
   COMMAND_IDS,
   COMMAND_DEFINITIONS,
-  STATUS_BAR_ICONS,
+  STATUS_BAR_ICON_SVG,
   NOTICE_MESSAGES
 };

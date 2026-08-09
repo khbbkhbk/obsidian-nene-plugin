@@ -167,7 +167,6 @@ class PluginDataStore {
   async saveTabBarEnhancerData(tabBarEnhancerData) {
     this.setTabBarEnhancerData(tabBarEnhancerData);
     await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
-    await this.featureConfigManager.save('fileExplorerEnhancer', this.featureData.fileExplorerEnhancer);
   }
 
   // 保存编辑增强模块数据到独立配置文件。
@@ -485,13 +484,13 @@ class PluginDataStore {
   }
 
   // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+  // 注意：此处仅以用户存储值判断，不得再与默认值（恒为 false）做与运算，
+  // 否则开关会被恒等钳制为 false，导致"文件夹路径末尾补 /"无法持久化。
   normalizeCommandUriEnhancerData(commandUriEnhancerData) {
     const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
-    const defaultCommandUriEnhancer = constants.DEFAULT_FEATURE_DATA.commandUriEnhancer;
 
     return {
       addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
-        && defaultCommandUriEnhancer.addTrailingSlashToFolders !== false
     };
   }
 

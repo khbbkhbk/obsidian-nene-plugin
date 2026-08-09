@@ -740,12 +740,12 @@ var require_constants4 = __commonJS({
     var COMMAND_DEFINITIONS = [
       {
         id: COMMAND_IDS.skipTagBackward,
-        name: "向左跳过标签",
+        name: "向左跳过当前标签",
         hotkeys: [{ modifiers: ["Ctrl"], key: "ArrowLeft" }]
       },
       {
         id: COMMAND_IDS.skipTagForward,
-        name: "向右跳过标签",
+        name: "向右跳过当前标签",
         hotkeys: [{ modifiers: ["Ctrl"], key: "ArrowRight" }]
       },
       {
@@ -755,22 +755,20 @@ var require_constants4 = __commonJS({
       },
       {
         id: COMMAND_IDS.syncMatchingTag,
-        name: "同步修改配对标签",
-        hotkeys: []
+        name: "同步更新匹配标签",
+        hotkeys: [{ modifiers: ["Ctrl"], key: "u" }]
       }
     ];
-    var STATUS_BAR_ICONS = {
-      enabled: "code-2",
-      disabled: "code"
-    };
+    var STATUS_BAR_ICON_SVG = '<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M32 256 A160 160 0 0 1 192 96 L832 96 A160 160 0 0 1 992 256 L992 768 A160 160 0 0 1 832 928 L192 928 A160 160 0 0 1 32 768 L32 256 Z M192 192 L832 192 A64 64 0 0 1 896 256 L896 768 A64 64 0 0 1 832 832 L192 832 A64 64 0 0 1 128 768 L128 256 A64 64 0 0 1 192 192 Z M512 511.424 L332.864 704 L256 624.064 l104.576-112.448 L256 400.192 L332.544 320 L512 511.424 z M768 704 H576 V576 h192 v128 z"/></svg>';
     var NOTICE_MESSAGES = {
       commandNotInTag: "「%s」命令仅在光标位于标签内部时生效",
       goToMatchingTagOnVoid: '"跳转至匹配标签"命令对单标签无效！',
-      syncMatchingTagOnVoid: '"同步修改配对标签"命令对单标签无效！',
+      syncMatchingTagOnVoid: '"同步更新匹配标签"命令对单标签无效！',
       tagExcluded: "当前标签已在排除列表中，命令不会生效",
       tagInCodeContext: "当前标签位于代码块或行内代码中，命令不会生效",
-      noMatchingTag: "未找到匹配的配对标签",
-      tagNamesAlreadySame: "配对标签名称已一致，无需修改"
+      noMatchingTag: "未找到与之匹配的匹配标签",
+      noSkipTarget: "当前方向没有可跳转的标签",
+      tagNamesAlreadySame: "目标标签名与当前一致，无需修改"
     };
     module2.exports = {
       FEATURE_NAME,
@@ -778,7 +776,7 @@ var require_constants4 = __commonJS({
       DEFAULT_EDITOR_ENHANCER_SETTINGS,
       COMMAND_IDS,
       COMMAND_DEFINITIONS,
-      STATUS_BAR_ICONS,
+      STATUS_BAR_ICON_SVG,
       NOTICE_MESSAGES
     };
   }
@@ -1412,7 +1410,6 @@ var require_store2 = __commonJS({
       async saveTabBarEnhancerData(tabBarEnhancerData) {
         this.setTabBarEnhancerData(tabBarEnhancerData);
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
-        await this.featureConfigManager.save("fileExplorerEnhancer", this.featureData.fileExplorerEnhancer);
       }
       // 保存编辑增强模块数据到独立配置文件。
       async saveEditorEnhancerData(editorEnhancerData) {
@@ -1696,11 +1693,12 @@ var require_store2 = __commonJS({
         };
       }
       // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
+      // 注意：此处仅以用户存储值判断，不得再与默认值（恒为 false）做与运算，
+      // 否则开关会被恒等钳制为 false，导致"文件夹路径末尾补 /"无法持久化。
       normalizeCommandUriEnhancerData(commandUriEnhancerData) {
         const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
-        const defaultCommandUriEnhancer = constants.DEFAULT_FEATURE_DATA.commandUriEnhancer;
         return {
-          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false && defaultCommandUriEnhancer.addTrailingSlashToFolders !== false
+          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
         };
       }
       // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
@@ -3089,9 +3087,9 @@ var require_view2 = __commonJS({
     ];
     var OBSIDIAN_URI_SYNTAXES = [
       { key: "open", syntax: "obsidian://open?vault=<vault>&file=<file_path>", comment: "打开指定仓库的指定笔记" },
-      { key: "open-method", syntax: "obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>", comment: "打开笔记：tab=新标签页、window=新窗口、split=新面板" },
-      { key: "open-block", syntax: "obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>", comment: "打开笔记并定位到指定文本块（例如 ^1rww6s），块不存在时回退打开笔记并提示" },
-      { key: "open-header", syntax: "obsidian://open?vault=<vault>&file=<file_path>&header=<标题>", comment: "打开笔记并定位到指定标题，标题不存在时回退打开笔记并提示" },
+      { key: "open-method", syntax: "obsidian://open?vault=<vault>&file=<file_path>&method=<tab|window|split>", comment: "控制笔记的打开方式：tab=新标签页、window=新窗口、split=新面板" },
+      { key: "open-block", syntax: "obsidian://open?vault=<vault>&file=<file_path>&block=<block_id>", comment: "打开笔记并定位到指定文本块" },
+      { key: "open-header", syntax: "obsidian://open?vault=<vault>&file=<file_path>&header=<标题>", comment: "打开笔记并定位到指定标题" },
       { key: "search", syntax: "obsidian://search?vault=<vault>&query=<query>", comment: "在指定仓库内搜索指定关键词" },
       { key: "show-plugin", syntax: "obsidian://show-plugin?id=<plugin_id>", comment: "在社区插件市场搜索指定的第三方插件" },
       // 由命令&URI增强运行时注册的自定义协议：用于快速定位插件设置或快捷键配置页。
@@ -3476,7 +3474,8 @@ var require_command_uri_runtime = __commonJS({
     var CommandUriRuntime = class {
       constructor(plugin) {
         this.plugin = plugin;
-        this.openUriListener = null;
+        this.nativeOpenHandler = null;
+        this.nativeHandlersRegistry = null;
       }
       // 注册插件自定义协议处理器，生命周期由插件统一管理。
       // 包含 goto-plugin（插件定位）与 open（笔记打开扩展）两个协议。
@@ -3494,46 +3493,81 @@ var require_command_uri_runtime = __commonJS({
         });
       }
       // 注册 obsidian://open 扩展协议处理器，在原协议基础上增加 method、block、header 参数。
-      // 说明：Obsidian 核心已内置注册 "open" 协议（obsidian://open），同一 action 无法重复注册。
-      // 因此改走官方稳定的 url-parse 事件，在核心解析 URL 之前拦截：
-      //  - 仅当 URL 携带本模块的扩展参数（method / block / header）时才接管处理并返回 true（阻止核心）；
-      //  - 普通 obsidian://open（无扩展参数）原样放行给核心，不影响原生行为。
+      // 说明：Obsidian 核心已内置注册 "open" 协议，registerObsidianProtocolHandler 不允许重复注册。
+      // 因此采用手动注册方案：
+      //   1. 从内部注册表暂存并移除核心处理器
+      //   2. 将扩展处理器手动写入注册表
+      //   3. 通过 this.plugin.register() 注册清理回调：插件卸载时先移除扩展处理器，再恢复核心处理器。
+      // 核心处理器存储位置属于未文档化内部 API，通过遍历 app 属性动态查找。
+      // 注意：不使用 registerObsidianProtocolHandler，因为该方法内部会自动注册清理回调，
+      // 卸载时的清理顺序会导致恢复后的核心处理器被再次删除。
       registerOpenProtocolHandler() {
-        this.openUriListener = (url) => {
-          if (!url) {
-            return void 0;
+        const app = this.plugin.app;
+        this.nativeHandlersRegistry = this.findNativeProtocolRegistry(app);
+        if (this.nativeHandlersRegistry && this.nativeHandlersRegistry.has("open")) {
+          this.nativeOpenHandler = this.nativeHandlersRegistry.get("open");
+          this.nativeHandlersRegistry.delete("open");
+        } else {
+          console.warn("[ねね] 未找到 Obsidian 核心 open 处理器，扩展将替代原生行为。");
+        }
+        const extensionHandler = (params) => this.onOpenProtocol(params);
+        this.nativeHandlersRegistry.set("open", extensionHandler);
+        this.plugin.register(() => {
+          if (this.nativeHandlersRegistry) {
+            this.nativeHandlersRegistry.delete("open");
+            if (this.nativeOpenHandler) {
+              this.nativeHandlersRegistry.set("open", this.nativeOpenHandler);
+            }
+            this.nativeOpenHandler = null;
+            this.nativeHandlersRegistry = null;
           }
-          let urlObj;
+        });
+      }
+      // 在 app 内部属性中查找协议处理器注册表（Map 结构）。
+      // Obsidian v1.4.16 中协议处理器存储在 app.workspace.protocolHandlers，属于未文档化内部 API。
+      findNativeProtocolRegistry(app) {
+        const wsProtocolHandlers = app.workspace && app.workspace.protocolHandlers;
+        if (wsProtocolHandlers instanceof Map && wsProtocolHandlers.has("open")) {
+          return wsProtocolHandlers;
+        }
+        for (const key of Object.getOwnPropertyNames(app)) {
           try {
-            urlObj = new URL(url);
-          } catch (error) {
-            return void 0;
+            const obj = app[key];
+            if (obj instanceof Map && obj.has("open")) return obj;
+          } catch (e) {
           }
-          if (urlObj.protocol !== "obsidian:" || urlObj.hostname !== "open") {
-            return void 0;
+        }
+        if (app.workspace) {
+          for (const key of Object.getOwnPropertyNames(app.workspace)) {
+            try {
+              const obj = app.workspace[key];
+              if (obj instanceof Map && obj.has("open")) return obj;
+            } catch (e) {
+            }
           }
-          const params = urlObj.searchParams;
-          const file = params.get("file");
-          const method = params.get("method");
-          const block = params.get("block");
-          const header = params.get("header");
-          if (!file || !method && !block && !header) {
-            return void 0;
-          }
+        }
+        return null;
+      }
+      // open 协议统一入口：有扩展参数走自建逻辑，无扩展参数回退核心处理器。
+      onOpenProtocol(params) {
+        const { file, method, block, header } = params;
+        const hasExtension = !!(method || block || header);
+        if (hasExtension) {
           this.plugin.app.workspace.onLayoutReady(() => {
-            this.handleOpenUri({ file, method, block, header });
+            this.handleOpenUri({ file, method, block, header }).catch((error) => {
+              console.error("[ねね] obsidian://open 扩展处理异常", error);
+            });
           });
-          return true;
-        };
-        this.plugin.registerEvent(this.plugin.app.workspace.on("url-parse", this.openUriListener));
+        } else if (this.nativeOpenHandler) {
+          this.nativeOpenHandler(params);
+        }
       }
       // 处理 obsidian://open 扩展 URI：解析 method（打开方式）、block（文本块定位）、header（标题定位）参数。
       async handleOpenUri(params) {
         const { file, method, block, header } = params;
         if (!this.plugin.isCommandUriEnhancerEnabled()) {
           if (file) {
-            const decodedFile2 = decodeURIComponent(file);
-            this.plugin.app.workspace.openLinkText(decodedFile2, "", false);
+            this.plugin.app.workspace.openLinkText(file, "", false);
           }
           return;
         }
@@ -3541,7 +3575,6 @@ var require_command_uri_runtime = __commonJS({
           new obsidian2.Notice("URI 缺少 file 参数，无法打开笔记");
           return;
         }
-        const decodedFile = decodeURIComponent(file);
         let openMode = false;
         if (method === "tab") {
           openMode = "tab";
@@ -3550,22 +3583,21 @@ var require_command_uri_runtime = __commonJS({
         } else if (method === "split") {
           openMode = "split";
         }
-        let linktext = decodedFile;
+        let linktext = file;
         let anchorType = null;
         let anchorValue = null;
         if (block) {
-          linktext = `${decodedFile}#^${block}`;
+          linktext = `${file}#^${block}`;
           anchorType = "block";
           anchorValue = block;
         } else if (header) {
-          const decodedHeader = decodeURIComponent(header);
-          linktext = `${decodedFile}#${decodedHeader}`;
+          linktext = `${file}#${header}`;
           anchorType = "header";
-          anchorValue = decodedHeader;
+          anchorValue = header;
         }
         await this.plugin.app.workspace.openLinkText(linktext, "", openMode);
         if (anchorType) {
-          setTimeout(() => this.verifyAnchor(decodedFile, anchorType, anchorValue), 300);
+          setTimeout(() => this.verifyAnchor(file, anchorType, anchorValue), 300);
         }
       }
       // 校验文本块或标题锚点是否在目标文件中存在，不存在则给出 toast 提示。
@@ -8413,10 +8445,12 @@ var require_store8 = __commonJS({
        * 更新自动补全总开关（状态栏按钮状态）并保存。
        * 该开关仅控制自动补全提示框的启停。
        * @param {boolean} enabled 是否启用自动补全
+       * @returns {boolean} 更新后的开关值（供调用方据此同步 enable/disable）
        */
       async setAutoCompleteEnabled(enabled) {
         this.settings.autoCompleteEnabled = enabled === true;
         await this.save();
+        return this.settings.autoCompleteEnabled;
       }
     };
     module2.exports = {
@@ -8463,6 +8497,7 @@ var require_tag_utils = __commonJS({
       const endIndex = line.indexOf(">", lineSplit);
       if (endIndex < 0) return null;
       const segment = line.slice(startIndex, endIndex + 1);
+      TAG_PATTERN.lastIndex = 0;
       const match = TAG_PATTERN.exec(segment);
       if (match === null) return null;
       const tagIndex = startIndex + match.index;
@@ -8496,11 +8531,69 @@ var require_tag_utils = __commonJS({
       }
       return count % 2 === 1;
     }
+    var CODE_BLOCK_CACHE_THRESHOLD = 2e3;
+    var _cachedEditor = null;
+    var _cachedGen = null;
+    var _cachedSet = null;
+    function buildCodeBlockLines(editor) {
+      var lineCount = editor.lineCount();
+      if (lineCount < CODE_BLOCK_CACHE_THRESHOLD) {
+        var smallSet = /* @__PURE__ */ new Set();
+        var sInBlock = false;
+        for (var sl = 0; sl < lineCount; sl++) {
+          if (isFenceStart(editor, sl)) {
+            sInBlock = !sInBlock;
+            continue;
+          }
+          if (sInBlock) smallSet.add(sl);
+        }
+        return smallSet;
+      }
+      var gen;
+      try {
+        gen = editor.cm.doc.changeGeneration();
+      } catch (e) {
+        gen = lineCount;
+      }
+      if (editor === _cachedEditor && gen === _cachedGen) {
+        return _cachedSet;
+      }
+      var set = /* @__PURE__ */ new Set();
+      var inBlock = false;
+      for (var bl = 0; bl < lineCount; bl++) {
+        if (isFenceStart(editor, bl)) {
+          inBlock = !inBlock;
+          continue;
+        }
+        if (inBlock) set.add(bl);
+      }
+      _cachedEditor = editor;
+      _cachedGen = gen;
+      _cachedSet = set;
+      return set;
+    }
     function isInInlineCode(line, ch) {
-      const start = line.lastIndexOf("`", ch - 1);
-      if (start < 0) return false;
-      const next = line.indexOf("`", start + 1);
-      return next > ch || next < 0;
+      let i = 0;
+      while (i < line.length) {
+        const start = line.indexOf("`", i);
+        if (start === -1) break;
+        if (ch < start) return false;
+        if (start + 2 < line.length && line[start + 1] === "`" && line[start + 2] === "`") {
+          let fenceEnd = start + 2;
+          while (fenceEnd + 1 < line.length && line[fenceEnd + 1] === "`") {
+            fenceEnd++;
+          }
+          i = fenceEnd + 1;
+          continue;
+        }
+        const end = line.indexOf("`", start + 1);
+        if (end === -1) {
+          return ch >= start;
+        }
+        if (ch <= end) return true;
+        i = end + 1;
+      }
+      return false;
     }
     function isTagExcluded(excludedTags, name) {
       const list = String(excludedTags || "").split(",").map(function(item) {
@@ -8509,7 +8602,7 @@ var require_tag_utils = __commonJS({
       return list.includes(name);
     }
     function getTagConstraintError(editor, cursor, tag, settings, messages) {
-      if (isTagExcluded(settings.excludedTags, tag.name)) {
+      if (tag && isTagExcluded(settings.excludedTags, tag.name)) {
         return messages.tagExcluded;
       }
       if (settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, cursor.line)) {
@@ -8524,11 +8617,12 @@ var require_tag_utils = __commonJS({
       const name = cursorTagInfo.name.toLowerCase();
       const settings = options || {};
       let depth = 1;
+      const codeBlockLines = settings.ignoreInCodeBlocks ? buildCodeBlockLines(editor) : /* @__PURE__ */ new Set();
       if (cursorTagInfo.isClosing) {
         for (let line = cursorTagInfo.line; line >= 0; line--) {
           const lineText = editor.getLine(line);
           const tags = scanLineTags(lineText).reverse();
-          const inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+          const inCodeBlock = codeBlockLines.has(line);
           for (const tag of tags) {
             if (line === cursorTagInfo.line && tag.index >= cursorTagInfo.index) continue;
             if (inCodeBlock) continue;
@@ -8538,7 +8632,9 @@ var require_tag_utils = __commonJS({
             if (tag.name.toLowerCase() !== name) continue;
             if (!tag.isClosing) {
               depth--;
-              if (depth === 0) return tag;
+              if (depth === 0) {
+                return Object.assign({}, tag, { line });
+              }
             } else {
               depth++;
             }
@@ -8548,7 +8644,7 @@ var require_tag_utils = __commonJS({
         for (let line = cursorTagInfo.line; line < editor.lineCount(); line++) {
           const lineText = editor.getLine(line);
           const tags = scanLineTags(lineText);
-          const inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+          const inCodeBlock = codeBlockLines.has(line);
           for (const tag of tags) {
             if (line === cursorTagInfo.line && tag.index <= cursorTagInfo.index) continue;
             if (inCodeBlock) continue;
@@ -8558,7 +8654,9 @@ var require_tag_utils = __commonJS({
             if (tag.name.toLowerCase() !== name) continue;
             if (tag.isClosing) {
               depth--;
-              if (depth === 0) return tag;
+              if (depth === 0) {
+                return Object.assign({}, tag, { line });
+              }
             } else {
               depth++;
             }
@@ -8567,9 +8665,55 @@ var require_tag_utils = __commonJS({
       }
       return null;
     }
+    function findSkipTag(editor, currentTag, direction, options) {
+      const settings = options || {};
+      let cursorOffset = 0;
+      for (let line = 0; line < currentTag.line; line++) {
+        cursorOffset += editor.getLine(line).length + 1;
+      }
+      cursorOffset += currentTag.index;
+      const pair = findMatchingTag(editor, currentTag, settings);
+      const codeBlockLines = settings.ignoreInCodeBlocks ? buildCodeBlockLines(editor) : /* @__PURE__ */ new Set();
+      const high = [];
+      const low = [];
+      let offset = 0;
+      for (let line = 0; line < editor.lineCount(); line++) {
+        const text = editor.getLine(line);
+        const tags = scanLineTags(text);
+        const inCodeBlock = codeBlockLines.has(line);
+        for (let i = 0; i < tags.length; i++) {
+          const t = tags[i];
+          const tOffset = offset + t.index;
+          if (line === currentTag.line && t.index === currentTag.index) continue;
+          if (direction === "left" && tOffset >= cursorOffset) continue;
+          if (direction === "right" && tOffset <= cursorOffset) continue;
+          if (inCodeBlock) continue;
+          if (settings.ignoreInlineCode && isInInlineCode(text, t.index)) continue;
+          if (settings.excludedTags && isTagExcluded(settings.excludedTags, t.name)) continue;
+          if (pair && line === pair.line && t.index === pair.index) continue;
+          const candidate = Object.assign({}, t, { line, offset: tOffset });
+          if (isSingleTag(t) || !t.isClosing) high.push(candidate);
+          else low.push(candidate);
+        }
+        offset += text.length + 1;
+      }
+      const candidates = high.length ? high : low;
+      if (candidates.length === 0) return null;
+      if (direction === "left") {
+        candidates.sort(function(a, b) {
+          return b.offset - a.offset;
+        });
+      } else {
+        candidates.sort(function(a, b) {
+          return a.offset - b.offset;
+        });
+      }
+      return candidates[0];
+    }
     function shouldAutoClose(editor, tag, options) {
       var settings = options || {};
       var name = tag.name.toLowerCase();
+      var codeBlockLines = settings.ignoreInCodeBlocks ? buildCodeBlockLines(editor) : /* @__PURE__ */ new Set();
       var initialDepth = 0;
       for (var line = 0; line <= tag.line; line++) {
         var lineText = editor.getLine(line);
@@ -8579,7 +8723,7 @@ var require_tag_utils = __commonJS({
             return t3.index + t3.length <= tag.index;
           });
         }
-        var inCodeBlock = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line);
+        var inCodeBlock = codeBlockLines.has(line);
         for (var i = 0; i < tags.length; i++) {
           var t = tags[i];
           if (inCodeBlock) continue;
@@ -8594,6 +8738,15 @@ var require_tag_utils = __commonJS({
           }
         }
       }
+      console.log(
+        "[DEBUG shouldAutoClose]",
+        "光标=" + tag.line + ":" + tag.index,
+        "标签=<" + name + ">",
+        "initialDepth=" + initialDepth,
+        "忽略代码块=" + settings.ignoreInCodeBlocks,
+        "代码块集合=",
+        Array.from(codeBlockLines)
+      );
       var depth = initialDepth + 1;
       for (var line2 = tag.line; line2 < editor.lineCount(); line2++) {
         var lineText2 = editor.getLine(line2);
@@ -8603,23 +8756,30 @@ var require_tag_utils = __commonJS({
             return t3.index > tag.index;
           });
         }
-        var inCodeBlock2 = settings.ignoreInCodeBlocks && isInFencedCodeBlock(editor, line2);
+        var inCodeBlock2 = codeBlockLines.has(line2);
         for (var j = 0; j < tags2.length; j++) {
           var t2 = tags2[j];
-          if (inCodeBlock2) continue;
+          var t2Name = t2.name.toLowerCase();
+          if (inCodeBlock2) {
+            if (t2Name === name) console.log("[DEBUG] 行" + line2 + " 同名标签被代码块过滤", t2.isClosing ? "</" + t2.name + ">" : "<" + t2.name + ">");
+            continue;
+          }
           if (settings.ignoreInlineCode && isInInlineCode(lineText2, t2.index)) continue;
           if (isSingleTag(t2)) continue;
           if (settings.excludedTags && isTagExcluded(settings.excludedTags, t2.name)) continue;
-          if (t2.name.toLowerCase() !== name) continue;
+          if (t2Name !== name) continue;
           if (t2.isClosing) {
             depth--;
+            console.log("[DEBUG] 行" + line2 + " 命中闭标签 depth→" + depth);
           } else {
             depth++;
+            console.log("[DEBUG] 行" + line2 + " 命中开标签 depth→" + depth);
           }
           if (initialDepth === 0 && depth <= 0) return false;
           if (initialDepth > 0 && depth < initialDepth) return false;
         }
       }
+      console.log("[DEBUG] 步骤2扫描完 depth=" + depth + " initialDepth=" + initialDepth + " → 返回true");
       return true;
     }
     module2.exports = {
@@ -8634,6 +8794,7 @@ var require_tag_utils = __commonJS({
       isTagExcluded,
       getTagConstraintError,
       findMatchingTag,
+      findSkipTag,
       shouldAutoClose
     };
   }
@@ -8847,6 +9008,20 @@ var require_overlay = __commonJS({
         }
         if (editor.cm.dom.contains(evt.target)) {
           this.log("鼠标点击：光标可能已移动，重新检测");
+          const cursor = editor.getCursor();
+          if (this.pasteSuppressPos) {
+            if (cursor.line !== this.pasteSuppressPos.line || cursor.ch !== this.pasteSuppressPos.ch) {
+              this.log("鼠标点击：光标已移离粘贴抑制位置，解除粘贴抑制");
+              this.pasteSuppressPos = null;
+            }
+          }
+          if (this.suppressUntilTyping && this.suppressCursor) {
+            if (cursor.line !== this.suppressCursor.line || cursor.ch !== this.suppressCursor.ch) {
+              this.log("鼠标点击：光标已移离补全后抑制位置，解除补全后抑制");
+              this.suppressUntilTyping = false;
+              this.suppressCursor = null;
+            }
+          }
           this.onEditorEvent(editor);
           return;
         }
@@ -9085,6 +9260,307 @@ var require_overlay = __commonJS({
   }
 });
 
+// src/modules/editor-enhancer/tag-name-editor.js
+var require_tag_name_editor = __commonJS({
+  "src/modules/editor-enhancer/tag-name-editor.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var ERROR_EMPTY_NAME = "标签名不能为空";
+    var ERROR_INVALID_NAME = "标签名仅支持字母，斜杠只能出现在结尾";
+    var CONFIRM_TITLE = "转换为单标签";
+    var VALID_INPUT_PATTERN = /^[a-zA-Z]+(?:\/)?$/;
+    var TagNameEditor = class {
+      /**
+       * @param {Object} app Obsidian App 实例，用于二次确认弹窗。
+       */
+      constructor(app) {
+        this.app = app;
+        this.el = null;
+        this.inputEl = null;
+        this.errorEl = null;
+        this.options = null;
+        this.documentPointerHandler = null;
+        this.marks = [];
+        this.valid = false;
+      }
+      /**
+       * 打开编辑输入框。
+       * @param {Object} options
+       *   anchorCoords:    光标像素坐标 { left, top, bottom }，输入框定位在光标右下角。
+       *   initialName:     当前标签名（不含 "/"）。
+       *   editor:          当前 CodeMirror 编辑器实例（用于转单标签二次确认时的高亮）。
+       *   highlightRanges: 高亮范围数组 [{ from: {line, ch}, to: {line, ch} }]，弹出二次确认窗口时应用。
+       *   onCommit:        (newName, isSingleTag) => void，回车确认后回调，newName 已统一小写。
+       *   onCancel:        () => void，Esc / 点击外部退出时回调。
+       */
+      open(options) {
+        this.close();
+        this.options = options || {};
+        this.buildDom();
+        this.position(options.anchorCoords);
+        this.inputEl.value = options.initialName || "";
+        this.validate();
+        this.inputEl.focus();
+        this.inputEl.select();
+      }
+      /**
+       * 构建输入框 DOM 并绑定事件。
+       */
+      buildDom() {
+        this.el = document.createElement("div");
+        this.el.className = "nene-tag-name-editor";
+        this.inputEl = document.createElement("input");
+        this.inputEl.type = "text";
+        this.inputEl.spellcheck = false;
+        this.inputEl.autocomplete = "off";
+        this.inputEl.placeholder = "标签名";
+        this.errorEl = document.createElement("div");
+        this.errorEl.className = "nene-tag-name-editor-error";
+        this.el.appendChild(this.inputEl);
+        this.el.appendChild(this.errorEl);
+        document.body.appendChild(this.el);
+        this.inputEl.addEventListener("input", () => this.validate());
+        this.inputEl.addEventListener("keydown", (evt) => this.onKeyDown(evt));
+        this.documentPointerHandler = (evt) => {
+          if (this.el && evt.target instanceof Node && this.el.contains(evt.target)) {
+            return;
+          }
+          this.cancel();
+        };
+        document.addEventListener("pointerdown", this.documentPointerHandler, true);
+      }
+      /**
+       * 将输入框定位到光标像素坐标的右下角。
+       */
+      position(coords) {
+        if (!coords || !this.el) {
+          return;
+        }
+        const top = typeof coords.bottom === "number" ? coords.bottom : coords.top;
+        this.el.style.left = coords.left + "px";
+        this.el.style.top = top + 6 + "px";
+      }
+      /**
+       * 校验当前输入内容：非法时显示红色小字提示。
+       * @returns {boolean} 输入是否合法（合法才允许 Enter 提交）。
+       */
+      validate() {
+        const raw = this.inputEl.value;
+        let message = null;
+        if (raw.length === 0) {
+          message = ERROR_EMPTY_NAME;
+        } else if (!VALID_INPUT_PATTERN.test(raw)) {
+          message = ERROR_INVALID_NAME;
+        }
+        this.valid = message === null;
+        this.errorEl.textContent = message || "";
+        this.errorEl.classList.toggle("show", message !== null);
+        return this.valid;
+      }
+      /**
+       * 输入框按键处理：Esc 退出，Enter 提交（非法输入时禁用）。
+       */
+      onKeyDown(evt) {
+        if (evt.key === "Escape") {
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          this.cancel();
+          return;
+        }
+        if (evt.key === "Enter") {
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          this.confirm();
+        }
+      }
+      /**
+       * 回车确认：非法输入直接忽略；以 "/" 结尾时先触发二次确认。
+       */
+      confirm() {
+        if (!this.validate()) {
+          return;
+        }
+        const raw = this.inputEl.value;
+        const isSingleTag = raw.endsWith("/");
+        const newName = (isSingleTag ? raw.slice(0, -1) : raw).toLowerCase();
+        if (isSingleTag) {
+          this.askSingleTagConfirm(newName);
+        } else {
+          this.commit(newName, false);
+        }
+      }
+      /**
+       * 转单标签二次确认：
+       *  - 弹窗期间在编辑器中高亮当前标签与其匹配标签，突出待操作范围；
+       *  - 临时停用"点击外部退出"，避免点击弹窗按钮时误触发输入框取消；
+       *  - 确认后提交，取消 / Esc 则清除高亮并回到输入框继续编辑。
+       */
+      askSingleTagConfirm(newName) {
+        const self = this;
+        this.applyHighlight();
+        this.suspendPointerHandler();
+        const modal = new SingleTagConfirmModal(this.app, {
+          newName,
+          onConfirm() {
+            self.commit(newName, true);
+          },
+          onCancel() {
+            self.refocusInput();
+          }
+        });
+        const originalOnClose = modal.onClose.bind(modal);
+        modal.onClose = () => {
+          originalOnClose();
+          self.clearHighlight();
+          self.resumePointerHandler();
+          self.refocusInput();
+        };
+        modal.open();
+      }
+      /**
+       * 在编辑器中标记待同步的标签范围（markText 高亮）。
+       * 范围数据取自 open() 时传入的 options.editor 与 options.highlightRanges。
+       */
+      applyHighlight() {
+        this.clearHighlight();
+        const options = this.options || {};
+        const editor = options.editor;
+        const ranges = options.highlightRanges;
+        if (!editor || !editor.cm || typeof editor.cm.markText !== "function" || !Array.isArray(ranges) || !ranges.length) {
+          return;
+        }
+        for (const range of ranges) {
+          if (!range || !range.from || !range.to) continue;
+          try {
+            this.marks.push(editor.cm.markText(range.from, range.to, { class: "nene-sync-tag-highlight" }));
+          } catch (error) {
+            console.log("[同步更新匹配标签] 标签高亮失败（已隔离）", error);
+          }
+        }
+      }
+      /**
+       * 清除全部编辑器高亮标记。
+       */
+      clearHighlight() {
+        for (const mark of this.marks) {
+          try {
+            mark.clear();
+          } catch (error) {
+          }
+        }
+        this.marks = [];
+      }
+      /**
+       * 临时移除"点击外部退出"监听（二次确认弹窗打开期间调用）。
+       */
+      suspendPointerHandler() {
+        if (this.documentPointerHandler) {
+          document.removeEventListener("pointerdown", this.documentPointerHandler, true);
+        }
+      }
+      /**
+       * 恢复"点击外部退出"监听（二次确认弹窗关闭后调用）。
+       */
+      resumePointerHandler() {
+        if (this.documentPointerHandler) {
+          document.addEventListener("pointerdown", this.documentPointerHandler, true);
+        }
+      }
+      /**
+       * 弹窗关闭后重新聚焦输入框，让用户继续编辑。
+       */
+      refocusInput() {
+        setTimeout(() => {
+          if (this.inputEl) {
+            this.inputEl.focus();
+            this.inputEl.select();
+          }
+        }, 50);
+      }
+      /**
+       * 提交合法输入并关闭输入框。
+       */
+      commit(newName, isSingleTag) {
+        const onCommit = this.options && this.options.onCommit;
+        this.close();
+        if (onCommit) {
+          onCommit(newName, isSingleTag);
+        }
+      }
+      /**
+       * 放弃修改退出（Esc / 点击外部）。
+       */
+      cancel() {
+        const onCancel = this.options && this.options.onCancel;
+        this.close();
+        if (onCancel) {
+          onCancel();
+        }
+      }
+      /**
+       * 关闭并清理输入框：移除事件监听、高亮标记与 DOM。
+       */
+      close() {
+        if (this.documentPointerHandler) {
+          document.removeEventListener("pointerdown", this.documentPointerHandler, true);
+          this.documentPointerHandler = null;
+        }
+        this.clearHighlight();
+        if (this.el && this.el.parentNode) {
+          this.el.parentNode.removeChild(this.el);
+        }
+        this.el = null;
+        this.inputEl = null;
+        this.errorEl = null;
+        this.options = null;
+      }
+    };
+    var SingleTagConfirmModal = class extends obsidian2.Modal {
+      /**
+       * @param {Object} app    Obsidian App 实例。
+       * @param {Object} options { newName, onConfirm, onCancel }
+       */
+      constructor(app, options) {
+        super(app);
+        this.options = options || {};
+      }
+      onOpen() {
+        const { contentEl } = this;
+        const name = this.options.newName;
+        contentEl.empty();
+        contentEl.createEl("h3", { text: CONFIRM_TITLE });
+        contentEl.createEl("p", {
+          text: "将以单标签 <" + name + "/> 更新当前标签，并删除其匹配标签，是否继续？"
+        });
+        new obsidian2.Setting(contentEl).addButton((btn) => btn.setButtonText("取消").setWarning().onClick(() => {
+          this.close();
+          if (this.options.onCancel) {
+            this.options.onCancel();
+          }
+        })).addButton((btn) => btn.setButtonText("确认").setCta().onClick(() => {
+          this.close();
+          if (this.options.onConfirm) {
+            this.options.onConfirm();
+          }
+        }));
+        this.enterKey = () => {
+          this.close();
+          if (this.options.onConfirm) {
+            this.options.onConfirm();
+          }
+        };
+      }
+      onClose() {
+        this.contentEl.empty();
+      }
+    };
+    module2.exports = {
+      TagNameEditor,
+      SingleTagConfirmModal
+    };
+  }
+});
+
 // src/modules/editor-enhancer/runtime.js
 var require_runtime4 = __commonJS({
   "src/modules/editor-enhancer/runtime.js"(exports2, module2) {
@@ -9092,7 +9568,7 @@ var require_runtime4 = __commonJS({
     var obsidian2 = require("obsidian");
     var {
       COMMAND_DEFINITIONS,
-      STATUS_BAR_ICONS,
+      STATUS_BAR_ICON_SVG,
       NOTICE_MESSAGES
     } = require_constants4();
     var {
@@ -9101,8 +9577,10 @@ var require_runtime4 = __commonJS({
       isSingleTag,
       tagNameEndPosition,
       getTagConstraintError,
-      findMatchingTag
+      findMatchingTag,
+      findSkipTag
     } = require_tag_utils();
+    var { TagNameEditor } = require_tag_name_editor();
     var EditorEnhancerRuntime = class {
       /**
        * 构造函数。
@@ -9117,6 +9595,7 @@ var require_runtime4 = __commonJS({
         this.settings = this.store.getSettings();
         this.statusBarItem = null;
         this.pasteHandler = null;
+        this.tagNameEditor = new TagNameEditor(plugin.app);
       }
       /**
        * 载入最新配置。
@@ -9144,6 +9623,7 @@ var require_runtime4 = __commonJS({
           document.removeEventListener("paste", this.pasteHandler, true);
           this.pasteHandler = null;
         }
+        this.tagNameEditor.close();
       }
       /**
        * 注册全部编辑增强命令（无条件注册，模块开关与状态栏按钮不干预注册）。
@@ -9171,8 +9651,11 @@ var require_runtime4 = __commonJS({
           new obsidian2.Notice("编辑增强模块未启用，命令不可用");
           return;
         }
-        if (commandId === "editor-enhancer-skip-tag-backward" || commandId === "editor-enhancer-skip-tag-forward") {
-          this.handleSkipTag(editor);
+        this.settings = this.store.getSettings();
+        if (commandId === "editor-enhancer-skip-tag-backward") {
+          this.handleSkipTag(editor, "向左跳过当前标签", "left");
+        } else if (commandId === "editor-enhancer-skip-tag-forward") {
+          this.handleSkipTag(editor, "向右跳过当前标签", "right");
         } else if (commandId === "editor-enhancer-go-to-matching-tag") {
           this.handleGoToMatchingTag(editor);
         } else if (commandId === "editor-enhancer-sync-matching-tag") {
@@ -9180,46 +9663,59 @@ var require_runtime4 = __commonJS({
         }
       }
       /**
-       * 获取光标所在标签，并校验光标是否位于 '<' 与 '>' 内部。
+       * 获取光标所在标签，并按优先级校验命令前置条件：
+       *   1. 排除列表（tagExcluded）
+       *   2. 代码块/行内代码（tagInCodeContext）
+       *   3. 光标是否位于标签 '<' 与 '>' 内部（commandNotInTag）
        * @param {object} editor CodeMirror 编辑器实例
        * @param {string} commandName 命令名（用于 toast 提示）
-       * @returns {object|null} 标签对象，校验失败时返回 null
+       * @returns {object|null} 标签对象，任一校验失败时返回 null
        */
       getCommandTargetTag(editor, commandName) {
         const cursor = editor.getCursor();
         const tag = cursorTag(cursor, editor, false);
-        if (!tag || !isCursorInsideTag(cursor, tag)) {
+        const error = getTagConstraintError(editor, cursor, tag, this.settings, NOTICE_MESSAGES);
+        if (error) {
+          new obsidian2.Notice(error);
+          return null;
+        }
+        const inside = tag ? isCursorInsideTag(cursor, tag) : false;
+        console.log(
+          "[编辑增强命令]",
+          commandName,
+          "光标=" + cursor.line + ":" + cursor.ch,
+          "行内容=" + JSON.stringify(editor.getLine(cursor.line)),
+          "解析标签=" + (tag ? tag.full : "null"),
+          "tagIndex=" + (tag ? tag.index : "-"),
+          "tagLength=" + (tag ? tag.length : "-"),
+          "isCursorInsideTag=" + inside
+        );
+        if (!tag || !inside) {
           new obsidian2.Notice(NOTICE_MESSAGES.commandNotInTag.replace("%s", commandName));
           return null;
         }
         return tag;
       }
       /**
-       * 校验标签是否满足设置约束（排除列表、代码块、行内代码）。
+       * 向左/向右跳过当前标签：从当前标签跳转至其外层或左侧（左向）/内层或右侧（右向）
+       * 的最近标签，支持单标签与双标签；落点为目标标签名的右邻位置。
        * @param {object} editor CodeMirror 编辑器实例
-       * @param {object} tag 标签对象
-       * @returns {boolean} 是否通过约束校验
+       * @param {string} commandName 命令名（用于 toast 提示）
+       * @param {string} direction 'left' 向左跳过 / 'right' 向右跳过
        */
-      checkTagConstraints(editor, tag) {
-        const cursor = editor.getCursor();
-        const error = getTagConstraintError(editor, cursor, tag, this.settings, NOTICE_MESSAGES);
-        if (error) {
-          new obsidian2.Notice(error);
-          return false;
-        }
-        return true;
-      }
-      /**
-       * 向左/向右跳过标签：光标落点位于标签名的末尾（'<' 或 '</' 之后标签名最后一个字符之后）。
-       * 两个方向在当前光标标签上的落点一致，均收敛到标签名末尾。
-       * @param {object} editor CodeMirror 编辑器实例
-       */
-      handleSkipTag(editor) {
-        const tag = this.getCommandTargetTag(editor, "向左跳过标签");
+      handleSkipTag(editor, commandName, direction) {
+        const tag = this.getCommandTargetTag(editor, commandName);
         if (!tag) return;
-        if (!this.checkTagConstraints(editor, tag)) return;
-        const target = { line: tag.line, ch: tagNameEndPosition(tag) };
-        editor.setCursor(target);
+        const target = findSkipTag(editor, tag, direction, {
+          ignoreInCodeBlocks: this.settings.ignoreInCodeBlocks,
+          ignoreInlineCode: this.settings.ignoreInlineCode,
+          excludedTags: this.settings.excludedTags
+        });
+        if (!target) {
+          new obsidian2.Notice(NOTICE_MESSAGES.noSkipTarget);
+          return;
+        }
+        editor.setCursor({ line: target.line, ch: tagNameEndPosition(target) });
       }
       /**
        * 跳转至匹配标签：支持来回跳转，光标落点位于配对标签的标签名末尾。
@@ -9233,7 +9729,6 @@ var require_runtime4 = __commonJS({
           new obsidian2.Notice(NOTICE_MESSAGES.goToMatchingTagOnVoid);
           return;
         }
-        if (!this.checkTagConstraints(editor, tag)) return;
         const pair = findMatchingTag(editor, tag, {
           ignoreInCodeBlocks: this.settings.ignoreInCodeBlocks,
           ignoreInlineCode: this.settings.ignoreInlineCode,
@@ -9247,18 +9742,21 @@ var require_runtime4 = __commonJS({
         editor.setCursor(target);
       }
       /**
-       * 同步修改配对标签：读取光标处标签的当前名称，仅替换配对标签的标签名区域，
-       * 更新前后光标位置保持不变；支持修改结束标签同步开始标签，或反之。
+       * 同步更新匹配标签：在光标右下角弹出标签名编辑输入框。
+       *  - 输入框默认值为当前标签名（结束标签不包含 "/"），全选并聚焦；
+       *  - 仅允许大小写字母与结尾 "/"，非法输入显示红色小字并禁用 Enter；
+       *  - Esc / 点击外部退出；回车确认后同步更新开始标签与结束标签的标签名；
+       *  - 新标签名以单个 "/" 结尾时，回车触发二次确认（转换为单标签）。
+       * 更新前后光标位置保持不变。
        * @param {object} editor CodeMirror 编辑器实例
        */
       handleSyncMatchingTag(editor) {
-        const tag = this.getCommandTargetTag(editor, "同步修改配对标签");
+        const tag = this.getCommandTargetTag(editor, "同步更新匹配标签");
         if (!tag) return;
         if (isSingleTag(tag)) {
           new obsidian2.Notice(NOTICE_MESSAGES.syncMatchingTagOnVoid);
           return;
         }
-        if (!this.checkTagConstraints(editor, tag)) return;
         const pair = findMatchingTag(editor, tag, {
           ignoreInCodeBlocks: this.settings.ignoreInCodeBlocks,
           ignoreInlineCode: this.settings.ignoreInlineCode,
@@ -9268,22 +9766,114 @@ var require_runtime4 = __commonJS({
           new obsidian2.Notice(NOTICE_MESSAGES.noMatchingTag);
           return;
         }
-        if (pair.name === tag.name) {
-          new obsidian2.Notice(NOTICE_MESSAGES.tagNamesAlreadySame);
+        let coords = this.getCursorCoords(editor);
+        if (!coords) {
+          const editorDom = editor.cm && editor.cm.dom;
+          if (editorDom) {
+            const rect = editorDom.getBoundingClientRect();
+            coords = { left: rect.left + 20, top: rect.top + 20, bottom: rect.top + 20 };
+          }
+        }
+        if (!coords) {
+          new obsidian2.Notice(NOTICE_MESSAGES.commandNotInTag.replace("%s", "同步更新匹配标签"));
           return;
         }
-        const cursor = editor.getCursor();
-        const nameStart = pair.index + (pair.isClosing ? 2 : 1);
-        editor.replaceRange(
-          tag.name,
-          { line: pair.line, ch: nameStart },
-          { line: pair.line, ch: nameStart + pair.name.length }
-        );
+        this.tagNameEditor.open({
+          anchorCoords: coords,
+          initialName: tag.name,
+          // 编辑器实例与高亮范围：转单标签弹出二次确认窗口时高亮当前标签与其匹配标签。
+          editor,
+          highlightRanges: [
+            { from: { line: tag.line, ch: tag.index }, to: { line: tag.line, ch: tag.index + tag.length } },
+            { from: { line: pair.line, ch: pair.index }, to: { line: pair.line, ch: pair.index + pair.length } }
+          ],
+          onCommit: (newName, isSingleTag2) => {
+            this.commitTagRename(editor, tag, pair, newName, isSingleTag2);
+          }
+        });
+      }
+      /**
+       * 提交标签名更新：
+       *  - 双向同步：同时更新当前标签与匹配标签的标签名；
+       *  - 转单标签：以当前标签为基准，删除其匹配标签，并将当前标签更新为自闭合单标签；
+       *  - 更新前后光标位置保持不变（按文档逻辑位置恢复）。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @param {object} tag 当前标签
+       * @param {object} pair 匹配标签
+       * @param {string} newName 新标签名（已统一小写，不含 "/"）
+       * @param {boolean} isSingleTag 是否转换为单标签
+       */
+      commitTagRename(editor, tag, pair, newName, isSingleTag2) {
+        if (!isSingleTag2 && newName === tag.name.toLowerCase()) {
+          new obsidian2.Notice(NOTICE_MESSAGES.tagNamesAlreadySame);
+          editor.focus();
+          return;
+        }
+        const cursor0 = editor.getCursor();
+        const edits = [];
+        if (isSingleTag2) {
+          edits.push({
+            from: { line: tag.line, ch: tag.index },
+            to: { line: tag.line, ch: tag.index + tag.length },
+            text: "<" + newName + "/>"
+          });
+          edits.push({
+            from: { line: pair.line, ch: pair.index },
+            to: { line: pair.line, ch: pair.index + pair.length },
+            text: ""
+          });
+        } else {
+          edits.push({
+            from: { line: tag.line, ch: tag.index },
+            to: { line: tag.line, ch: tag.index + tag.length },
+            text: (tag.isClosing ? "</" : "<") + newName + ">"
+          });
+          edits.push({
+            from: { line: pair.line, ch: pair.index },
+            to: { line: pair.line, ch: pair.index + pair.length },
+            text: (pair.isClosing ? "</" : "<") + newName + ">"
+          });
+        }
+        edits.sort(function(a, b) {
+          return b.from.line - a.from.line || b.from.ch - a.from.ch;
+        });
+        let cursor = { line: cursor0.line, ch: cursor0.ch };
+        for (const edit of edits) {
+          const newLen = edit.text.length;
+          const oldLen = edit.to.ch - edit.from.ch;
+          const delta = newLen - oldLen;
+          if (edit.from.line === cursor0.line) {
+            if (edit.from.ch >= cursor.ch) {
+            } else if (edit.to.ch <= cursor.ch) {
+              cursor.ch += delta;
+            } else {
+              cursor.ch = edit.from.ch + Math.min(cursor.ch - edit.from.ch, newLen);
+            }
+          }
+          editor.replaceRange(edit.text, edit.from, edit.to);
+        }
         editor.setCursor(cursor);
+        editor.focus();
+      }
+      /**
+       * 获取光标所在位置的像素坐标，用于输入框定位。
+       * @param {object} editor CodeMirror 编辑器实例
+       * @returns {object|null} { left, top, bottom } 或 null（无法定位时）
+       */
+      getCursorCoords(editor) {
+        const cm = editor.cm;
+        if (!cm || typeof cm.coordsAtPos !== "function") {
+          return null;
+        }
+        const offset = editor.posToOffset(editor.getCursor());
+        if (offset === null || offset === void 0) {
+          return null;
+        }
+        return cm.coordsAtPos(offset);
       }
       /**
        * 创建状态栏开关按钮（仅创建一次）。
-       * 图标以填充（启用）/描边（关闭）区分状态，参考 Obsidian 书签插件。
+       * 图标使用自定义 SVG，启停状态由 CSS 以 fill 区分（启用填充强调色/关闭无填充）。
        */
       ensureStatusBarItem() {
         if (this.statusBarItem) return;
@@ -9305,14 +9895,20 @@ var require_runtime4 = __commonJS({
         this.statusBarItem.setAttribute("data-tooltip-position", "top");
         this.statusBarItem.empty();
         const iconEl = this.statusBarItem.createSpan({ cls: "status-bar-item-icon" });
-        obsidian2.setIcon(iconEl, enabled ? STATUS_BAR_ICONS.enabled : STATUS_BAR_ICONS.disabled);
+        iconEl.innerHTML = STATUS_BAR_ICON_SVG;
       }
       /**
        * 切换自动补全启停（仅影响提示框）。
+       * 异常隔离：配置保存失败时提示用户，避免异常冒泡影响 Obsidian 状态栏。
        */
       async toggleAutoComplete() {
-        const next = !this.store.getSettings().autoCompleteEnabled;
-        await this.plugin.updateEditorEnhancerAutoCompleteEnabled(next);
+        try {
+          const next = !this.store.getSettings().autoCompleteEnabled;
+          await this.plugin.updateEditorEnhancerAutoCompleteEnabled(next);
+        } catch (error) {
+          console.log("[自动补全] 状态栏开关切换失败（已隔离）", error);
+          new obsidian2.Notice("自动补全开关切换失败，请重试");
+        }
       }
       /**
        * 注册粘贴监听：
@@ -9404,13 +10000,12 @@ var require_view6 = __commonJS({
         renderModalHeader(
           contentEl,
           "编辑增强模块",
-          "自动补全 HTML 标签，并提供向左/向右跳过标签、跳转至匹配标签与同步修改配对标签等命令。以下设置项与 Auto Close Tags 插件保持一致。"
+          "自动补全 HTML 标签，并提供向左/向右跳过当前标签、跳转至匹配标签与同步更新匹配标签等命令。以下设置项与 Auto Close Tags 插件保持一致。"
         );
         new obsidian2.Setting(contentEl).setName("排除标签").setDesc("排除标签列表（英文逗号分隔），输入时自动转为小写，匹配时大小写敏感。").addText((text) => {
           text.setPlaceholder("eg: div, span, i").setValue(settings.excludedTags).onChange(async (value) => {
             await this.plugin.updateEditorEnhancerExcludedTags(value);
             await this.onSettingsChanged();
-            await this.render();
           });
         });
         new obsidian2.Setting(contentEl).setName("光标位置").setDesc("自动补全结束标签后，光标停留的位置。").addDropdown((dropdown) => {
