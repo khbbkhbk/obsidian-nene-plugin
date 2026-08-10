@@ -260,12 +260,15 @@ class ThemeEnhancerManagementModal extends obsidian.Modal {
     contentEl.empty();
     renderModalHeader(
       contentEl,
-      FEATURE_DISPLAY_NAME + '管理',
-      '集中管理主题增强模块的子功能，主设置页只保留模块开关与入口。'
+      FEATURE_DISPLAY_NAME,
+      ''
     );
 
-    // 功能配置区：护眼模式开关。
-    new obsidian.Setting(contentEl)
+    // 功能选项栏。
+    const contentsEl = contentEl.createDiv({ cls: 'nene-settings-modal-content' });
+
+    // 护眼模式开关
+    new obsidian.Setting(contentsEl)
       .setName('护眼模式')
       .setDesc(
         summary.themeEnhancerEyeProtection
@@ -284,7 +287,7 @@ class ThemeEnhancerManagementModal extends obsidian.Modal {
       });
 
     // 底部维护操作栏：导出、导入、重置。
-    const footerEl = contentEl.createDiv({ cls: 'nene-theme-enhancer-footer' });
+    const footerEl = contentEl.createDiv({ cls: 'nene-settings-modal-footer' });
 
     const exportButtonEl = footerEl.createEl('button', {
       cls: 'mod-cta',

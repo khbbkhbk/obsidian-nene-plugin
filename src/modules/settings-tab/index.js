@@ -967,7 +967,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
 
     // --- 文件列表主开关 + 管理按钮 ---
     self.createEntrySetting(containerEl, 'file-explorer')
-      .setName('文件列表')
+      .setName('✅文件列表')
       .setDesc(
         summary.fileExplorerEnhancerEnabled
           ? '已启用。可通过路径规则对文件资源管理器中的文件/文件夹进行置顶与隐藏管理。'
@@ -995,7 +995,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
   // 渲染主题增强模块设置项，作为功能模块分组的普通成员（与其它模块平级）。
   renderThemeEnhancerSection(containerEl, summary) {
     this.createEntrySetting(containerEl, 'theme-enhancer')
-      .setName('主题增强')
+      .setName('✅主题增强')
       .setDesc(
         summary.themeEnhancerEnabled
           ? '已启用。可修改Obsidian主题相关的配置。'

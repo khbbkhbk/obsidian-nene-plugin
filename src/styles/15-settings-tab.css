@@ -55,6 +55,11 @@
   padding-bottom: 10px;
 }
 
+.nene-settings-panel-modal .setting-item {
+  border-top: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
 .nene-settings-tab .setting-item-control>button,
 .nene-settings-tab .setting-item-control>select.dropdown {
   cursor: pointer;
@@ -123,16 +128,19 @@
 }
 
 /* 弹窗头部保留标题和描述的轻层级。 */
+/* 第一层 */
 .nene-settings-modal-header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 6px 0 12px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
 /* 弹窗标题强调主任务。 */
 .nene-settings-modal-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   color: var(--text-normal);
 }
 
@@ -141,6 +149,76 @@
   margin: 0;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+.nene-settings-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nene-settings-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  padding-top: 8px;
+
+  & button {
+    cursor: pointer;
+  }
+
+  & select.dropdown {
+    cursor: pointer;
+  }
+}
+
+/* 第二层 */
+.nene-settings-modal-section {}
+
+.nene-settings-modal-section-header {}
+
+.nene-settings-modal-section-title {
+  font-size: medium;
+  font-weight: var(--font-bold);
+  padding: 12px 0;
+}
+
+.nene-settings-modal-section-description {}
+
+.nene-settings-modal-section-content {}
+
+.nene-settings-modal-section-footer {}
+
+/* 第三层 */
+.nene-settings-modal-subsection {}
+
+.nene-settings-modal-subsection-header {}
+
+.nene-settings-modal-subsection-title {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+}
+
+.nene-settings-modal-subsection-description {}
+
+.nene-settings-modal-subsection-content {}
+
+.nene-settings-modal-subsection-footer {}
+
+.nene-settings-modal-content .setting-item,
+.nene-settings-modal-section-content .setting-item,
+.nene-settings-modal-subsection-content .setting-item {
+  border-top: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nene-settings-modal-content .setting-item:last-of-type,
+.nene-settings-modal-section-content .setting-item:last-of-type,
+.nene-settings-modal-subsection-content .setting-item:last-of-type {
+  border-bottom: none;
 }
 
 /* JSON 文本框统一尺寸与字体系。 */
@@ -229,4 +307,8 @@
 
 .checkbox-container {
   cursor: pointer;
+}
+
+.hide-border {
+  border-bottom: none;
 }

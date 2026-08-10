@@ -22,9 +22,11 @@
 
 .file-explorer-plus th {
   text-align: center;
-  padding: 0 5px;
-  border-bottom: 2px solid var(--text-normal);
+  font-size: 16px;
+  padding: 0 5px 5px 0;
+  border-bottom: 2px solid var(--background-modifier-border);
   white-space: nowrap;
+  color: var(--text-muted);
 }
 
 .file-explorer-plus td {
@@ -47,6 +49,11 @@
 .nene-new-filter-modal {
   max-width: 1000px;
   flex: 1;
+}
+
+.nene-new-filter-modal button,
+.nene-new-filter-modal select.dropdown {
+  cursor: pointer;
 }
 
 .nene-new-filter-setting {

@@ -502,7 +502,7 @@ PathFilterListModal.prototype.onOpen = function () {
   contentEl.addClass('nene-settings-modal');
 
   var titleText = this.actionType === 'PIN' ? '置顶路径过滤器' : '隐藏路径过滤器';
-  var headerEl = contentEl.createDiv({ cls: 'nene-settings-modal-header' });
+  var headerEl = contentEl.createDiv({ cls: 'nene-settings-modal-header hide-border' });
   headerEl.createDiv({ cls: 'nene-settings-modal-title', text: titleText });
 
   this.renderFilterList(contentEl);
@@ -695,11 +695,14 @@ FileExplorerManagerModal.prototype.onOpen = function () {
   var settings = plugin.fileExplorerEnhancerStore.getSettings();
   var self = this;
 
-  // --- 置顶选择器 ---
-  var pinSectionEl = contentEl.createDiv({ cls: 'nene-settings-subsection' });
-  pinSectionEl.createEl('h4', { text: '置顶选择器' });
+  var contentsEl = contentEl.createDiv({ cls: 'nene-settings-modal-content hide-border' });
 
-  new obsidian.Setting(pinSectionEl)
+  // --- 置顶选择器 ---
+  var pinSectionEl = contentsEl.createDiv({ cls: 'nene-settings-modal-section' });
+  pinSectionEl.createEl('div', { text: '置顶选择器', cls: 'nene-settings-modal-section-title' });
+  var pinSectionContentEl = pinSectionEl.createDiv({ cls: 'nene-settings-modal-section-content' });
+
+  new obsidian.Setting(pinSectionContentEl)
     .setName('启用置顶选择器')
     .addToggle(function (toggle) {
       toggle
@@ -712,7 +715,7 @@ FileExplorerManagerModal.prototype.onOpen = function () {
         });
     });
 
-  new obsidian.Setting(pinSectionEl)
+  new obsidian.Setting(pinSectionContentEl)
     .setName('路径过滤器')
     .setDesc(getFilterDesc(settings.pinFilters.paths))
     .addButton(function (button) {
@@ -731,10 +734,11 @@ FileExplorerManagerModal.prototype.onOpen = function () {
     });
 
   // --- 隐藏选择器 ---
-  var hideSectionEl = contentEl.createDiv({ cls: 'nene-settings-subsection' });
-  hideSectionEl.createEl('h4', { text: '隐藏选择器' });
+  var hideSectionEl = contentsEl.createDiv({ cls: 'nene-settings-modal-section' });
+  hideSectionEl.createEl('div', { text: '隐藏选择器', cls: 'nene-settings-modal-section-title' });
+  var hideSectionContentEl = hideSectionEl.createDiv({ cls: 'nene-settings-modal-section-content' });
 
-  new obsidian.Setting(hideSectionEl)
+  new obsidian.Setting(hideSectionContentEl)
     .setName('启用隐藏选择器')
     .addToggle(function (toggle) {
       toggle
@@ -747,7 +751,7 @@ FileExplorerManagerModal.prototype.onOpen = function () {
         });
     });
 
-  new obsidian.Setting(hideSectionEl)
+  new obsidian.Setting(hideSectionContentEl)
     .setName('路径过滤器')
     .setDesc(getFilterDesc(settings.hideFilters.paths))
     .addButton(function (button) {

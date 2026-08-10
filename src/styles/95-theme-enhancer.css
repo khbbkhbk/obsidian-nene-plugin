@@ -1,7 +1,6 @@
 /* ========================================
    95 - 主题增强模块运行时样式
-   说明：仅当 body 挂载 .theme-eyeshield（护眼模式）
-   时生效，用于微调部分元素以适配豆沙绿配色。
+   说明：仅当 body 挂载 .theme-eyeshield（护眼模式）时生效，用于微调部分元素以适配豆沙绿配色。
    ======================================== */
 
 .theme-eyeshield {
@@ -16,28 +15,29 @@
   & button:disabled {
     color: color-mix(in srgb, var(--text-normal) 50%, transparent);
   }
+
+  & button.mod-warning {
+    background-color: var(--background-modifier-error);
+  }
+
+  & button.mod-warning:hover {
+    background-color: color-mix(in srgb, var(--background-modifier-error-hover) 80%, transparent);
+  }
+
+  & button.mod-cta {
+    background-color: var(--interactive-accent);
+  }
+
+  & button.mod-cta:hover {
+    background-color: var(--interactive-accent-hover);
+  }
+
 }
 
 /* ========================================
    主题增强模块管理子窗口样式
    （无 .theme-eyeshield 作用域，常规界面通用）
    ======================================== */
-
-/* 底部维护操作栏：细线分隔 + 右对齐按钮组 */
-.nene-theme-enhancer-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--background-modifier-border);
-
-  & button,
-  select.dropdown {
-    cursor: pointer;
-  }
-}
 
 /* 移动端：维护操作栏按钮纵向排列，避免溢出 */
 @media (max-width: 480px) {

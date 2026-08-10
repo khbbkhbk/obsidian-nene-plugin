@@ -16,7 +16,7 @@
   border-bottom: 1px solid var(--background-modifier-border);
   color: var(--text-muted);
   font-size: var(--font-ui-medium);
-  font-weight: 700;
+  font-weight: var(--font-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -167,7 +167,7 @@
 
 /* 二级弹窗统一使用紧凑宽度。 */
 .modal.nene-popover-modal {
-  width: min(90vw, 560px);
+  max-width: 1000px;
 }
 
 /* 新建文件速览命令弹窗：加宽以容纳平铺控件。 */
@@ -177,7 +177,7 @@
 
 /* 新建命令表单：控件平铺一行，隐藏左侧说明区。 */
 .nene-new-command-setting {
-  padding: 0.75em 0;
+  padding: 0.75em;
 }
 
 .nene-new-command-setting .setting-item-info {
