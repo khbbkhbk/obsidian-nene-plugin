@@ -65,6 +65,36 @@
   border-top: 0;
 }
 
+/* 设置项高亮：从模块子窗口返回时提示刚刚进入的条目，闪烁一次后淡出。 */
+.nene-settings-tab .setting-item.nene-settings-entry-highlight {
+  border-radius: 8px;
+  animation: nene-settings-entry-flash 1.5s ease-out forwards;
+}
+
+@keyframes nene-settings-entry-flash {
+
+  0% {
+    background-color: transparent;
+  }
+
+  20% {
+    background-color: color-mix(in srgb, var(--text-highlight-bg) 50%, transparent);
+  }
+
+  40% {
+    background-color: transparent;
+  }
+
+
+  60% {
+    background-color: color-mix(in srgb, var(--text-highlight-bg) 50%, transparent);
+  }
+
+  80% {
+    background-color: transparent;
+  }
+}
+
 /* 管理弹窗采用紧凑单列布局。 */
 .nene-settings-modal {
   display: flex;

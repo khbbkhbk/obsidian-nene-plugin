@@ -1084,6 +1084,15 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextEnabled;
   }
 
+  // 更新主题增强模块的护眼模式（子功能）开关，仅模块启用时生效。
+  async updateThemeEnhancerEyeProtection(enabled) {
+    if (!this.isThemeEnhancerEnabled()) {
+      return false;
+    }
+
+    return this.themeEnhancerRuntime.setEyeProtection(enabled);
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
