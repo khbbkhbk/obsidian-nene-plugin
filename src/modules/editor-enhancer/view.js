@@ -125,6 +125,20 @@ class EditorEnhancerManagementModal extends obsidian.Modal {
             await this.render();
           });
       });
+
+    // 渲染完成后，阻止 Obsidian 打开弹窗时自动聚焦到第一个可聚焦元素
+    //（即"排除标签"输入框），将焦点转移到弹窗容器本身。
+    this.focusOnModal();
+  }
+
+  // 将焦点转移到弹窗容器，避免打开设置窗口时意外聚焦到"排除标签"输入框。
+  // 使用 requestAnimationFrame 等待 Obsidian 的自动聚焦完成后覆盖焦点。
+  focusOnModal() {
+    requestAnimationFrame(() => {
+      if (!this.modalEl || !this.modalEl.isConnected) return;
+      this.modalEl.tabIndex = -1;
+      this.modalEl.focus();
+    });
   }
 
   // 关闭弹窗时清理内容，避免重复挂载旧节点。
