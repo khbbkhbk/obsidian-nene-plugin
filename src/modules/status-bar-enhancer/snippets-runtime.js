@@ -145,6 +145,8 @@ class CreateSnippetModal extends obsidian.Modal {
     new obsidian.Setting(contentEl).addButton(function (btn) {
       btn.setButtonText('创建片段').onClick(async function () {
         var fileName = fileNameInput.getValue().trim();
+        // 过滤路径穿越和非法文件名字符
+        fileName = fileName.replace(/[/\\:*?"<>|]/g, '-').replace(/\.\./g, '--');
         var fileContents = cssContentInput.getValue();
 
         if (!fileName) {
@@ -256,17 +258,28 @@ class SnippetsRenameModal extends obsidian.Modal {
           return;
         }
 
+        // 新名称路径穿越校验：防止片段名包含目录分隔符或上级引用
+        if (/[\/\\]/.test(newName.replace(/\.css$/i, ''))) {
+          new obsidian.Notice('片段名称不能包含路径分隔符');
+          return;
+        }
+
         try {
           var snippetsFolder = getSnippetsFolder(self.app);
           var oldPath = snippetsFolder + '/' + self.oldSnippet;
           var newPath = snippetsFolder + '/' + newSnippet;
 
-          // 读取旧文件内容
-          var content = await self.app.vault.adapter.read(oldPath);
-          // 写入新文件
-          await self.app.vault.adapter.write(newPath, content);
-          // 删除旧文件
-          await self.app.vault.adapter.remove(oldPath);
+          // 优先使用官方 rename API，确保触发 vault 事件；不存在时回退到 write+remove
+          if (typeof self.app.vault.adapter.rename === 'function') {
+            await self.app.vault.adapter.rename(oldPath, newPath);
+          } else {
+            // 读取旧文件内容
+            var content = await self.app.vault.adapter.read(oldPath);
+            // 写入新文件
+            await self.app.vault.adapter.write(newPath, content);
+            // 删除旧文件
+            await self.app.vault.adapter.remove(oldPath);
+          }
 
           // 如果原片段已启用，启用新片段
           var wasEnabled = isSnippetEnabled(self.app, self.oldSnippet);

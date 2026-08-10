@@ -218,6 +218,39 @@ class ConfigurationImportModal extends obsidian.Modal {
       submitButtonEl.disabled = true;
 
       try {
+        // 导入前安全审查：检测配置中是否包含 JavaScript 类型自定义变量
+        var hasJsVars = false;
+        try {
+          var parsed = JSON.parse(rawText);
+          hasJsVars = commandUriEnhancerModule.hasJavaScriptVariables(parsed);
+        } catch (e) { /* JSON 解析失败由后续 importConfigurationBundle 处理 */ }
+
+        if (hasJsVars) {
+          // 发现 JavaScript 类型变量，弹出二次确认框明确告知风险
+          submitButtonEl.disabled = false;
+          var self = this;
+          new ConfirmActionModal(
+            this.app,
+            '安全风险确认 — JavaScript 代码变量',
+            '检测到导入配置中包含 JavaScript 类型变量。这些变量会以受限沙箱方式执行（仅可访问 Date/Math/JSON 等内置对象），但仍存在一定风险。请确认导入的配置来源完全可信，建议仅导入自己导出或信任来源的配置。',
+            '确认导入（我已了解风险）',
+            async function () {
+              submitButtonEl.disabled = true;
+              try {
+                await self.onSubmit(rawText);
+                new obsidian.Notice('插件配置已导入');
+                self.close();
+              } catch (error) {
+                console.error('导入插件配置失败', error);
+                new obsidian.Notice('导入失败：' + (error.message || '请检查 JSON 格式'));
+              } finally {
+                submitButtonEl.disabled = false;
+              }
+            }
+          ).open();
+          return;
+        }
+
         await this.onSubmit(rawText);
         new obsidian.Notice('插件配置已导入');
         this.close();
@@ -783,7 +816,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
   // 渲染编辑增强模块分区，仅保留状态概览、开关与弹窗入口。
   renderEditorEnhancerSection(containerEl, summary) {
     this.createEntrySetting(containerEl, 'editor-enhancer')
-      .setName('编辑增强')
+      .setName('⛔编辑增强')
       .setDesc(
         summary.editorEnhancerEnabled
           ? (

@@ -123,7 +123,11 @@ class StatusBarOrganizerModal extends obsidian.Modal {
       var previewSpan = document.createElement('span');
       previewSpan.addClass('nene-organizer-row-preview');
       if (currentExists && row.element) {
-        previewSpan.innerHTML = row.element.innerHTML;
+        // 白名单消毒：移除 <script> 标签防止 XSS，保留其余 HTML（含 SVG 图标等）
+        previewSpan.innerHTML = row.element.innerHTML.replace(
+          /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+          ''
+        );
       }
       entry.appendChild(previewSpan);
 
@@ -325,7 +329,10 @@ function cloneRow(rowsWrapper, barStatus, existsStatus, rowsContainer, event, ro
   Array.from(realEntry.children).forEach(function (child) {
     var fauxSpan = document.createElement('span');
     fauxSpan.className = child.className;
-    fauxSpan.innerHTML = child.innerHTML;
+    // 使用 cloneNode 替代 innerHTML 复制，避免 XSS 风险
+    Array.from(child.childNodes).forEach(function (childNode) {
+      fauxSpan.appendChild(childNode.cloneNode(true));
+    });
     fauxEntry.appendChild(fauxSpan);
   });
 

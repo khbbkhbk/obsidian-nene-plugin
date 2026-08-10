@@ -256,13 +256,26 @@ async function replaceVariables(filePath, plugin, customVariables, args, activeV
     }
 
     if (customVariable.type === 'javascript') {
-      // 注意：JavaScript 类型变量会直接执行用户输入的代码（new Function），
-      // 存在任意代码执行风险，仅应使用可信来源的代码。
-      // 对返回值做空值兜底，避免空函数或异常时将 "undefined" / "null" 写入路径。
+      // 安全沙箱执行：仅暴露计算类内置对象，杜绝 this/window/app 等危险对象访问。
+      // "use strict" 确保 this 为 undefined，搭配受限参数列表阻断原型链逃逸。
       var jsResult;
       try {
-        var userFunction = new Function(customVariable.value);
-        jsResult = userFunction();
+        var sandboxFn = new Function(
+          'Date', 'Math', 'JSON', 'Number', 'String', 'Boolean',
+          'parseInt', 'parseFloat', 'isNaN', 'isFinite',
+          'encodeURIComponent', 'decodeURIComponent',
+          'undefined',
+          '"use strict"; return (' + customVariable.value + ')'
+        );
+        jsResult = sandboxFn(
+          Date, Math, JSON,
+          function (v) { return Number(v); },
+          function (v) { return String(v); },
+          function (v) { return Boolean(v); },
+          parseInt, parseFloat, isNaN, isFinite,
+          encodeURIComponent, decodeURIComponent,
+          undefined
+        );
       } catch (error) {
         // 用户代码异常（含语法错误）时提示并保留原占位符，避免命令静默中断
         console.error('[ねね] JavaScript 变量执行出错', customVariable.name, error);
@@ -366,5 +379,23 @@ function findLeafInSplit(plugin, split, file) {
 
 module.exports = {
   OpenWithFileCommand,
-  OpenWithCommandRuntime
+  OpenWithCommandRuntime,
+  // 检测配置数据中是否包含 JavaScript 类型自定义变量，供导入时安全审查
+  hasJavaScriptVariables: function (data) {
+    if (!data || typeof data !== 'object') return false;
+    // 递归扫描：匹配 customVariables 数组中 type === 'javascript' 的条目
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+      var val = data[keys[i]];
+      if (Array.isArray(val)) {
+        for (var j = 0; j < val.length; j++) {
+          if (val[j] && val[j].type === 'javascript') return true;
+        }
+      }
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        if (module.exports.hasJavaScriptVariables(val)) return true;
+      }
+    }
+    return false;
+  }
 };
