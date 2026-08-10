@@ -503,6 +503,8 @@ function unloadFileExplorerEnhancer(plugin, fileExplorerView) {
       }
     }
   }
+  // 清理残留的目标目录高亮标记
+  clearEyeTargetHighlight(plugin);
   fileExplorerView.requestSort();
 }
 
@@ -898,6 +900,7 @@ function setupFileExplorerFocusTracking(plugin) {
     }
 
     // 通过 fileItems 反查对应的 TAbstractFile
+    if (!plugin._fileExplorerView) return;
     var fileItems = plugin._fileExplorerView.fileItems;
     if (!fileItems) return;
 
