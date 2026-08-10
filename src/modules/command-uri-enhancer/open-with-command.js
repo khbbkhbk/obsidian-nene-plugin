@@ -138,6 +138,10 @@ class OpenWithCommandRuntime {
       if (!cmd || !cmd.id) {
         continue;
       }
+      // 含变量占位符的路径无法静态判定文件存在性，保持有效状态，与创建 / 编辑校验保持一致
+      if (cmd.filePath && cmd.filePath.includes('{{')) {
+        continue;
+      }
       const file = cmd.filePath ? this.plugin.app.vault.getAbstractFileByPath(cmd.filePath) : null;
       const isValid = file instanceof obsidian.TFile;
       if (cmd.isValid !== isValid) {
@@ -231,7 +235,10 @@ async function replaceArgs(filePath, plugin, customVariables) {
 }
 
 // 递归替换全部变量：内置日期变量与自定义变量。
-async function replaceVariables(filePath, plugin, customVariables, args) {
+// activeVariables 登记当前展开链上的变量名，用于检测循环引用，避免互引/自引用导致无限递归。
+async function replaceVariables(filePath, plugin, customVariables, args, activeVariables) {
+  activeVariables = activeVariables || new Set();
+
   for (const arg of args) {
     const argName = arg.replace(/\{\{([^}]+)\}\}/g, '$1');
 
@@ -252,8 +259,16 @@ async function replaceVariables(filePath, plugin, customVariables, args) {
       // 注意：JavaScript 类型变量会直接执行用户输入的代码（new Function），
       // 存在任意代码执行风险，仅应使用可信来源的代码。
       // 对返回值做空值兜底，避免空函数或异常时将 "undefined" / "null" 写入路径。
-      var userFunction = new Function(customVariable.value);
-      var jsResult = userFunction();
+      var jsResult;
+      try {
+        var userFunction = new Function(customVariable.value);
+        jsResult = userFunction();
+      } catch (error) {
+        // 用户代码异常（含语法错误）时提示并保留原占位符，避免命令静默中断
+        console.error('[ねね] JavaScript 变量执行出错', customVariable.name, error);
+        new obsidian.Notice(`变量「${customVariable.name}」执行出错：${error.message || '未知错误'}`);
+        continue;
+      }
       if (jsResult === undefined || jsResult === null || jsResult === '') {
         filePath = filePath.replace(arg, '');
       } else {
@@ -264,9 +279,16 @@ async function replaceVariables(filePath, plugin, customVariables, args) {
       const nestedArgs = customVariable.value.match(/\{\{([^}]+)\}\}/g);
       let variableCopy = Object.assign({}, customVariable);
       if (nestedArgs) {
-        const result = await replaceVariables(customVariable.value, plugin, customVariables, nestedArgs);
-        if (result !== undefined) {
-          variableCopy.value = result;
+        if (activeVariables.has(argName)) {
+          // 检测到循环引用（变量直接或间接引用自身），保留原始值并跳过展开
+          // variableCopy.value 保持原始值
+        } else {
+          activeVariables.add(argName);
+          const result = await replaceVariables(customVariable.value, plugin, customVariables, nestedArgs, activeVariables);
+          activeVariables.delete(argName);
+          if (result !== undefined) {
+            variableCopy.value = result;
+          }
         }
       }
       filePath = filePath.replace(arg, variableCopy.value);

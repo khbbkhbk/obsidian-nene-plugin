@@ -48,7 +48,6 @@
 
 .nene-entry-title {
   color: var(--text-normal);
-  font-weight: 600;
 }
 
 .nene-entry-desc {
@@ -171,15 +170,56 @@
   width: min(90vw, 560px);
 }
 
-.modal.nene-popover-modal .modal-content {
-  padding: 20px 24px;
+/* 新建文件速览命令弹窗：加宽以容纳平铺控件。 */
+.modal.nene-popover-modal.nene-new-command-modal {
+  width: min(90vw, 720px);
+}
+
+/* 新建命令表单：控件平铺一行，隐藏左侧说明区。 */
+.nene-new-command-setting {
+  padding: 0.75em 0;
+}
+
+.nene-new-command-setting .setting-item-info {
+  display: none;
+}
+
+.nene-new-command-setting .setting-item-control {
+  flex-wrap: nowrap;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.nene-new-command-setting .setting-item-control .search-input-container {
+  min-width: 340px;
+  flex: 1;
+}
+
+.nene-new-command-setting .setting-item-control .dropdown {
+  width: unset;
+}
+
+/* 新建命令弹窗的可滚动内容区与底部操作栏。 */
+.nene-new-command-body {
+  overflow-y: auto;
+  max-height: 50vh;
+  min-height: 0;
+}
+
+.nene-new-command-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-2);
 }
 
 /* 空状态：居中弱化展示。 */
 .nene-empty-state {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  place-items: center;
+  place-content: center;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 20px 0;
   color: var(--text-muted);
@@ -187,6 +227,9 @@
 
 .nene-empty-state-icon {
   opacity: 0.7;
+  display: flex;
+  place-content: center;
+  place-items: center;
 }
 
 /* ------------------------------ */
@@ -233,6 +276,10 @@
 .nene-variable-docs a {
   color: var(--text-accent);
   text-decoration: underline;
+}
+
+.nene-open-command-row .setting-item-info {
+  display: none;
 }
 
 /* 文件速览命令行与变量行：多控件在窄弹窗内换行排列。 */

@@ -36,11 +36,7 @@ const OPEN_FILE_IN_OPTIONS = {
   window: '在新窗口打开'
 };
 
-// 文件速览命令的命令 ID 前缀（插件注册命令时 Obsidian 会自动再叠加插件前缀）。
-const OPEN_WITH_COMMAND_ID_PREFIX = 'open-with-command';
-
 module.exports = {
   DEFAULT_COMMAND_URI_ENHANCER_SETTINGS,
-  OPEN_FILE_IN_OPTIONS,
-  OPEN_WITH_COMMAND_ID_PREFIX
+  OPEN_FILE_IN_OPTIONS
 };

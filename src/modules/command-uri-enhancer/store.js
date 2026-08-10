@@ -34,13 +34,6 @@ class CommandUriEnhancerStore {
     return this.settings.addTrailingSlashToFolders;
   }
 
-  // 更新默认文件打开位置，并立即持久化。
-  async setOpenFileIn(value) {
-    this.settings.openFileIn = this.normalizeOpenFileIn(value, this.settings.openFileIn);
-    await this.save();
-    return this.settings.openFileIn;
-  }
-
   // 更新“删除文件时删除命令”开关，并立即持久化。
   async setDeleteCommandWhenFileIsDeleted(enabled) {
     this.settings.deleteCommandWhenFileIsDeleted = Boolean(enabled);

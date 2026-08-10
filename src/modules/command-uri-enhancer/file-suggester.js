@@ -115,17 +115,31 @@ class TextInputSuggest {
     const suggestion = this.suggestEl.createDiv('suggestion');
     this.suggest = new Suggest(this, suggestion, this.scope);
 
-    // Esc 关闭建议
-    this.scope.register([], 'Escape', this.close.bind(this));
+    // 具名绑定事件处理函数，便于 dispose() 精确移除监听，避免重渲染后监听泄漏
+    this.onInputBound = () => this.onInputChanged();
+    this.onCloseBound = () => this.close();
+    this.onMouseDownBound = (event) => {
+      event.preventDefault();
+    };
 
-    this.inputEl.addEventListener('input', this.onInputChanged.bind(this));
-    this.inputEl.addEventListener('focus', this.onInputChanged.bind(this));
-    this.inputEl.addEventListener('blur', this.close.bind(this));
+    // Esc 关闭建议
+    this.scope.register([], 'Escape', this.onCloseBound);
+
+    this.inputEl.addEventListener('input', this.onInputBound);
+    this.inputEl.addEventListener('focus', this.onInputBound);
+    this.inputEl.addEventListener('blur', this.onCloseBound);
 
     // 阻止建议容器内的 mousedown 默认行为，避免输入框失焦导致建议提前关闭
-    this.suggestEl.addEventListener('mousedown', (event) => {
-      event.preventDefault();
-    });
+    this.suggestEl.addEventListener('mousedown', this.onMouseDownBound);
+  }
+
+  // 释放全部资源：关闭建议浮层并移除输入框与浮层上的事件监听，供弹窗重渲染前调用。
+  dispose() {
+    this.close();
+    this.inputEl.removeEventListener('input', this.onInputBound);
+    this.inputEl.removeEventListener('focus', this.onInputBound);
+    this.inputEl.removeEventListener('blur', this.onCloseBound);
+    this.suggestEl.removeEventListener('mousedown', this.onMouseDownBound);
   }
 
   // 输入变化时重新计算建议列表。

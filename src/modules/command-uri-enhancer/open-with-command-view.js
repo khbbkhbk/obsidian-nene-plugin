@@ -17,6 +17,7 @@ var viewHelpers = require('./view');
 var renderModalHeader = viewHelpers.renderModalHeader;
 var renderSectionTitle = viewHelpers.renderSectionTitle;
 var renderEntryRow = viewHelpers.renderEntryRow;
+var renderEmptyState = viewHelpers.renderEmptyState;
 
 // 文件速览命令设置弹窗。
 class OpenWithCommandSettingsModal extends obsidian.Modal {
@@ -24,6 +25,7 @@ class OpenWithCommandSettingsModal extends obsidian.Modal {
     super(app);
     this.plugin = plugin; // 保存插件实例，便于访问 store 与运行时
     this.onSettingsChanged = onSettingsChanged; // 变更回调，用于联动父级弹窗刷新
+    this.suggesters = []; // 当前已创建的路径建议器列表，重渲染前统一释放
   }
 
   onOpen() {
@@ -38,6 +40,8 @@ class OpenWithCommandSettingsModal extends obsidian.Modal {
     const store = this.plugin.commandUriEnhancerStore;
     const settings = store.getSettings();
 
+    // 释放上一轮渲染遗留的建议浮层与事件监听，避免 DOM 残留与监听泄漏
+    this.disposeSuggesters();
     contentEl.empty();
 
     // 弹窗头部
@@ -93,23 +97,23 @@ class OpenWithCommandSettingsModal extends obsidian.Modal {
       '变量管理'
     );
 
-    // 管理命令分区
-    renderSectionTitle(contentEl, '管理命令');
-
     new obsidian.Setting(contentEl)
-      .setName('创建新命令')
-      .setDesc('点击下方按钮为指定文件创建一条速览命令。')
+      .setName('命令管理')
+      .setDesc('创建或管理指定文件的速览命令。')
       .addButton((button) => {
         button
           .setIcon('plus')
           .setTooltip('创建新命令')
           .onClick(() => {
-            this.addNewCommand(contentEl);
+            new NewCommandModal(this.app, this.plugin, async () => {
+              await this.onSettingsChanged();
+              await this.render();
+            }).open();
           });
       });
 
     if (settings.commands.length === 0) {
-      this.addNewCommand(contentEl);
+      renderEmptyState(contentEl, '暂无文件速览命令，点击上方"创建新命令"按钮添加。');
       return;
     }
 
@@ -137,22 +141,15 @@ class OpenWithCommandSettingsModal extends obsidian.Modal {
     }
   }
 
-  // 新增一条空命令并渲染到列表末尾。
-  addNewCommand(containerEl) {
-    const store = this.plugin.commandUriEnhancerStore;
-    const newCommand = {
-      id: crypto.randomUUID(),
-      name: '文件命令名',
-      filePath: '',
-      openFileIn: 'activeTab'
-    };
-    void store.addCommand(newCommand);
-    this.plugin.openWithCommandRuntime.reload();
-    void this.onSettingsChanged();
-    this.renderCommandRow(containerEl, newCommand, true);
+  // 释放全部路径建议器：关闭残留浮层并移除事件监听，清空登记列表。
+  disposeSuggesters() {
+    this.suggesters.forEach((suggester) => {
+      suggester.dispose();
+    });
+    this.suggesters = [];
   }
 
-  // 渲染单条命令配置行：删除 / 复制按钮 + 名称 + 路径搜索 + 打开位置下拉。
+  // 渲染单条命令配置行：删除按钮 + 名称 + 路径搜索 + 打开位置下拉。
   // isInvalid 为 true 时将渲染失效样式（半透明背景、警告图标），适用于目标文件已不存在的命令。
   renderCommandRow(containerEl, commandConfig, isInvalid) {
     const store = this.plugin.commandUriEnhancerStore;
@@ -185,49 +182,61 @@ class OpenWithCommandSettingsModal extends obsidian.Modal {
         });
     });
 
-    // 复制按钮：生成一条相同配置的新命令
-    setting.addButton((button) => {
-      button
-        .setIcon('copy')
-        .setTooltip('复制命令')
-        .onClick(() => {
-          const copyCommand = {
-            id: crypto.randomUUID(),
-            name: commandConfig.name,
-            filePath: commandConfig.filePath,
-            openFileIn: commandConfig.openFileIn
-          };
-          void store.addCommand(copyCommand);
-          runtime.reload();
-          void this.onSettingsChanged();
-          this.render();
-        });
-    });
-
-    // 命令名称输入
+    // 命令名称输入：与创建时一致，不允许为空、不允许与已有命令重名
     setting.addText((text) => {
       text
         .setPlaceholder('命令名称')
         .setValue(commandConfig.name || '')
         .onChange((value) => {
-          commandConfig.name = value;
+          const newName = (value || '').trim();
+          // 命令名称不允许为空
+          if (!newName) {
+            new obsidian.Notice('命令名称不能为空');
+            text.setValue(commandConfig.name || '');
+            return;
+          }
+          // 不允许与已有命令重名（排除自身）
+          const sameName = store
+            .getSettings()
+            .commands.find((command) => command && command.name === newName && command.id !== commandConfig.id);
+          if (sameName) {
+            new obsidian.Notice(`已存在同名命令「${sameName.name}」，请更换命令名称`);
+            text.setValue(commandConfig.name || '');
+            return;
+          }
+          commandConfig.name = newName;
           void store.save();
           runtime.reload();
         });
     });
 
-    // 文件路径搜索（带库内文件建议器）
+    // 文件路径搜索（带库内文件建议器）：与创建时一致，不允许为空、目标文件必须存在、不允许与已有命令指向同一文件
     setting.addSearch((search) => {
-      new suggesters.FileSuggest(search.inputEl, this.plugin);
+      this.suggesters.push(new suggesters.FileSuggest(search.inputEl, this.plugin));
       search
         .setPlaceholder('文件路径')
         .setValue(commandConfig.filePath || '')
         .onChange((value) => {
-          // 禁止两条命令指向同一文件
+          // 路径不允许为空
+          if (!value) {
+            new obsidian.Notice('请选择目标文件路径');
+            search.setValue(commandConfig.filePath || '');
+            return;
+          }
+          // 含变量占位符的路径无法静态校验存在性，跳过；普通路径必须指向库内已有文件
+          if (!value.includes('{{')) {
+            const targetFile = this.plugin.app.vault.getAbstractFileByPath(value);
+            if (!(targetFile instanceof obsidian.TFile)) {
+              new obsidian.Notice('目标文件不存在，请选择库内已有文件');
+              search.setValue(commandConfig.filePath || '');
+              return;
+            }
+          }
+          // 禁止两条命令指向同一文件（排除自身）
           const duplicate = store
             .getSettings()
             .commands.find((command) => command && command.filePath === value && command.id !== commandConfig.id);
-          if (duplicate && value) {
+          if (duplicate) {
             new obsidian.Notice(`已存在指向同一文件的命令「${duplicate.name}」`);
             search.setValue(commandConfig.filePath || '');
             return;
@@ -398,8 +407,150 @@ class ConfirmCommandDeleteModal extends obsidian.Modal {
   }
 }
 
+// 新建文件速览命令编辑弹窗：提供名称、路径（带建议器）与打开方式三个字段，
+// 确认前校验路径是否与已有命令重复，重复时 toast 警告并停留；校验通过后持久化并重建命令注册表。
+// 默认值与原有新建逻辑保持一致：名称"文件命令名"、路径为空、打开方式为当前标签页。
+class NewCommandModal extends obsidian.Modal {
+  constructor(app, plugin, onSaved) {
+    super(app);
+    this.plugin = plugin; // 保存插件实例，便于访问 store 与运行时
+    this.onSaved = onSaved; // 保存成功回调，用于联动父级弹窗刷新
+    this.pendingCommand = {
+      id: crypto.randomUUID(),
+      name: '文件命令名',
+      filePath: '',
+      openFileIn: 'activeTab'
+    };
+    this.suggesters = []; // 当前已创建的路径建议器列表，弹窗关闭时统一释放
+  }
+
+  // 弹窗关闭时释放路径建议器，避免浮层 DOM 残留与事件监听泄漏。
+  onClose() {
+    this.suggesters.forEach((suggester) => {
+      suggester.dispose();
+    });
+    this.suggesters = [];
+    super.onClose();
+  }
+
+  // 打开弹窗时渲染编辑表单。
+  onOpen() {
+    this.modalEl.addClass('nene-popover-modal');
+    this.modalEl.addClass('nene-new-command-modal');
+    this.contentEl.empty();
+    this.contentEl.addClass('nene-settings-modal');
+    this.render();
+  }
+
+  // 渲染新建表单：所有控件平铺一行，底部右对齐操作按钮。
+  render() {
+    const { contentEl } = this;
+
+    // 可滚动的内容区域
+    const bodyEl = contentEl.createDiv({ cls: 'nene-new-command-body' });
+    bodyEl.createEl('h3', { text: '新建文件速览命令' });
+
+    // 名称 + 文件路径（带建议器）+ 打开方式 平铺一行
+    const setting = new obsidian.Setting(bodyEl);
+    setting.settingEl.addClass('nene-new-command-setting');
+    setting
+      .addText((text) => {
+        text
+          .setPlaceholder('命令名称')
+          .setValue(this.pendingCommand.name)
+          .onChange((value) => {
+            this.pendingCommand.name = value;
+          });
+      })
+      .addSearch((search) => {
+        this.suggesters.push(new suggesters.FileSuggest(search.inputEl, this.plugin));
+        search
+          .setPlaceholder('文件路径')
+          .setValue(this.pendingCommand.filePath)
+          .onChange((value) => {
+            this.pendingCommand.filePath = value;
+          });
+      })
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions(constants.OPEN_FILE_IN_OPTIONS)
+          .setValue(this.pendingCommand.openFileIn)
+          .onChange((value) => {
+            this.pendingCommand.openFileIn = value;
+          });
+      });
+
+    // 固定在底部右对齐的操作按钮
+    const footerEl = contentEl.createDiv({ cls: 'nene-new-command-footer' });
+    footerEl.createEl('button', { text: '取消' }).addEventListener('click', () => {
+      this.close();
+    });
+    footerEl.createEl('button', { cls: 'mod-cta', text: '确认' }).addEventListener('click', () => {
+      this.confirmCreate();
+    });
+  }
+
+  // 确认创建：校验名称非空且不重名、路径已填写且不与已有命令重复，不通过时 toast 警告并停留；通过后保存、刷新并关闭。
+  confirmCreate() {
+    const store = this.plugin.commandUriEnhancerStore;
+    const targetPath = this.pendingCommand.filePath || '';
+    const targetName = (this.pendingCommand.name || '').trim();
+
+    // 禁止创建空路径命令：路径必须填写，否则无法定位目标文件
+    if (!targetPath) {
+      new obsidian.Notice('请先选择目标文件路径');
+      return;
+    }
+    // 含变量占位符的路径无法静态校验存在性，跳过；普通路径必须指向库内已有文件
+    if (!targetPath.includes('{{')) {
+      const targetFile = this.plugin.app.vault.getAbstractFileByPath(targetPath);
+      if (!(targetFile instanceof obsidian.TFile)) {
+        new obsidian.Notice('目标文件不存在，请选择库内已有文件');
+        return;
+      }
+    }
+    // 命令名称可选，但不允许为空
+    if (!targetName) {
+      new obsidian.Notice('命令名称不能为空');
+      return;
+    }
+    // 禁止命令重名
+    const sameName = store
+      .getSettings()
+      .commands.find((command) => command && command.name === targetName && command.id !== this.pendingCommand.id);
+    if (sameName) {
+      new obsidian.Notice(`已存在同名命令「${sameName.name}」，请更换命令名称`);
+      return;
+    }
+    // 禁止两条命令指向同一文件
+    const duplicate = store.getSettings().commands.find((command) => command && command.filePath === targetPath);
+    if (duplicate) {
+      new obsidian.Notice(`已存在指向同一文件的命令「${duplicate.name}」，请更换目标文件`);
+      return;
+    }
+
+    // 校验通过后，以去除首尾空白后的名称创建
+    this.pendingCommand.name = targetName;
+
+    void (async () => {
+      try {
+        await store.addCommand(this.pendingCommand);
+        // 创建后立即按目标文件是否存在刷新有效性，避免空路径 / 失效命令误显示为有效样式
+        this.plugin.openWithCommandRuntime.validateAllCommands();
+        this.plugin.openWithCommandRuntime.reload();
+        await this.onSaved();
+        this.close();
+      } catch (error) {
+        console.error('[ねね] 创建文件速览命令失败', error);
+        new obsidian.Notice(`创建命令失败：${error.message || '未知错误'}`);
+      }
+    })();
+  }
+}
+
 module.exports = {
   OpenWithCommandSettingsModal,
   ManageVariablesModal,
-  ConfirmCommandDeleteModal
+  ConfirmCommandDeleteModal,
+  NewCommandModal
 };

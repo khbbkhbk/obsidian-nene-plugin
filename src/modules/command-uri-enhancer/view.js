@@ -299,9 +299,12 @@ class CommandUriEnhancerManagementModal extends obsidian.Modal {
       () => {
         // 延迟 require 避免与 open-with-command-view.js 形成模块加载循环
         const openWithCommandView = require('./open-with-command-view');
-        new openWithCommandView.OpenWithCommandSettingsModal(this.app, this.plugin, async () => {
+        const openWithCommandModal = new openWithCommandView.OpenWithCommandSettingsModal(this.app, this.plugin, async () => {
           await this.onSettingsChanged();
-        }).open();
+        });
+        // 登记到插件，使热更新重载时该子界面也能随新代码恢复
+        this.plugin.trackSettingsModal(openWithCommandModal, 'open-with-command');
+        openWithCommandModal.open();
       },
       '打开命令设置'
     );
