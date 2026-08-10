@@ -2,6 +2,65 @@
 
 var obsidian = require('obsidian');
 
+// 弹窗渲染辅助函数：供本文件内各弹窗与 open-with-command-view.js 复用。
+// open-with-command-view.js 会顶层引用本文件，而本文件仅在点击条目时才延迟
+// require open-with-command-view.js，因此两者之间不会形成模块加载循环。
+
+// 渲染弹窗公共头部，统一标题与说明样式。
+function renderModalHeader(containerEl, title, description) {
+  const headerEl = containerEl.createDiv({ cls: 'nene-settings-modal-header' });
+  headerEl.createDiv({ cls: 'nene-settings-modal-title', text: title });
+
+  if (description) {
+    headerEl.createEl('p', {
+      cls: 'nene-settings-modal-description',
+      text: description
+    });
+  }
+}
+
+// 渲染分区标题，使用小号全大写风格与顶部分隔线。
+function renderSectionTitle(containerEl, title) {
+  containerEl.createDiv({ cls: 'nene-modal-section-title', text: title });
+}
+
+// 渲染 row flex 条目：左侧为文本信息，右侧为按钮。
+// 默认渲染图标按钮；传入 buttonText 时渲染文本按钮（其余条目不受影响）。
+function renderEntryRow(containerEl, key, title, description, iconName, onClick, buttonText) {
+  const rowEl = containerEl.createDiv({
+    cls: 'nene-entry-row',
+    attr: { 'data-entry-key': key }
+  });
+
+  const infoEl = rowEl.createDiv({ cls: 'nene-entry-info' });
+  infoEl.createDiv({ cls: 'nene-entry-title', text: title });
+  if (description) {
+    infoEl.createDiv({ cls: 'nene-entry-desc', text: description });
+  }
+
+  const actionEl = rowEl.createDiv({ cls: 'nene-entry-action' });
+  const buttonEl = actionEl.createEl('button', {
+    cls: buttonText ? 'nene-entry-text-button' : 'nene-icon-button',
+    attr: { 'data-action-key': key, 'aria-label': title }
+  });
+  if (buttonText) {
+    buttonEl.setText(buttonText);
+  } else {
+    obsidian.setIcon(buttonEl, iconName);
+  }
+  buttonEl.addEventListener('click', onClick);
+
+  return rowEl;
+}
+
+// 渲染空状态提示，用于列表无内容时兜底。
+function renderEmptyState(containerEl, text) {
+  const emptyEl = containerEl.createDiv({ cls: 'nene-empty-state' });
+  const iconEl = emptyEl.createDiv({ cls: 'nene-empty-state-icon' });
+  obsidian.setIcon(iconEl, 'info');
+  emptyEl.createDiv({ cls: 'nene-empty-state-text', text });
+}
+
 // 本模块注册的命令 ID 白名单，用于“已注册命令”弹窗中精准筛选。
 const COMMAND_ID_WHITELIST = [
   'copy-vault-path',
@@ -46,56 +105,6 @@ async function copyTextToClipboard(text) {
   if (!copied) {
     throw new Error('Clipboard copy is not supported');
   }
-}
-
-// 渲染弹窗公共头部，统一标题与说明样式。
-function renderModalHeader(containerEl, title, description) {
-  const headerEl = containerEl.createDiv({ cls: 'nene-settings-modal-header' });
-  headerEl.createDiv({ cls: 'nene-settings-modal-title', text: title });
-
-  if (description) {
-    headerEl.createEl('p', {
-      cls: 'nene-settings-modal-description',
-      text: description
-    });
-  }
-}
-
-// 渲染分区标题，使用小号全大写风格与顶部分隔线。
-function renderSectionTitle(containerEl, title) {
-  containerEl.createDiv({ cls: 'nene-modal-section-title', text: title });
-}
-
-// 渲染 row flex 条目：左侧为文本信息，右侧为图标按钮。
-function renderEntryRow(containerEl, key, title, description, iconName, onClick) {
-  const rowEl = containerEl.createDiv({
-    cls: 'nene-entry-row',
-    attr: { 'data-entry-key': key }
-  });
-
-  const infoEl = rowEl.createDiv({ cls: 'nene-entry-info' });
-  infoEl.createDiv({ cls: 'nene-entry-title', text: title });
-  if (description) {
-    infoEl.createDiv({ cls: 'nene-entry-desc', text: description });
-  }
-
-  const actionEl = rowEl.createDiv({ cls: 'nene-entry-action' });
-  const buttonEl = actionEl.createEl('button', {
-    cls: 'nene-icon-button',
-    attr: { 'data-action-key': key, 'aria-label': title }
-  });
-  obsidian.setIcon(buttonEl, iconName);
-  buttonEl.addEventListener('click', onClick);
-
-  return rowEl;
-}
-
-// 渲染空状态提示，用于列表无内容时兜底。
-function renderEmptyState(containerEl, text) {
-  const emptyEl = containerEl.createDiv({ cls: 'nene-empty-state' });
-  const iconEl = emptyEl.createDiv({ cls: 'nene-empty-state-icon' });
-  obsidian.setIcon(iconEl, 'info');
-  emptyEl.createDiv({ cls: 'nene-empty-state-text', text });
 }
 
 // 收集命令注册表中属于本模块白名单的命令。
@@ -280,6 +289,22 @@ class CommandUriEnhancerManagementModal extends obsidian.Modal {
         new CommandListModal(this.app).open();
       }
     );
+
+    renderEntryRow(
+      sectionEl,
+      'open-with-command-settings',
+      '文件速览命令',
+      '创建只打开单个文件的命令，支持变量替换与多种打开方式',
+      null,
+      () => {
+        // 延迟 require 避免与 open-with-command-view.js 形成模块加载循环
+        const openWithCommandView = require('./open-with-command-view');
+        new openWithCommandView.OpenWithCommandSettingsModal(this.app, this.plugin, async () => {
+          await this.onSettingsChanged();
+        }).open();
+      },
+      '打开命令设置'
+    );
   }
 
   // 渲染 URI 增强分区：“可用 URI”条目。
@@ -309,5 +334,9 @@ class CommandUriEnhancerManagementModal extends obsidian.Modal {
 }
 
 module.exports = {
-  CommandUriEnhancerManagementModal
+  CommandUriEnhancerManagementModal,
+  renderModalHeader,
+  renderSectionTitle,
+  renderEntryRow,
+  renderEmptyState
 };

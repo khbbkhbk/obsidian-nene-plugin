@@ -38,6 +38,9 @@ function reopenSettingsSubinterface(plugin, kind) {
     case 'command-uri':
       openSettingsModal(plugin, new CommandUriEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
       break;
+    case 'open-with-command':
+      openSettingsModal(plugin, new commandUriEnhancerModule.OpenWithCommandSettingsModal(plugin.app, plugin, refreshSettings), kind);
+      break;
     case 'status-bar':
       openSettingsModal(plugin, new StatusBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
       break;
@@ -629,6 +632,7 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     this.renderStatusBarEnhancerSection(featureGroupEl, summary);
     this.renderTabBarEnhancerSection(featureGroupEl, summary);
     this.renderCorePluginEnhancerSection(featureGroupEl, summary);
+    this.renderThemeEnhancerSection(featureGroupEl, summary);
 
     const managementGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
     managementGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '配置管理' });
@@ -941,6 +945,30 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
           .setDisabled(!summary.fileExplorerEnhancerEnabled)
           .onClick(function () {
             openSettingsModal(plugin, new fileExplorerEnhancerModule.FileExplorerManagerModal(plugin), 'file-explorer');
+          });
+      });
+  }
+
+  // 渲染主题增强模块分区，护眼模式开关与说明。
+  renderThemeEnhancerSection(containerEl, summary) {
+    containerEl.createDiv({ cls: 'nene-settings-group-title', text: '主题增强' });
+
+    const desc = summary.themeEnhancerEnabled && summary.themeEnhancerEyeProtection
+      ? '已启用，护眼模式已开启。会在"设置 → 外观 → 基础颜色"下拉框中追加"护眼模式"选项，以豆沙绿配色覆盖所有界面。'
+      : summary.themeEnhancerEnabled
+        ? '已启用，护眼模式未开启。启用护眼后，在"设置 → 外观 → 基础颜色"下拉框中选择"护眼模式"即可生效。'
+        : '未启用。启用后会在 Obsidian 外观设置的基础颜色下拉框追加"护眼模式"选项，以豆沙绿配色保护眼睛。关闭该模块将自动回退至浅色。';
+
+    new obsidian.Setting(containerEl)
+      .setName('护眼模式')
+      .setDesc(desc)
+      .addToggle((toggle) => {
+        toggle
+          .setValue(summary.themeEnhancerEnabled)
+          .onChange(async (value) => {
+            await this.plugin.updateThemeEnhancerEnabled(value);
+            new obsidian.Notice(value ? '已启用主题增强模块，可在"设置 → 外观 → 基础颜色"中切换' : '已关闭主题增强模块，已回退至浅色');
+            await this.display();
           });
       });
   }

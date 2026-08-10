@@ -9,6 +9,7 @@ var statusBarEnhancerConstants = require('../status-bar-enhancer/constants');
 var snippetsConstants = require('../status-bar-enhancer/snippets-constants');
 var tabBarEnhancerConstants = require('../tab-bar-enhancer/constants');
 var fileExplorerEnhancerConstants = require('../file-explorer-enhancer/constants');
+var themeEnhancerConstants = require('../theme-enhancer/constants');
 
 // 定义独立功能配置目录名称，统一由功能配置管理器复用。
 const FEATURE_CONFIG_DIRECTORY_NAME = 'configs';
@@ -25,7 +26,8 @@ const FEATURE_CONFIG_FILE_NAMES = {
   statusBarEnhancer: 'status-bar-enhancer',
   tabBarEnhancer: 'tab-bar-enhancer',
   fileExplorerEnhancer: 'file-explorer-enhancer',
-  editorEnhancer: 'editor-enhancer'
+  editorEnhancer: 'editor-enhancer',
+  themeEnhancer: 'theme-enhancer'
 };
 
 // 定义插件级持久化数据的默认结构，拆分后仅保留核心开关与兼容字段。
@@ -54,6 +56,9 @@ const DEFAULT_PLUGIN_DATA = {
     },
     editorEnhancer: {
       enabled: false
+    },
+    themeEnhancer: {
+      enabled: false
     }
   }
 };
@@ -70,7 +75,8 @@ const DEFAULT_FEATURE_DATA = {
   }),
   tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS,
   fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
-  editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS
+  editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS,
+  themeEnhancer: themeEnhancerConstants.DEFAULT_THEME_ENHANCER_SETTINGS
 };
 
 module.exports = {

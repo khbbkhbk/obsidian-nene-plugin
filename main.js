@@ -312,8 +312,8 @@ var require_modals = __commonJS({
     var obsidian2 = require("obsidian");
     var constants = require_constants();
     var GroupNameModal = class extends obsidian2.Modal {
-      constructor(app, onSubmit) {
-        super(app);
+      constructor(app2, onSubmit) {
+        super(app2);
         this.onSubmit = onSubmit;
       }
       // 打开弹窗时渲染输入界面。
@@ -367,8 +367,8 @@ var require_modals = __commonJS({
       }
     };
     var FileMarkerModal = class extends obsidian2.Modal {
-      constructor(app, plugin, file) {
-        super(app);
+      constructor(app2, plugin, file) {
+        super(app2);
         this.plugin = plugin;
         this.file = file;
       }
@@ -695,10 +695,39 @@ var require_constants3 = __commonJS({
   "src/modules/command-uri-enhancer/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_COMMAND_URI_ENHANCER_SETTINGS = {
-      addTrailingSlashToFolders: false
+      addTrailingSlashToFolders: false,
+      openNewTab: false,
+      openFileIn: "activeTab",
+      deleteCommandWhenFileIsDeleted: true,
+      updateCommandsOnRename: true,
+      commands: [],
+      customVariables: [
+        {
+          name: "date",
+          value: "{{d:YYYY-MM-DD}}",
+          type: "string"
+        },
+        {
+          name: "time",
+          value: "{{d:HH:mm:ss}}",
+          type: "string"
+        }
+      ]
     };
+    var OPEN_FILE_IN_OPTIONS = {
+      activeTab: "在当前标签页打开",
+      newTab: "在新标签页打开",
+      newTabSplit: "在右侧分屏打开",
+      newTabSplitHorizontal: "在下方分屏打开",
+      rightLeaf: "在右侧边栏打开",
+      leftLeaf: "在左侧边栏打开",
+      window: "在新窗口打开"
+    };
+    var OPEN_WITH_COMMAND_ID_PREFIX = "open-with-command";
     module2.exports = {
-      DEFAULT_COMMAND_URI_ENHANCER_SETTINGS
+      DEFAULT_COMMAND_URI_ENHANCER_SETTINGS,
+      OPEN_FILE_IN_OPTIONS,
+      OPEN_WITH_COMMAND_ID_PREFIX
     };
   }
 });
@@ -1091,8 +1120,86 @@ var require_constants8 = __commonJS({
   }
 });
 
-// src/modules/plugin-data/constants.js
+// src/modules/theme-enhancer/constants.js
 var require_constants9 = __commonJS({
+  "src/modules/theme-enhancer/constants.js"(exports2, module2) {
+    "use strict";
+    var DEFAULT_THEME_ENHANCER_SETTINGS = {
+      eyeProtection: false
+    };
+    var EYE_SHIELD_CSS = `
+/* === ねね 护眼模式 - 豆沙绿 === */
+
+body.theme-eyeshield.theme-light {
+  --background-primary: #CFE8CC;
+  --background-secondary: #c1e0bc;
+  --background-primary-alt: #D6F0D2;
+  --background-secondary-alt: #aed4aa;
+  --background-modifier-border: #B6CCB3;
+  --background-modifier-border-hover: #aed4aa;
+  --background-modifier-border-focus: #94c98b;
+  --background-modifier-hover: #aed4aa;
+  --background-modifier-active-hover: #b4d1b0;
+  --text-normal: #3B4B3E;
+  --text-muted: #6B7B6E;
+  --text-faint: #8B9B8E;
+  --text-accent: #4A8C5C;
+  --interactive-accent: #5A9C6C;
+  --interactive-accent-hover: #4A8C5C;
+  --interactive-normal: #c1e0bc;
+  --interactive-hover: #aed4aa;
+  --background-modifier-form-field: #CFE8CC;
+  --divider-color: #B6CCB3;
+  --code-background: #c1e0bc;
+}
+
+body.theme-eyeshield.theme-dark {
+  --background-primary: #2B3B2E;
+  --background-secondary: #1E2D21;
+  --background-primary-alt: #253528;
+  --background-secondary-alt: #182619;
+  --background-modifier-border: #3B4B3E;
+  --background-modifier-border-hover: #455548;
+  --background-modifier-border-focus: #4A5C4E;
+  --background-modifier-hover: #354538;
+  --background-modifier-active-hover: #3B4B3E;
+  --text-normal: #C8D6CA;
+  --text-muted: #8A9A8C;
+  --text-faint: #6B7B6E;
+  --text-accent: #6ABA7C;
+  --interactive-accent: #5A9C6C;
+  --interactive-accent-hover: #6ABA7C;
+  --interactive-normal: #2B3B2E;
+  --interactive-hover: #354538;
+  --background-modifier-form-field: #1E2D21;
+  --divider-color: #3B4B3E;
+  --code-background: #1E2D21;
+}
+`;
+    var THEME_DROPDOWN_SELECTOR = "select.dropdown";
+    var EYE_SHIELD_OPTION_VALUE = "__nene_eyeshield__";
+    var EYE_SHIELD_OPTION_TEXT = "护眼模式";
+    var EYE_SHIELD_STYLE_ID = "nene-eye-shield-style";
+    function normalizeThemeEnhancerSettings(settings) {
+      const source = settings || {};
+      return {
+        eyeProtection: source.eyeProtection === true
+      };
+    }
+    module2.exports = {
+      DEFAULT_THEME_ENHANCER_SETTINGS,
+      EYE_SHIELD_CSS,
+      THEME_DROPDOWN_SELECTOR,
+      EYE_SHIELD_OPTION_VALUE,
+      EYE_SHIELD_OPTION_TEXT,
+      EYE_SHIELD_STYLE_ID,
+      normalizeThemeEnhancerSettings
+    };
+  }
+});
+
+// src/modules/plugin-data/constants.js
+var require_constants10 = __commonJS({
   "src/modules/plugin-data/constants.js"(exports2, module2) {
     "use strict";
     var anchorGraphConstants = require_constants2();
@@ -1104,6 +1211,7 @@ var require_constants9 = __commonJS({
     var snippetsConstants = require_snippets_constants();
     var tabBarEnhancerConstants = require_constants7();
     var fileExplorerEnhancerConstants = require_constants8();
+    var themeEnhancerConstants = require_constants9();
     var FEATURE_CONFIG_DIRECTORY_NAME = "configs";
     var FEATURE_EXPORT_DIRECTORY_NAME = "exports";
     var FEATURE_CONFIG_FILE_NAMES = {
@@ -1114,7 +1222,8 @@ var require_constants9 = __commonJS({
       statusBarEnhancer: "status-bar-enhancer",
       tabBarEnhancer: "tab-bar-enhancer",
       fileExplorerEnhancer: "file-explorer-enhancer",
-      editorEnhancer: "editor-enhancer"
+      editorEnhancer: "editor-enhancer",
+      themeEnhancer: "theme-enhancer"
     };
     var DEFAULT_PLUGIN_DATA = {
       features: {
@@ -1141,6 +1250,9 @@ var require_constants9 = __commonJS({
         },
         editorEnhancer: {
           enabled: false
+        },
+        themeEnhancer: {
+          enabled: false
         }
       }
     };
@@ -1155,7 +1267,8 @@ var require_constants9 = __commonJS({
       }),
       tabBarEnhancer: tabBarEnhancerConstants.DEFAULT_TAB_BAR_ENHANCER_SETTINGS,
       fileExplorerEnhancer: fileExplorerEnhancerConstants.DEFAULT_FILE_EXPLORER_ENHANCER_SETTINGS,
-      editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS
+      editorEnhancer: editorEnhancerConstants.DEFAULT_EDITOR_ENHANCER_SETTINGS,
+      themeEnhancer: themeEnhancerConstants.DEFAULT_THEME_ENHANCER_SETTINGS
     };
     module2.exports = {
       DEFAULT_FEATURE_DATA,
@@ -1172,7 +1285,7 @@ var require_feature_config_manager = __commonJS({
   "src/modules/plugin-data/feature-config-manager.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
-    var constants = require_constants9();
+    var constants = require_constants10();
     var FeatureConfigManager = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1275,7 +1388,7 @@ var require_store2 = __commonJS({
   "src/modules/plugin-data/store.js"(exports2, module2) {
     "use strict";
     var featureConfigManagerModule = require_feature_config_manager();
-    var constants = require_constants9();
+    var constants = require_constants10();
     var PluginDataStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -1296,6 +1409,7 @@ var require_store2 = __commonJS({
         this.featureData.tabBarEnhancer = await this.loadFeatureSlice("tabBarEnhancer", rawData?.tabBarEnhancer);
         this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice("fileExplorerEnhancer", rawData?.fileExplorerEnhancer);
         this.featureData.editorEnhancer = await this.loadFeatureSlice("editorEnhancer", rawData?.editorEnhancer);
+        this.featureData.themeEnhancer = await this.loadFeatureSlice("themeEnhancer", rawData?.themeEnhancer);
         if (this.hasLegacyFeatureSlices(rawData)) {
           await this.save();
         }
@@ -1381,6 +1495,19 @@ var require_store2 = __commonJS({
       setEditorEnhancerData(editorEnhancerData) {
         this.featureData.editorEnhancer = this.normalizeEditorEnhancerData(editorEnhancerData);
       }
+      // 返回主题增强模块的独立配置切片。
+      getThemeEnhancerData() {
+        return this.featureData.themeEnhancer;
+      }
+      // 更新主题增强模块的独立配置切片缓存。
+      setThemeEnhancerData(themeEnhancerData) {
+        this.featureData.themeEnhancer = this.normalizeThemeEnhancerData(themeEnhancerData);
+      }
+      // 保存主题增强模块数据到独立配置文件。
+      async saveThemeEnhancerData(themeEnhancerData) {
+        this.setThemeEnhancerData(themeEnhancerData);
+        await this.featureConfigManager.save("themeEnhancer", this.featureData.themeEnhancer);
+      }
       // 保存文件标记功能数据到独立配置文件。
       async saveFileMarkerData(fileMarkerData) {
         this.setFileMarkerData(fileMarkerData);
@@ -1431,6 +1558,7 @@ var require_store2 = __commonJS({
         await this.featureConfigManager.save("statusBarEnhancer", this.featureData.statusBarEnhancer);
         await this.featureConfigManager.save("tabBarEnhancer", this.featureData.tabBarEnhancer);
         await this.featureConfigManager.save("editorEnhancer", this.featureData.editorEnhancer);
+        await this.featureConfigManager.save("themeEnhancer", this.featureData.themeEnhancer);
       }
       // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
       async getConfigFileStatuses() {
@@ -1444,6 +1572,7 @@ var require_store2 = __commonJS({
         const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath("tabBarEnhancer");
         const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath("fileExplorerEnhancer");
         const editorEnhancerPath = this.featureConfigManager.getFeatureConfigPath("editorEnhancer");
+        const themeEnhancerPath = this.featureConfigManager.getFeatureConfigPath("themeEnhancer");
         return {
           directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
           exportDirectoryPath: this.featureConfigManager.getExportDirectoryPath(),
@@ -1509,6 +1638,13 @@ var require_store2 = __commonJS({
             path: editorEnhancerPath,
             exists: await this.featureConfigManager.exists("editorEnhancer"),
             summary: `自动补全：${this.featureData.editorEnhancer.autoCompleteEnabled !== false ? "开" : "关"}，粘贴自动补全：${this.featureData.editorEnhancer.enablePasteAutoClose === true ? "开" : "关"}`
+          },
+          themeEnhancer: {
+            key: "themeEnhancer",
+            name: "主题增强配置",
+            path: themeEnhancerPath,
+            exists: await this.featureConfigManager.exists("themeEnhancer"),
+            summary: "护眼模式：" + (this.featureData.themeEnhancer.eyeProtection === true ? "已开启" : "已关闭")
           }
         };
       }
@@ -1558,6 +1694,8 @@ var require_store2 = __commonJS({
           this.featureData.fileExplorerEnhancer = defaultFeatureData;
         } else if (featureKey === "editorEnhancer") {
           this.featureData.editorEnhancer = defaultFeatureData;
+        } else if (featureKey === "themeEnhancer") {
+          this.featureData.themeEnhancer = defaultFeatureData;
         }
         await this.featureConfigManager.save(featureKey, defaultFeatureData);
         return defaultFeatureData;
@@ -1581,7 +1719,8 @@ var require_store2 = __commonJS({
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
           fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
-          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
+          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer),
+          themeEnhancer: this.normalizeThemeEnhancerData(source.themeEnhancer)
         });
       }
       // 归一化核心配置，只保留 data.json 应继续存储的字段，并移除旧版功能切片。
@@ -1596,6 +1735,7 @@ var require_store2 = __commonJS({
         delete normalizedCoreData.tabBarEnhancer;
         delete normalizedCoreData.fileExplorerEnhancer;
         delete normalizedCoreData.editorEnhancer;
+        delete normalizedCoreData.themeEnhancer;
         normalizedCoreData.features = this.normalizeFeatures(source.features);
         return normalizedCoreData;
       }
@@ -1610,7 +1750,8 @@ var require_store2 = __commonJS({
           statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
           tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
           fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
-          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
+          editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer),
+          themeEnhancer: this.normalizeThemeEnhancerData(source.themeEnhancer)
         };
       }
       // 归一化插件级功能开关结构。
@@ -1639,6 +1780,9 @@ var require_store2 = __commonJS({
           },
           editorEnhancer: {
             enabled: features?.editorEnhancer?.enabled === true
+          },
+          themeEnhancer: {
+            enabled: features?.themeEnhancer?.enabled === true
           }
         };
       }
@@ -1695,11 +1839,43 @@ var require_store2 = __commonJS({
       // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
       // 注意：此处仅以用户存储值判断，不得再与默认值（恒为 false）做与运算，
       // 否则开关会被恒等钳制为 false，导致"文件夹路径末尾补 /"无法持久化。
+      // 同时补齐文件速览命令功能所需的打开位置、开关与命令/变量列表字段。
       normalizeCommandUriEnhancerData(commandUriEnhancerData) {
         const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
+        const commandUriEnhancerConstants = require_constants3();
+        const defaults = commandUriEnhancerConstants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS;
+        const openFileInValues = Object.keys(commandUriEnhancerConstants.OPEN_FILE_IN_OPTIONS);
         return {
-          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
+          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false,
+          openNewTab: source.openNewTab === true,
+          openFileIn: openFileInValues.indexOf(source.openFileIn) !== -1 ? source.openFileIn : defaults.openFileIn,
+          deleteCommandWhenFileIsDeleted: source.deleteCommandWhenFileIsDeleted !== false,
+          updateCommandsOnRename: source.updateCommandsOnRename !== false,
+          commands: this.normalizeOpenWithCommands(source.commands),
+          customVariables: Array.isArray(source.customVariables) ? this.normalizeOpenWithVariables(source.customVariables) : defaults.customVariables
         };
+      }
+      // 归一化文件速览命令列表，补齐 id 与缺失字段，保证命令配置形状稳定。
+      normalizeOpenWithCommands(commands) {
+        if (!Array.isArray(commands)) {
+          return [];
+        }
+        const openFileInValues = Object.keys(require_constants3().OPEN_FILE_IN_OPTIONS);
+        return commands.filter((command) => this.isPlainObject(command)).map((command) => ({
+          id: typeof command.id === "string" && command.id ? command.id : crypto.randomUUID(),
+          name: typeof command.name === "string" ? command.name : "",
+          filePath: typeof command.filePath === "string" ? command.filePath : "",
+          openFileIn: openFileInValues.indexOf(command.openFileIn) !== -1 ? command.openFileIn : "activeTab",
+          isValid: command.isValid !== false
+        }));
+      }
+      // 归一化自定义变量列表，校验类型取值。
+      normalizeOpenWithVariables(variables) {
+        return variables.filter((variable) => this.isPlainObject(variable)).map((variable) => ({
+          name: typeof variable.name === "string" ? variable.name : "",
+          value: typeof variable.value === "string" ? variable.value : "",
+          type: variable.type === "javascript" ? "javascript" : "string"
+        }));
       }
       // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
       normalizeStatusBarEnhancerData(statusBarEnhancerData) {
@@ -1780,6 +1956,13 @@ var require_store2 = __commonJS({
           autoCompleteEnabled: source.autoCompleteEnabled !== false
         };
       }
+      // 归一化主题增强模块配置结构。
+      normalizeThemeEnhancerData(themeEnhancerData) {
+        var source = this.isPlainObject(themeEnhancerData) ? themeEnhancerData : {};
+        return {
+          eyeProtection: source.eyeProtection === true
+        };
+      }
       // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
       normalizePathFilters(filters) {
         return filters.filter(function(f) {
@@ -1838,6 +2021,9 @@ var require_store2 = __commonJS({
         if (featureKey === "editorEnhancer") {
           return this.normalizeEditorEnhancerData(featureData);
         }
+        if (featureKey === "themeEnhancer") {
+          return this.normalizeThemeEnhancerData(featureData);
+        }
         return this.isPlainObject(featureData) ? featureData : {};
       }
       // 判断旧版 data.json 中是否仍残留需要迁移的模块切片。
@@ -1863,7 +2049,8 @@ var require_store2 = __commonJS({
           statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
           tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
           fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer,
-          editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer
+          editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer,
+          themeEnhancer: bundle.featureData?.themeEnhancer || bundle.themeEnhancer
         }) : bundle;
         const coreSource = hasSeparatedPayload ? Object.assign({}, bundle.coreData, {
           features: bundle.coreData?.features || bundle.features
@@ -1902,7 +2089,7 @@ var require_store2 = __commonJS({
 var require_plugin_data = __commonJS({
   "src/modules/plugin-data/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants9();
+    var constants = require_constants10();
     var featureConfigManager = require_feature_config_manager();
     var store = require_store2();
     module2.exports = Object.assign({}, constants, featureConfigManager, store);
@@ -1910,7 +2097,7 @@ var require_plugin_data = __commonJS({
 });
 
 // src/modules/plugin-settings/constants.js
-var require_constants10 = __commonJS({
+var require_constants11 = __commonJS({
   "src/modules/plugin-settings/constants.js"(exports2, module2) {
     "use strict";
     var DEFAULT_FEATURE_SETTINGS = {
@@ -1937,6 +2124,9 @@ var require_constants10 = __commonJS({
       },
       editorEnhancer: {
         enabled: false
+      },
+      themeEnhancer: {
+        enabled: false
       }
     };
     module2.exports = {
@@ -1949,7 +2139,7 @@ var require_constants10 = __commonJS({
 var require_store3 = __commonJS({
   "src/modules/plugin-settings/store.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants10();
+    var constants = require_constants11();
     var PluginSettingsStore = class {
       constructor(plugin) {
         this.plugin = plugin;
@@ -2045,6 +2235,16 @@ var require_store3 = __commonJS({
         await this.save();
         return this.isEditorEnhancerEnabled();
       }
+      // 返回主题增强模块是否启用，供主入口和设置页统一读取。
+      isThemeEnhancerEnabled() {
+        return Boolean(this.settings.themeEnhancer.enabled);
+      }
+      // 切换主题增强模块的启用状态，并立即持久化到本地。
+      async setThemeEnhancerEnabled(enabled) {
+        this.settings.themeEnhancer.enabled = Boolean(enabled);
+        await this.save();
+        return this.isThemeEnhancerEnabled();
+      }
       // 返回功能设置对象，供主入口与设置页读取当前切片。
       getSettings() {
         return this.settings;
@@ -2076,6 +2276,9 @@ var require_store3 = __commonJS({
           },
           editorEnhancer: {
             enabled: source.editorEnhancer?.enabled === true
+          },
+          themeEnhancer: {
+            enabled: source.themeEnhancer?.enabled === true
           }
         };
       }
@@ -2090,7 +2293,7 @@ var require_store3 = __commonJS({
 var require_plugin_settings = __commonJS({
   "src/modules/plugin-settings/index.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants10();
+    var constants = require_constants11();
     var store = require_store3();
     module2.exports = Object.assign({}, constants, store);
   }
@@ -3049,6 +3252,39 @@ var require_store4 = __commonJS({
         await this.save();
         return this.settings.addTrailingSlashToFolders;
       }
+      // 更新默认文件打开位置，并立即持久化。
+      async setOpenFileIn(value) {
+        this.settings.openFileIn = this.normalizeOpenFileIn(value, this.settings.openFileIn);
+        await this.save();
+        return this.settings.openFileIn;
+      }
+      // 更新“删除文件时删除命令”开关，并立即持久化。
+      async setDeleteCommandWhenFileIsDeleted(enabled) {
+        this.settings.deleteCommandWhenFileIsDeleted = Boolean(enabled);
+        await this.save();
+        return this.settings.deleteCommandWhenFileIsDeleted;
+      }
+      // 更新“重命名文件时更新命令”开关，并立即持久化。
+      async setUpdateCommandsOnRename(enabled) {
+        this.settings.updateCommandsOnRename = Boolean(enabled);
+        await this.save();
+        return this.settings.updateCommandsOnRename;
+      }
+      // 追加一条文件速览命令配置并持久化，返回新增的命令配置。
+      async addCommand(command) {
+        const normalizedCommand = this.normalizeCommands([command])[0];
+        if (normalizedCommand) {
+          this.settings.commands.push(normalizedCommand);
+          await this.save();
+          return normalizedCommand;
+        }
+        return null;
+      }
+      // 按 id 移除文件速览命令配置并持久化。
+      async removeCommandById(id) {
+        this.settings.commands = this.settings.commands.filter((command) => command && command.id !== id);
+        await this.save();
+      }
       // 记录最近一次文件或文件夹右键菜单的目标对象。
       rememberMenuTarget(file) {
         this.lastMenuTarget = file || null;
@@ -3064,13 +3300,1906 @@ var require_store4 = __commonJS({
       // 归一化命令&URI增强模块的配置结构。
       normalizeSettings(settings) {
         const source = settings || constants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS;
+        const defaults = constants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS;
         return {
-          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
+          addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false,
+          openNewTab: source.openNewTab === true,
+          openFileIn: this.normalizeOpenFileIn(source.openFileIn, defaults.openFileIn),
+          deleteCommandWhenFileIsDeleted: source.deleteCommandWhenFileIsDeleted !== false,
+          updateCommandsOnRename: source.updateCommandsOnRename !== false,
+          commands: this.normalizeCommands(source.commands),
+          customVariables: this.normalizeCustomVariables(source.customVariables, defaults.customVariables)
         };
+      }
+      // 校验打开位置取值，非法或缺失时回退到给定的默认值。
+      normalizeOpenFileIn(value, fallback) {
+        return Object.keys(constants.OPEN_FILE_IN_OPTIONS).indexOf(value) !== -1 ? value : fallback;
+      }
+      // 归一化文件速览命令列表，缺失字段补默认值并补齐 id。
+      normalizeCommands(commands) {
+        if (!Array.isArray(commands)) {
+          return [];
+        }
+        return commands.filter((command) => command && typeof command === "object" && !Array.isArray(command)).map((command) => ({
+          id: typeof command.id === "string" && command.id ? command.id : crypto.randomUUID(),
+          name: typeof command.name === "string" ? command.name : "",
+          filePath: typeof command.filePath === "string" ? command.filePath : "",
+          openFileIn: this.normalizeOpenFileIn(command.openFileIn, "activeTab"),
+          isValid: command.isValid !== false
+        }));
+      }
+      // 归一化自定义变量列表；未定义时回退到默认变量，显式空数组则保留为空。
+      normalizeCustomVariables(variables, fallback) {
+        if (!Array.isArray(variables)) {
+          return fallback;
+        }
+        return variables.filter((variable) => variable && typeof variable === "object" && !Array.isArray(variable)).map((variable) => ({
+          name: typeof variable.name === "string" ? variable.name : "",
+          value: typeof variable.value === "string" ? variable.value : "",
+          type: variable.type === "javascript" ? "javascript" : "string"
+        }));
       }
     };
     module2.exports = {
       CommandUriEnhancerStore
+    };
+  }
+});
+
+// node_modules/@popperjs/core/dist/cjs/popper.js
+var require_popper = __commonJS({
+  "node_modules/@popperjs/core/dist/cjs/popper.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    function getWindow(node) {
+      if (node == null) {
+        return window;
+      }
+      if (node.toString() !== "[object Window]") {
+        var ownerDocument = node.ownerDocument;
+        return ownerDocument ? ownerDocument.defaultView || window : window;
+      }
+      return node;
+    }
+    function isElement(node) {
+      var OwnElement = getWindow(node).Element;
+      return node instanceof OwnElement || node instanceof Element;
+    }
+    function isHTMLElement(node) {
+      var OwnElement = getWindow(node).HTMLElement;
+      return node instanceof OwnElement || node instanceof HTMLElement;
+    }
+    function isShadowRoot(node) {
+      if (typeof ShadowRoot === "undefined") {
+        return false;
+      }
+      var OwnElement = getWindow(node).ShadowRoot;
+      return node instanceof OwnElement || node instanceof ShadowRoot;
+    }
+    var max = Math.max;
+    var min = Math.min;
+    var round = Math.round;
+    function getUAString() {
+      var uaData = navigator.userAgentData;
+      if (uaData != null && uaData.brands && Array.isArray(uaData.brands)) {
+        return uaData.brands.map(function(item) {
+          return item.brand + "/" + item.version;
+        }).join(" ");
+      }
+      return navigator.userAgent;
+    }
+    function isLayoutViewport() {
+      return !/^((?!chrome|android).)*safari/i.test(getUAString());
+    }
+    function getBoundingClientRect(element, includeScale, isFixedStrategy) {
+      if (includeScale === void 0) {
+        includeScale = false;
+      }
+      if (isFixedStrategy === void 0) {
+        isFixedStrategy = false;
+      }
+      var clientRect = element.getBoundingClientRect();
+      var scaleX = 1;
+      var scaleY = 1;
+      if (includeScale && isHTMLElement(element)) {
+        scaleX = element.offsetWidth > 0 ? round(clientRect.width) / element.offsetWidth || 1 : 1;
+        scaleY = element.offsetHeight > 0 ? round(clientRect.height) / element.offsetHeight || 1 : 1;
+      }
+      var _ref = isElement(element) ? getWindow(element) : window, visualViewport = _ref.visualViewport;
+      var addVisualOffsets = !isLayoutViewport() && isFixedStrategy;
+      var x = (clientRect.left + (addVisualOffsets && visualViewport ? visualViewport.offsetLeft : 0)) / scaleX;
+      var y = (clientRect.top + (addVisualOffsets && visualViewport ? visualViewport.offsetTop : 0)) / scaleY;
+      var width = clientRect.width / scaleX;
+      var height = clientRect.height / scaleY;
+      return {
+        width,
+        height,
+        top: y,
+        right: x + width,
+        bottom: y + height,
+        left: x,
+        x,
+        y
+      };
+    }
+    function getWindowScroll(node) {
+      var win = getWindow(node);
+      var scrollLeft = win.pageXOffset;
+      var scrollTop = win.pageYOffset;
+      return {
+        scrollLeft,
+        scrollTop
+      };
+    }
+    function getHTMLElementScroll(element) {
+      return {
+        scrollLeft: element.scrollLeft,
+        scrollTop: element.scrollTop
+      };
+    }
+    function getNodeScroll(node) {
+      if (node === getWindow(node) || !isHTMLElement(node)) {
+        return getWindowScroll(node);
+      } else {
+        return getHTMLElementScroll(node);
+      }
+    }
+    function getNodeName(element) {
+      return element ? (element.nodeName || "").toLowerCase() : null;
+    }
+    function getDocumentElement(element) {
+      return ((isElement(element) ? element.ownerDocument : (
+        // $FlowFixMe[prop-missing]
+        element.document
+      )) || window.document).documentElement;
+    }
+    function getWindowScrollBarX(element) {
+      return getBoundingClientRect(getDocumentElement(element)).left + getWindowScroll(element).scrollLeft;
+    }
+    function getComputedStyle(element) {
+      return getWindow(element).getComputedStyle(element);
+    }
+    function isScrollParent(element) {
+      var _getComputedStyle = getComputedStyle(element), overflow = _getComputedStyle.overflow, overflowX = _getComputedStyle.overflowX, overflowY = _getComputedStyle.overflowY;
+      return /auto|scroll|overlay|hidden/.test(overflow + overflowY + overflowX);
+    }
+    function isElementScaled(element) {
+      var rect = element.getBoundingClientRect();
+      var scaleX = round(rect.width) / element.offsetWidth || 1;
+      var scaleY = round(rect.height) / element.offsetHeight || 1;
+      return scaleX !== 1 || scaleY !== 1;
+    }
+    function getCompositeRect(elementOrVirtualElement, offsetParent, isFixed) {
+      if (isFixed === void 0) {
+        isFixed = false;
+      }
+      var isOffsetParentAnElement = isHTMLElement(offsetParent);
+      var offsetParentIsScaled = isHTMLElement(offsetParent) && isElementScaled(offsetParent);
+      var documentElement = getDocumentElement(offsetParent);
+      var rect = getBoundingClientRect(elementOrVirtualElement, offsetParentIsScaled, isFixed);
+      var scroll = {
+        scrollLeft: 0,
+        scrollTop: 0
+      };
+      var offsets = {
+        x: 0,
+        y: 0
+      };
+      if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
+        if (getNodeName(offsetParent) !== "body" || // https://github.com/popperjs/popper-core/issues/1078
+        isScrollParent(documentElement)) {
+          scroll = getNodeScroll(offsetParent);
+        }
+        if (isHTMLElement(offsetParent)) {
+          offsets = getBoundingClientRect(offsetParent, true);
+          offsets.x += offsetParent.clientLeft;
+          offsets.y += offsetParent.clientTop;
+        } else if (documentElement) {
+          offsets.x = getWindowScrollBarX(documentElement);
+        }
+      }
+      return {
+        x: rect.left + scroll.scrollLeft - offsets.x,
+        y: rect.top + scroll.scrollTop - offsets.y,
+        width: rect.width,
+        height: rect.height
+      };
+    }
+    function getLayoutRect(element) {
+      var clientRect = getBoundingClientRect(element);
+      var width = element.offsetWidth;
+      var height = element.offsetHeight;
+      if (Math.abs(clientRect.width - width) <= 1) {
+        width = clientRect.width;
+      }
+      if (Math.abs(clientRect.height - height) <= 1) {
+        height = clientRect.height;
+      }
+      return {
+        x: element.offsetLeft,
+        y: element.offsetTop,
+        width,
+        height
+      };
+    }
+    function getParentNode(element) {
+      if (getNodeName(element) === "html") {
+        return element;
+      }
+      return (
+        // this is a quicker (but less type safe) way to save quite some bytes from the bundle
+        // $FlowFixMe[incompatible-return]
+        // $FlowFixMe[prop-missing]
+        element.assignedSlot || // step into the shadow DOM of the parent of a slotted node
+        element.parentNode || // DOM Element detected
+        (isShadowRoot(element) ? element.host : null) || // ShadowRoot detected
+        // $FlowFixMe[incompatible-call]: HTMLElement is a Node
+        getDocumentElement(element)
+      );
+    }
+    function getScrollParent(node) {
+      if (["html", "body", "#document"].indexOf(getNodeName(node)) >= 0) {
+        return node.ownerDocument.body;
+      }
+      if (isHTMLElement(node) && isScrollParent(node)) {
+        return node;
+      }
+      return getScrollParent(getParentNode(node));
+    }
+    function listScrollParents(element, list) {
+      var _element$ownerDocumen;
+      if (list === void 0) {
+        list = [];
+      }
+      var scrollParent = getScrollParent(element);
+      var isBody = scrollParent === ((_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body);
+      var win = getWindow(scrollParent);
+      var target = isBody ? [win].concat(win.visualViewport || [], isScrollParent(scrollParent) ? scrollParent : []) : scrollParent;
+      var updatedList = list.concat(target);
+      return isBody ? updatedList : (
+        // $FlowFixMe[incompatible-call]: isBody tells us target will be an HTMLElement here
+        updatedList.concat(listScrollParents(getParentNode(target)))
+      );
+    }
+    function isTableElement(element) {
+      return ["table", "td", "th"].indexOf(getNodeName(element)) >= 0;
+    }
+    function getTrueOffsetParent(element) {
+      if (!isHTMLElement(element) || // https://github.com/popperjs/popper-core/issues/837
+      getComputedStyle(element).position === "fixed") {
+        return null;
+      }
+      return element.offsetParent;
+    }
+    function getContainingBlock(element) {
+      var isFirefox = /firefox/i.test(getUAString());
+      var isIE = /Trident/i.test(getUAString());
+      if (isIE && isHTMLElement(element)) {
+        var elementCss = getComputedStyle(element);
+        if (elementCss.position === "fixed") {
+          return null;
+        }
+      }
+      var currentNode = getParentNode(element);
+      if (isShadowRoot(currentNode)) {
+        currentNode = currentNode.host;
+      }
+      while (isHTMLElement(currentNode) && ["html", "body"].indexOf(getNodeName(currentNode)) < 0) {
+        var css = getComputedStyle(currentNode);
+        if (css.transform !== "none" || css.perspective !== "none" || css.contain === "paint" || ["transform", "perspective"].indexOf(css.willChange) !== -1 || isFirefox && css.willChange === "filter" || isFirefox && css.filter && css.filter !== "none") {
+          return currentNode;
+        } else {
+          currentNode = currentNode.parentNode;
+        }
+      }
+      return null;
+    }
+    function getOffsetParent(element) {
+      var window2 = getWindow(element);
+      var offsetParent = getTrueOffsetParent(element);
+      while (offsetParent && isTableElement(offsetParent) && getComputedStyle(offsetParent).position === "static") {
+        offsetParent = getTrueOffsetParent(offsetParent);
+      }
+      if (offsetParent && (getNodeName(offsetParent) === "html" || getNodeName(offsetParent) === "body" && getComputedStyle(offsetParent).position === "static")) {
+        return window2;
+      }
+      return offsetParent || getContainingBlock(element) || window2;
+    }
+    var top = "top";
+    var bottom = "bottom";
+    var right = "right";
+    var left = "left";
+    var auto = "auto";
+    var basePlacements = [top, bottom, right, left];
+    var start = "start";
+    var end = "end";
+    var clippingParents = "clippingParents";
+    var viewport = "viewport";
+    var popper = "popper";
+    var reference = "reference";
+    var variationPlacements = /* @__PURE__ */ basePlacements.reduce(function(acc, placement) {
+      return acc.concat([placement + "-" + start, placement + "-" + end]);
+    }, []);
+    var placements = /* @__PURE__ */ [].concat(basePlacements, [auto]).reduce(function(acc, placement) {
+      return acc.concat([placement, placement + "-" + start, placement + "-" + end]);
+    }, []);
+    var beforeRead = "beforeRead";
+    var read = "read";
+    var afterRead = "afterRead";
+    var beforeMain = "beforeMain";
+    var main = "main";
+    var afterMain = "afterMain";
+    var beforeWrite = "beforeWrite";
+    var write = "write";
+    var afterWrite = "afterWrite";
+    var modifierPhases = [beforeRead, read, afterRead, beforeMain, main, afterMain, beforeWrite, write, afterWrite];
+    function order(modifiers) {
+      var map = /* @__PURE__ */ new Map();
+      var visited = /* @__PURE__ */ new Set();
+      var result = [];
+      modifiers.forEach(function(modifier) {
+        map.set(modifier.name, modifier);
+      });
+      function sort(modifier) {
+        visited.add(modifier.name);
+        var requires = [].concat(modifier.requires || [], modifier.requiresIfExists || []);
+        requires.forEach(function(dep) {
+          if (!visited.has(dep)) {
+            var depModifier = map.get(dep);
+            if (depModifier) {
+              sort(depModifier);
+            }
+          }
+        });
+        result.push(modifier);
+      }
+      modifiers.forEach(function(modifier) {
+        if (!visited.has(modifier.name)) {
+          sort(modifier);
+        }
+      });
+      return result;
+    }
+    function orderModifiers(modifiers) {
+      var orderedModifiers = order(modifiers);
+      return modifierPhases.reduce(function(acc, phase) {
+        return acc.concat(orderedModifiers.filter(function(modifier) {
+          return modifier.phase === phase;
+        }));
+      }, []);
+    }
+    function debounce(fn) {
+      var pending;
+      return function() {
+        if (!pending) {
+          pending = new Promise(function(resolve) {
+            Promise.resolve().then(function() {
+              pending = void 0;
+              resolve(fn());
+            });
+          });
+        }
+        return pending;
+      };
+    }
+    function mergeByName(modifiers) {
+      var merged = modifiers.reduce(function(merged2, current) {
+        var existing = merged2[current.name];
+        merged2[current.name] = existing ? Object.assign({}, existing, current, {
+          options: Object.assign({}, existing.options, current.options),
+          data: Object.assign({}, existing.data, current.data)
+        }) : current;
+        return merged2;
+      }, {});
+      return Object.keys(merged).map(function(key) {
+        return merged[key];
+      });
+    }
+    function getViewportRect(element, strategy) {
+      var win = getWindow(element);
+      var html = getDocumentElement(element);
+      var visualViewport = win.visualViewport;
+      var width = html.clientWidth;
+      var height = html.clientHeight;
+      var x = 0;
+      var y = 0;
+      if (visualViewport) {
+        width = visualViewport.width;
+        height = visualViewport.height;
+        var layoutViewport = isLayoutViewport();
+        if (layoutViewport || !layoutViewport && strategy === "fixed") {
+          x = visualViewport.offsetLeft;
+          y = visualViewport.offsetTop;
+        }
+      }
+      return {
+        width,
+        height,
+        x: x + getWindowScrollBarX(element),
+        y
+      };
+    }
+    function getDocumentRect(element) {
+      var _element$ownerDocumen;
+      var html = getDocumentElement(element);
+      var winScroll = getWindowScroll(element);
+      var body = (_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body;
+      var width = max(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
+      var height = max(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
+      var x = -winScroll.scrollLeft + getWindowScrollBarX(element);
+      var y = -winScroll.scrollTop;
+      if (getComputedStyle(body || html).direction === "rtl") {
+        x += max(html.clientWidth, body ? body.clientWidth : 0) - width;
+      }
+      return {
+        width,
+        height,
+        x,
+        y
+      };
+    }
+    function contains(parent, child) {
+      var rootNode = child.getRootNode && child.getRootNode();
+      if (parent.contains(child)) {
+        return true;
+      } else if (rootNode && isShadowRoot(rootNode)) {
+        var next = child;
+        do {
+          if (next && parent.isSameNode(next)) {
+            return true;
+          }
+          next = next.parentNode || next.host;
+        } while (next);
+      }
+      return false;
+    }
+    function rectToClientRect(rect) {
+      return Object.assign({}, rect, {
+        left: rect.x,
+        top: rect.y,
+        right: rect.x + rect.width,
+        bottom: rect.y + rect.height
+      });
+    }
+    function getInnerBoundingClientRect(element, strategy) {
+      var rect = getBoundingClientRect(element, false, strategy === "fixed");
+      rect.top = rect.top + element.clientTop;
+      rect.left = rect.left + element.clientLeft;
+      rect.bottom = rect.top + element.clientHeight;
+      rect.right = rect.left + element.clientWidth;
+      rect.width = element.clientWidth;
+      rect.height = element.clientHeight;
+      rect.x = rect.left;
+      rect.y = rect.top;
+      return rect;
+    }
+    function getClientRectFromMixedType(element, clippingParent, strategy) {
+      return clippingParent === viewport ? rectToClientRect(getViewportRect(element, strategy)) : isElement(clippingParent) ? getInnerBoundingClientRect(clippingParent, strategy) : rectToClientRect(getDocumentRect(getDocumentElement(element)));
+    }
+    function getClippingParents(element) {
+      var clippingParents2 = listScrollParents(getParentNode(element));
+      var canEscapeClipping = ["absolute", "fixed"].indexOf(getComputedStyle(element).position) >= 0;
+      var clipperElement = canEscapeClipping && isHTMLElement(element) ? getOffsetParent(element) : element;
+      if (!isElement(clipperElement)) {
+        return [];
+      }
+      return clippingParents2.filter(function(clippingParent) {
+        return isElement(clippingParent) && contains(clippingParent, clipperElement) && getNodeName(clippingParent) !== "body";
+      });
+    }
+    function getClippingRect(element, boundary, rootBoundary, strategy) {
+      var mainClippingParents = boundary === "clippingParents" ? getClippingParents(element) : [].concat(boundary);
+      var clippingParents2 = [].concat(mainClippingParents, [rootBoundary]);
+      var firstClippingParent = clippingParents2[0];
+      var clippingRect = clippingParents2.reduce(function(accRect, clippingParent) {
+        var rect = getClientRectFromMixedType(element, clippingParent, strategy);
+        accRect.top = max(rect.top, accRect.top);
+        accRect.right = min(rect.right, accRect.right);
+        accRect.bottom = min(rect.bottom, accRect.bottom);
+        accRect.left = max(rect.left, accRect.left);
+        return accRect;
+      }, getClientRectFromMixedType(element, firstClippingParent, strategy));
+      clippingRect.width = clippingRect.right - clippingRect.left;
+      clippingRect.height = clippingRect.bottom - clippingRect.top;
+      clippingRect.x = clippingRect.left;
+      clippingRect.y = clippingRect.top;
+      return clippingRect;
+    }
+    function getBasePlacement(placement) {
+      return placement.split("-")[0];
+    }
+    function getVariation(placement) {
+      return placement.split("-")[1];
+    }
+    function getMainAxisFromPlacement(placement) {
+      return ["top", "bottom"].indexOf(placement) >= 0 ? "x" : "y";
+    }
+    function computeOffsets(_ref) {
+      var reference2 = _ref.reference, element = _ref.element, placement = _ref.placement;
+      var basePlacement = placement ? getBasePlacement(placement) : null;
+      var variation = placement ? getVariation(placement) : null;
+      var commonX = reference2.x + reference2.width / 2 - element.width / 2;
+      var commonY = reference2.y + reference2.height / 2 - element.height / 2;
+      var offsets;
+      switch (basePlacement) {
+        case top:
+          offsets = {
+            x: commonX,
+            y: reference2.y - element.height
+          };
+          break;
+        case bottom:
+          offsets = {
+            x: commonX,
+            y: reference2.y + reference2.height
+          };
+          break;
+        case right:
+          offsets = {
+            x: reference2.x + reference2.width,
+            y: commonY
+          };
+          break;
+        case left:
+          offsets = {
+            x: reference2.x - element.width,
+            y: commonY
+          };
+          break;
+        default:
+          offsets = {
+            x: reference2.x,
+            y: reference2.y
+          };
+      }
+      var mainAxis = basePlacement ? getMainAxisFromPlacement(basePlacement) : null;
+      if (mainAxis != null) {
+        var len = mainAxis === "y" ? "height" : "width";
+        switch (variation) {
+          case start:
+            offsets[mainAxis] = offsets[mainAxis] - (reference2[len] / 2 - element[len] / 2);
+            break;
+          case end:
+            offsets[mainAxis] = offsets[mainAxis] + (reference2[len] / 2 - element[len] / 2);
+            break;
+        }
+      }
+      return offsets;
+    }
+    function getFreshSideObject() {
+      return {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      };
+    }
+    function mergePaddingObject(paddingObject) {
+      return Object.assign({}, getFreshSideObject(), paddingObject);
+    }
+    function expandToHashMap(value, keys) {
+      return keys.reduce(function(hashMap, key) {
+        hashMap[key] = value;
+        return hashMap;
+      }, {});
+    }
+    function detectOverflow(state, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      var _options = options, _options$placement = _options.placement, placement = _options$placement === void 0 ? state.placement : _options$placement, _options$strategy = _options.strategy, strategy = _options$strategy === void 0 ? state.strategy : _options$strategy, _options$boundary = _options.boundary, boundary = _options$boundary === void 0 ? clippingParents : _options$boundary, _options$rootBoundary = _options.rootBoundary, rootBoundary = _options$rootBoundary === void 0 ? viewport : _options$rootBoundary, _options$elementConte = _options.elementContext, elementContext = _options$elementConte === void 0 ? popper : _options$elementConte, _options$altBoundary = _options.altBoundary, altBoundary = _options$altBoundary === void 0 ? false : _options$altBoundary, _options$padding = _options.padding, padding = _options$padding === void 0 ? 0 : _options$padding;
+      var paddingObject = mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
+      var altContext = elementContext === popper ? reference : popper;
+      var popperRect = state.rects.popper;
+      var element = state.elements[altBoundary ? altContext : elementContext];
+      var clippingClientRect = getClippingRect(isElement(element) ? element : element.contextElement || getDocumentElement(state.elements.popper), boundary, rootBoundary, strategy);
+      var referenceClientRect = getBoundingClientRect(state.elements.reference);
+      var popperOffsets2 = computeOffsets({
+        reference: referenceClientRect,
+        element: popperRect,
+        strategy: "absolute",
+        placement
+      });
+      var popperClientRect = rectToClientRect(Object.assign({}, popperRect, popperOffsets2));
+      var elementClientRect = elementContext === popper ? popperClientRect : referenceClientRect;
+      var overflowOffsets = {
+        top: clippingClientRect.top - elementClientRect.top + paddingObject.top,
+        bottom: elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom,
+        left: clippingClientRect.left - elementClientRect.left + paddingObject.left,
+        right: elementClientRect.right - clippingClientRect.right + paddingObject.right
+      };
+      var offsetData = state.modifiersData.offset;
+      if (elementContext === popper && offsetData) {
+        var offset2 = offsetData[placement];
+        Object.keys(overflowOffsets).forEach(function(key) {
+          var multiply = [right, bottom].indexOf(key) >= 0 ? 1 : -1;
+          var axis = [top, bottom].indexOf(key) >= 0 ? "y" : "x";
+          overflowOffsets[key] += offset2[axis] * multiply;
+        });
+      }
+      return overflowOffsets;
+    }
+    var DEFAULT_OPTIONS = {
+      placement: "bottom",
+      modifiers: [],
+      strategy: "absolute"
+    };
+    function areValidElements() {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      return !args.some(function(element) {
+        return !(element && typeof element.getBoundingClientRect === "function");
+      });
+    }
+    function popperGenerator(generatorOptions) {
+      if (generatorOptions === void 0) {
+        generatorOptions = {};
+      }
+      var _generatorOptions = generatorOptions, _generatorOptions$def = _generatorOptions.defaultModifiers, defaultModifiers2 = _generatorOptions$def === void 0 ? [] : _generatorOptions$def, _generatorOptions$def2 = _generatorOptions.defaultOptions, defaultOptions = _generatorOptions$def2 === void 0 ? DEFAULT_OPTIONS : _generatorOptions$def2;
+      return function createPopper2(reference2, popper2, options) {
+        if (options === void 0) {
+          options = defaultOptions;
+        }
+        var state = {
+          placement: "bottom",
+          orderedModifiers: [],
+          options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions),
+          modifiersData: {},
+          elements: {
+            reference: reference2,
+            popper: popper2
+          },
+          attributes: {},
+          styles: {}
+        };
+        var effectCleanupFns = [];
+        var isDestroyed = false;
+        var instance = {
+          state,
+          setOptions: function setOptions(setOptionsAction) {
+            var options2 = typeof setOptionsAction === "function" ? setOptionsAction(state.options) : setOptionsAction;
+            cleanupModifierEffects();
+            state.options = Object.assign({}, defaultOptions, state.options, options2);
+            state.scrollParents = {
+              reference: isElement(reference2) ? listScrollParents(reference2) : reference2.contextElement ? listScrollParents(reference2.contextElement) : [],
+              popper: listScrollParents(popper2)
+            };
+            var orderedModifiers = orderModifiers(mergeByName([].concat(defaultModifiers2, state.options.modifiers)));
+            state.orderedModifiers = orderedModifiers.filter(function(m) {
+              return m.enabled;
+            });
+            runModifierEffects();
+            return instance.update();
+          },
+          // Sync update – it will always be executed, even if not necessary. This
+          // is useful for low frequency updates where sync behavior simplifies the
+          // logic.
+          // For high frequency updates (e.g. `resize` and `scroll` events), always
+          // prefer the async Popper#update method
+          forceUpdate: function forceUpdate() {
+            if (isDestroyed) {
+              return;
+            }
+            var _state$elements = state.elements, reference3 = _state$elements.reference, popper3 = _state$elements.popper;
+            if (!areValidElements(reference3, popper3)) {
+              return;
+            }
+            state.rects = {
+              reference: getCompositeRect(reference3, getOffsetParent(popper3), state.options.strategy === "fixed"),
+              popper: getLayoutRect(popper3)
+            };
+            state.reset = false;
+            state.placement = state.options.placement;
+            state.orderedModifiers.forEach(function(modifier) {
+              return state.modifiersData[modifier.name] = Object.assign({}, modifier.data);
+            });
+            for (var index = 0; index < state.orderedModifiers.length; index++) {
+              if (state.reset === true) {
+                state.reset = false;
+                index = -1;
+                continue;
+              }
+              var _state$orderedModifie = state.orderedModifiers[index], fn = _state$orderedModifie.fn, _state$orderedModifie2 = _state$orderedModifie.options, _options = _state$orderedModifie2 === void 0 ? {} : _state$orderedModifie2, name = _state$orderedModifie.name;
+              if (typeof fn === "function") {
+                state = fn({
+                  state,
+                  options: _options,
+                  name,
+                  instance
+                }) || state;
+              }
+            }
+          },
+          // Async and optimistically optimized update – it will not be executed if
+          // not necessary (debounced to run at most once-per-tick)
+          update: debounce(function() {
+            return new Promise(function(resolve) {
+              instance.forceUpdate();
+              resolve(state);
+            });
+          }),
+          destroy: function destroy() {
+            cleanupModifierEffects();
+            isDestroyed = true;
+          }
+        };
+        if (!areValidElements(reference2, popper2)) {
+          return instance;
+        }
+        instance.setOptions(options).then(function(state2) {
+          if (!isDestroyed && options.onFirstUpdate) {
+            options.onFirstUpdate(state2);
+          }
+        });
+        function runModifierEffects() {
+          state.orderedModifiers.forEach(function(_ref) {
+            var name = _ref.name, _ref$options = _ref.options, options2 = _ref$options === void 0 ? {} : _ref$options, effect2 = _ref.effect;
+            if (typeof effect2 === "function") {
+              var cleanupFn = effect2({
+                state,
+                name,
+                instance,
+                options: options2
+              });
+              var noopFn = function noopFn2() {
+              };
+              effectCleanupFns.push(cleanupFn || noopFn);
+            }
+          });
+        }
+        function cleanupModifierEffects() {
+          effectCleanupFns.forEach(function(fn) {
+            return fn();
+          });
+          effectCleanupFns = [];
+        }
+        return instance;
+      };
+    }
+    var passive = {
+      passive: true
+    };
+    function effect$2(_ref) {
+      var state = _ref.state, instance = _ref.instance, options = _ref.options;
+      var _options$scroll = options.scroll, scroll = _options$scroll === void 0 ? true : _options$scroll, _options$resize = options.resize, resize = _options$resize === void 0 ? true : _options$resize;
+      var window2 = getWindow(state.elements.popper);
+      var scrollParents = [].concat(state.scrollParents.reference, state.scrollParents.popper);
+      if (scroll) {
+        scrollParents.forEach(function(scrollParent) {
+          scrollParent.addEventListener("scroll", instance.update, passive);
+        });
+      }
+      if (resize) {
+        window2.addEventListener("resize", instance.update, passive);
+      }
+      return function() {
+        if (scroll) {
+          scrollParents.forEach(function(scrollParent) {
+            scrollParent.removeEventListener("scroll", instance.update, passive);
+          });
+        }
+        if (resize) {
+          window2.removeEventListener("resize", instance.update, passive);
+        }
+      };
+    }
+    var eventListeners = {
+      name: "eventListeners",
+      enabled: true,
+      phase: "write",
+      fn: function fn() {
+      },
+      effect: effect$2,
+      data: {}
+    };
+    function popperOffsets(_ref) {
+      var state = _ref.state, name = _ref.name;
+      state.modifiersData[name] = computeOffsets({
+        reference: state.rects.reference,
+        element: state.rects.popper,
+        strategy: "absolute",
+        placement: state.placement
+      });
+    }
+    var popperOffsets$1 = {
+      name: "popperOffsets",
+      enabled: true,
+      phase: "read",
+      fn: popperOffsets,
+      data: {}
+    };
+    var unsetSides = {
+      top: "auto",
+      right: "auto",
+      bottom: "auto",
+      left: "auto"
+    };
+    function roundOffsetsByDPR(_ref, win) {
+      var x = _ref.x, y = _ref.y;
+      var dpr = win.devicePixelRatio || 1;
+      return {
+        x: round(x * dpr) / dpr || 0,
+        y: round(y * dpr) / dpr || 0
+      };
+    }
+    function mapToStyles(_ref2) {
+      var _Object$assign2;
+      var popper2 = _ref2.popper, popperRect = _ref2.popperRect, placement = _ref2.placement, variation = _ref2.variation, offsets = _ref2.offsets, position = _ref2.position, gpuAcceleration = _ref2.gpuAcceleration, adaptive = _ref2.adaptive, roundOffsets = _ref2.roundOffsets, isFixed = _ref2.isFixed;
+      var _offsets$x = offsets.x, x = _offsets$x === void 0 ? 0 : _offsets$x, _offsets$y = offsets.y, y = _offsets$y === void 0 ? 0 : _offsets$y;
+      var _ref3 = typeof roundOffsets === "function" ? roundOffsets({
+        x,
+        y
+      }) : {
+        x,
+        y
+      };
+      x = _ref3.x;
+      y = _ref3.y;
+      var hasX = offsets.hasOwnProperty("x");
+      var hasY = offsets.hasOwnProperty("y");
+      var sideX = left;
+      var sideY = top;
+      var win = window;
+      if (adaptive) {
+        var offsetParent = getOffsetParent(popper2);
+        var heightProp = "clientHeight";
+        var widthProp = "clientWidth";
+        if (offsetParent === getWindow(popper2)) {
+          offsetParent = getDocumentElement(popper2);
+          if (getComputedStyle(offsetParent).position !== "static" && position === "absolute") {
+            heightProp = "scrollHeight";
+            widthProp = "scrollWidth";
+          }
+        }
+        offsetParent = offsetParent;
+        if (placement === top || (placement === left || placement === right) && variation === end) {
+          sideY = bottom;
+          var offsetY = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.height : (
+            // $FlowFixMe[prop-missing]
+            offsetParent[heightProp]
+          );
+          y -= offsetY - popperRect.height;
+          y *= gpuAcceleration ? 1 : -1;
+        }
+        if (placement === left || (placement === top || placement === bottom) && variation === end) {
+          sideX = right;
+          var offsetX = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.width : (
+            // $FlowFixMe[prop-missing]
+            offsetParent[widthProp]
+          );
+          x -= offsetX - popperRect.width;
+          x *= gpuAcceleration ? 1 : -1;
+        }
+      }
+      var commonStyles = Object.assign({
+        position
+      }, adaptive && unsetSides);
+      var _ref4 = roundOffsets === true ? roundOffsetsByDPR({
+        x,
+        y
+      }, getWindow(popper2)) : {
+        x,
+        y
+      };
+      x = _ref4.x;
+      y = _ref4.y;
+      if (gpuAcceleration) {
+        var _Object$assign;
+        return Object.assign({}, commonStyles, (_Object$assign = {}, _Object$assign[sideY] = hasY ? "0" : "", _Object$assign[sideX] = hasX ? "0" : "", _Object$assign.transform = (win.devicePixelRatio || 1) <= 1 ? "translate(" + x + "px, " + y + "px)" : "translate3d(" + x + "px, " + y + "px, 0)", _Object$assign));
+      }
+      return Object.assign({}, commonStyles, (_Object$assign2 = {}, _Object$assign2[sideY] = hasY ? y + "px" : "", _Object$assign2[sideX] = hasX ? x + "px" : "", _Object$assign2.transform = "", _Object$assign2));
+    }
+    function computeStyles(_ref5) {
+      var state = _ref5.state, options = _ref5.options;
+      var _options$gpuAccelerat = options.gpuAcceleration, gpuAcceleration = _options$gpuAccelerat === void 0 ? true : _options$gpuAccelerat, _options$adaptive = options.adaptive, adaptive = _options$adaptive === void 0 ? true : _options$adaptive, _options$roundOffsets = options.roundOffsets, roundOffsets = _options$roundOffsets === void 0 ? true : _options$roundOffsets;
+      var commonStyles = {
+        placement: getBasePlacement(state.placement),
+        variation: getVariation(state.placement),
+        popper: state.elements.popper,
+        popperRect: state.rects.popper,
+        gpuAcceleration,
+        isFixed: state.options.strategy === "fixed"
+      };
+      if (state.modifiersData.popperOffsets != null) {
+        state.styles.popper = Object.assign({}, state.styles.popper, mapToStyles(Object.assign({}, commonStyles, {
+          offsets: state.modifiersData.popperOffsets,
+          position: state.options.strategy,
+          adaptive,
+          roundOffsets
+        })));
+      }
+      if (state.modifiersData.arrow != null) {
+        state.styles.arrow = Object.assign({}, state.styles.arrow, mapToStyles(Object.assign({}, commonStyles, {
+          offsets: state.modifiersData.arrow,
+          position: "absolute",
+          adaptive: false,
+          roundOffsets
+        })));
+      }
+      state.attributes.popper = Object.assign({}, state.attributes.popper, {
+        "data-popper-placement": state.placement
+      });
+    }
+    var computeStyles$1 = {
+      name: "computeStyles",
+      enabled: true,
+      phase: "beforeWrite",
+      fn: computeStyles,
+      data: {}
+    };
+    function applyStyles(_ref) {
+      var state = _ref.state;
+      Object.keys(state.elements).forEach(function(name) {
+        var style = state.styles[name] || {};
+        var attributes = state.attributes[name] || {};
+        var element = state.elements[name];
+        if (!isHTMLElement(element) || !getNodeName(element)) {
+          return;
+        }
+        Object.assign(element.style, style);
+        Object.keys(attributes).forEach(function(name2) {
+          var value = attributes[name2];
+          if (value === false) {
+            element.removeAttribute(name2);
+          } else {
+            element.setAttribute(name2, value === true ? "" : value);
+          }
+        });
+      });
+    }
+    function effect$1(_ref2) {
+      var state = _ref2.state;
+      var initialStyles = {
+        popper: {
+          position: state.options.strategy,
+          left: "0",
+          top: "0",
+          margin: "0"
+        },
+        arrow: {
+          position: "absolute"
+        },
+        reference: {}
+      };
+      Object.assign(state.elements.popper.style, initialStyles.popper);
+      state.styles = initialStyles;
+      if (state.elements.arrow) {
+        Object.assign(state.elements.arrow.style, initialStyles.arrow);
+      }
+      return function() {
+        Object.keys(state.elements).forEach(function(name) {
+          var element = state.elements[name];
+          var attributes = state.attributes[name] || {};
+          var styleProperties = Object.keys(state.styles.hasOwnProperty(name) ? state.styles[name] : initialStyles[name]);
+          var style = styleProperties.reduce(function(style2, property) {
+            style2[property] = "";
+            return style2;
+          }, {});
+          if (!isHTMLElement(element) || !getNodeName(element)) {
+            return;
+          }
+          Object.assign(element.style, style);
+          Object.keys(attributes).forEach(function(attribute) {
+            element.removeAttribute(attribute);
+          });
+        });
+      };
+    }
+    var applyStyles$1 = {
+      name: "applyStyles",
+      enabled: true,
+      phase: "write",
+      fn: applyStyles,
+      effect: effect$1,
+      requires: ["computeStyles"]
+    };
+    function distanceAndSkiddingToXY(placement, rects, offset2) {
+      var basePlacement = getBasePlacement(placement);
+      var invertDistance = [left, top].indexOf(basePlacement) >= 0 ? -1 : 1;
+      var _ref = typeof offset2 === "function" ? offset2(Object.assign({}, rects, {
+        placement
+      })) : offset2, skidding = _ref[0], distance = _ref[1];
+      skidding = skidding || 0;
+      distance = (distance || 0) * invertDistance;
+      return [left, right].indexOf(basePlacement) >= 0 ? {
+        x: distance,
+        y: skidding
+      } : {
+        x: skidding,
+        y: distance
+      };
+    }
+    function offset(_ref2) {
+      var state = _ref2.state, options = _ref2.options, name = _ref2.name;
+      var _options$offset = options.offset, offset2 = _options$offset === void 0 ? [0, 0] : _options$offset;
+      var data = placements.reduce(function(acc, placement) {
+        acc[placement] = distanceAndSkiddingToXY(placement, state.rects, offset2);
+        return acc;
+      }, {});
+      var _data$state$placement = data[state.placement], x = _data$state$placement.x, y = _data$state$placement.y;
+      if (state.modifiersData.popperOffsets != null) {
+        state.modifiersData.popperOffsets.x += x;
+        state.modifiersData.popperOffsets.y += y;
+      }
+      state.modifiersData[name] = data;
+    }
+    var offset$1 = {
+      name: "offset",
+      enabled: true,
+      phase: "main",
+      requires: ["popperOffsets"],
+      fn: offset
+    };
+    var hash$1 = {
+      left: "right",
+      right: "left",
+      bottom: "top",
+      top: "bottom"
+    };
+    function getOppositePlacement(placement) {
+      return placement.replace(/left|right|bottom|top/g, function(matched) {
+        return hash$1[matched];
+      });
+    }
+    var hash = {
+      start: "end",
+      end: "start"
+    };
+    function getOppositeVariationPlacement(placement) {
+      return placement.replace(/start|end/g, function(matched) {
+        return hash[matched];
+      });
+    }
+    function computeAutoPlacement(state, options) {
+      if (options === void 0) {
+        options = {};
+      }
+      var _options = options, placement = _options.placement, boundary = _options.boundary, rootBoundary = _options.rootBoundary, padding = _options.padding, flipVariations = _options.flipVariations, _options$allowedAutoP = _options.allowedAutoPlacements, allowedAutoPlacements = _options$allowedAutoP === void 0 ? placements : _options$allowedAutoP;
+      var variation = getVariation(placement);
+      var placements$1 = variation ? flipVariations ? variationPlacements : variationPlacements.filter(function(placement2) {
+        return getVariation(placement2) === variation;
+      }) : basePlacements;
+      var allowedPlacements = placements$1.filter(function(placement2) {
+        return allowedAutoPlacements.indexOf(placement2) >= 0;
+      });
+      if (allowedPlacements.length === 0) {
+        allowedPlacements = placements$1;
+      }
+      var overflows = allowedPlacements.reduce(function(acc, placement2) {
+        acc[placement2] = detectOverflow(state, {
+          placement: placement2,
+          boundary,
+          rootBoundary,
+          padding
+        })[getBasePlacement(placement2)];
+        return acc;
+      }, {});
+      return Object.keys(overflows).sort(function(a, b) {
+        return overflows[a] - overflows[b];
+      });
+    }
+    function getExpandedFallbackPlacements(placement) {
+      if (getBasePlacement(placement) === auto) {
+        return [];
+      }
+      var oppositePlacement = getOppositePlacement(placement);
+      return [getOppositeVariationPlacement(placement), oppositePlacement, getOppositeVariationPlacement(oppositePlacement)];
+    }
+    function flip(_ref) {
+      var state = _ref.state, options = _ref.options, name = _ref.name;
+      if (state.modifiersData[name]._skip) {
+        return;
+      }
+      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? true : _options$altAxis, specifiedFallbackPlacements = options.fallbackPlacements, padding = options.padding, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, _options$flipVariatio = options.flipVariations, flipVariations = _options$flipVariatio === void 0 ? true : _options$flipVariatio, allowedAutoPlacements = options.allowedAutoPlacements;
+      var preferredPlacement = state.options.placement;
+      var basePlacement = getBasePlacement(preferredPlacement);
+      var isBasePlacement = basePlacement === preferredPlacement;
+      var fallbackPlacements = specifiedFallbackPlacements || (isBasePlacement || !flipVariations ? [getOppositePlacement(preferredPlacement)] : getExpandedFallbackPlacements(preferredPlacement));
+      var placements2 = [preferredPlacement].concat(fallbackPlacements).reduce(function(acc, placement2) {
+        return acc.concat(getBasePlacement(placement2) === auto ? computeAutoPlacement(state, {
+          placement: placement2,
+          boundary,
+          rootBoundary,
+          padding,
+          flipVariations,
+          allowedAutoPlacements
+        }) : placement2);
+      }, []);
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var checksMap = /* @__PURE__ */ new Map();
+      var makeFallbackChecks = true;
+      var firstFittingPlacement = placements2[0];
+      for (var i = 0; i < placements2.length; i++) {
+        var placement = placements2[i];
+        var _basePlacement = getBasePlacement(placement);
+        var isStartVariation = getVariation(placement) === start;
+        var isVertical = [top, bottom].indexOf(_basePlacement) >= 0;
+        var len = isVertical ? "width" : "height";
+        var overflow = detectOverflow(state, {
+          placement,
+          boundary,
+          rootBoundary,
+          altBoundary,
+          padding
+        });
+        var mainVariationSide = isVertical ? isStartVariation ? right : left : isStartVariation ? bottom : top;
+        if (referenceRect[len] > popperRect[len]) {
+          mainVariationSide = getOppositePlacement(mainVariationSide);
+        }
+        var altVariationSide = getOppositePlacement(mainVariationSide);
+        var checks = [];
+        if (checkMainAxis) {
+          checks.push(overflow[_basePlacement] <= 0);
+        }
+        if (checkAltAxis) {
+          checks.push(overflow[mainVariationSide] <= 0, overflow[altVariationSide] <= 0);
+        }
+        if (checks.every(function(check) {
+          return check;
+        })) {
+          firstFittingPlacement = placement;
+          makeFallbackChecks = false;
+          break;
+        }
+        checksMap.set(placement, checks);
+      }
+      if (makeFallbackChecks) {
+        var numberOfChecks = flipVariations ? 3 : 1;
+        var _loop = function _loop2(_i2) {
+          var fittingPlacement = placements2.find(function(placement2) {
+            var checks2 = checksMap.get(placement2);
+            if (checks2) {
+              return checks2.slice(0, _i2).every(function(check) {
+                return check;
+              });
+            }
+          });
+          if (fittingPlacement) {
+            firstFittingPlacement = fittingPlacement;
+            return "break";
+          }
+        };
+        for (var _i = numberOfChecks; _i > 0; _i--) {
+          var _ret = _loop(_i);
+          if (_ret === "break") break;
+        }
+      }
+      if (state.placement !== firstFittingPlacement) {
+        state.modifiersData[name]._skip = true;
+        state.placement = firstFittingPlacement;
+        state.reset = true;
+      }
+    }
+    var flip$1 = {
+      name: "flip",
+      enabled: true,
+      phase: "main",
+      fn: flip,
+      requiresIfExists: ["offset"],
+      data: {
+        _skip: false
+      }
+    };
+    function getAltAxis(axis) {
+      return axis === "x" ? "y" : "x";
+    }
+    function within(min$1, value, max$1) {
+      return max(min$1, min(value, max$1));
+    }
+    function withinMaxClamp(min2, value, max2) {
+      var v = within(min2, value, max2);
+      return v > max2 ? max2 : v;
+    }
+    function preventOverflow(_ref) {
+      var state = _ref.state, options = _ref.options, name = _ref.name;
+      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? false : _options$altAxis, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, padding = options.padding, _options$tether = options.tether, tether = _options$tether === void 0 ? true : _options$tether, _options$tetherOffset = options.tetherOffset, tetherOffset = _options$tetherOffset === void 0 ? 0 : _options$tetherOffset;
+      var overflow = detectOverflow(state, {
+        boundary,
+        rootBoundary,
+        padding,
+        altBoundary
+      });
+      var basePlacement = getBasePlacement(state.placement);
+      var variation = getVariation(state.placement);
+      var isBasePlacement = !variation;
+      var mainAxis = getMainAxisFromPlacement(basePlacement);
+      var altAxis = getAltAxis(mainAxis);
+      var popperOffsets2 = state.modifiersData.popperOffsets;
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var tetherOffsetValue = typeof tetherOffset === "function" ? tetherOffset(Object.assign({}, state.rects, {
+        placement: state.placement
+      })) : tetherOffset;
+      var normalizedTetherOffsetValue = typeof tetherOffsetValue === "number" ? {
+        mainAxis: tetherOffsetValue,
+        altAxis: tetherOffsetValue
+      } : Object.assign({
+        mainAxis: 0,
+        altAxis: 0
+      }, tetherOffsetValue);
+      var offsetModifierState = state.modifiersData.offset ? state.modifiersData.offset[state.placement] : null;
+      var data = {
+        x: 0,
+        y: 0
+      };
+      if (!popperOffsets2) {
+        return;
+      }
+      if (checkMainAxis) {
+        var _offsetModifierState$;
+        var mainSide = mainAxis === "y" ? top : left;
+        var altSide = mainAxis === "y" ? bottom : right;
+        var len = mainAxis === "y" ? "height" : "width";
+        var offset2 = popperOffsets2[mainAxis];
+        var min$1 = offset2 + overflow[mainSide];
+        var max$1 = offset2 - overflow[altSide];
+        var additive = tether ? -popperRect[len] / 2 : 0;
+        var minLen = variation === start ? referenceRect[len] : popperRect[len];
+        var maxLen = variation === start ? -popperRect[len] : -referenceRect[len];
+        var arrowElement = state.elements.arrow;
+        var arrowRect = tether && arrowElement ? getLayoutRect(arrowElement) : {
+          width: 0,
+          height: 0
+        };
+        var arrowPaddingObject = state.modifiersData["arrow#persistent"] ? state.modifiersData["arrow#persistent"].padding : getFreshSideObject();
+        var arrowPaddingMin = arrowPaddingObject[mainSide];
+        var arrowPaddingMax = arrowPaddingObject[altSide];
+        var arrowLen = within(0, referenceRect[len], arrowRect[len]);
+        var minOffset = isBasePlacement ? referenceRect[len] / 2 - additive - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis : minLen - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis;
+        var maxOffset = isBasePlacement ? -referenceRect[len] / 2 + additive + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis : maxLen + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis;
+        var arrowOffsetParent = state.elements.arrow && getOffsetParent(state.elements.arrow);
+        var clientOffset = arrowOffsetParent ? mainAxis === "y" ? arrowOffsetParent.clientTop || 0 : arrowOffsetParent.clientLeft || 0 : 0;
+        var offsetModifierValue = (_offsetModifierState$ = offsetModifierState == null ? void 0 : offsetModifierState[mainAxis]) != null ? _offsetModifierState$ : 0;
+        var tetherMin = offset2 + minOffset - offsetModifierValue - clientOffset;
+        var tetherMax = offset2 + maxOffset - offsetModifierValue;
+        var preventedOffset = within(tether ? min(min$1, tetherMin) : min$1, offset2, tether ? max(max$1, tetherMax) : max$1);
+        popperOffsets2[mainAxis] = preventedOffset;
+        data[mainAxis] = preventedOffset - offset2;
+      }
+      if (checkAltAxis) {
+        var _offsetModifierState$2;
+        var _mainSide = mainAxis === "x" ? top : left;
+        var _altSide = mainAxis === "x" ? bottom : right;
+        var _offset = popperOffsets2[altAxis];
+        var _len = altAxis === "y" ? "height" : "width";
+        var _min = _offset + overflow[_mainSide];
+        var _max = _offset - overflow[_altSide];
+        var isOriginSide = [top, left].indexOf(basePlacement) !== -1;
+        var _offsetModifierValue = (_offsetModifierState$2 = offsetModifierState == null ? void 0 : offsetModifierState[altAxis]) != null ? _offsetModifierState$2 : 0;
+        var _tetherMin = isOriginSide ? _min : _offset - referenceRect[_len] - popperRect[_len] - _offsetModifierValue + normalizedTetherOffsetValue.altAxis;
+        var _tetherMax = isOriginSide ? _offset + referenceRect[_len] + popperRect[_len] - _offsetModifierValue - normalizedTetherOffsetValue.altAxis : _max;
+        var _preventedOffset = tether && isOriginSide ? withinMaxClamp(_tetherMin, _offset, _tetherMax) : within(tether ? _tetherMin : _min, _offset, tether ? _tetherMax : _max);
+        popperOffsets2[altAxis] = _preventedOffset;
+        data[altAxis] = _preventedOffset - _offset;
+      }
+      state.modifiersData[name] = data;
+    }
+    var preventOverflow$1 = {
+      name: "preventOverflow",
+      enabled: true,
+      phase: "main",
+      fn: preventOverflow,
+      requiresIfExists: ["offset"]
+    };
+    var toPaddingObject = function toPaddingObject2(padding, state) {
+      padding = typeof padding === "function" ? padding(Object.assign({}, state.rects, {
+        placement: state.placement
+      })) : padding;
+      return mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
+    };
+    function arrow(_ref) {
+      var _state$modifiersData$;
+      var state = _ref.state, name = _ref.name, options = _ref.options;
+      var arrowElement = state.elements.arrow;
+      var popperOffsets2 = state.modifiersData.popperOffsets;
+      var basePlacement = getBasePlacement(state.placement);
+      var axis = getMainAxisFromPlacement(basePlacement);
+      var isVertical = [left, right].indexOf(basePlacement) >= 0;
+      var len = isVertical ? "height" : "width";
+      if (!arrowElement || !popperOffsets2) {
+        return;
+      }
+      var paddingObject = toPaddingObject(options.padding, state);
+      var arrowRect = getLayoutRect(arrowElement);
+      var minProp = axis === "y" ? top : left;
+      var maxProp = axis === "y" ? bottom : right;
+      var endDiff = state.rects.reference[len] + state.rects.reference[axis] - popperOffsets2[axis] - state.rects.popper[len];
+      var startDiff = popperOffsets2[axis] - state.rects.reference[axis];
+      var arrowOffsetParent = getOffsetParent(arrowElement);
+      var clientSize = arrowOffsetParent ? axis === "y" ? arrowOffsetParent.clientHeight || 0 : arrowOffsetParent.clientWidth || 0 : 0;
+      var centerToReference = endDiff / 2 - startDiff / 2;
+      var min2 = paddingObject[minProp];
+      var max2 = clientSize - arrowRect[len] - paddingObject[maxProp];
+      var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
+      var offset2 = within(min2, center, max2);
+      var axisProp = axis;
+      state.modifiersData[name] = (_state$modifiersData$ = {}, _state$modifiersData$[axisProp] = offset2, _state$modifiersData$.centerOffset = offset2 - center, _state$modifiersData$);
+    }
+    function effect(_ref2) {
+      var state = _ref2.state, options = _ref2.options;
+      var _options$element = options.element, arrowElement = _options$element === void 0 ? "[data-popper-arrow]" : _options$element;
+      if (arrowElement == null) {
+        return;
+      }
+      if (typeof arrowElement === "string") {
+        arrowElement = state.elements.popper.querySelector(arrowElement);
+        if (!arrowElement) {
+          return;
+        }
+      }
+      if (!contains(state.elements.popper, arrowElement)) {
+        return;
+      }
+      state.elements.arrow = arrowElement;
+    }
+    var arrow$1 = {
+      name: "arrow",
+      enabled: true,
+      phase: "main",
+      fn: arrow,
+      effect,
+      requires: ["popperOffsets"],
+      requiresIfExists: ["preventOverflow"]
+    };
+    function getSideOffsets(overflow, rect, preventedOffsets) {
+      if (preventedOffsets === void 0) {
+        preventedOffsets = {
+          x: 0,
+          y: 0
+        };
+      }
+      return {
+        top: overflow.top - rect.height - preventedOffsets.y,
+        right: overflow.right - rect.width + preventedOffsets.x,
+        bottom: overflow.bottom - rect.height + preventedOffsets.y,
+        left: overflow.left - rect.width - preventedOffsets.x
+      };
+    }
+    function isAnySideFullyClipped(overflow) {
+      return [top, right, bottom, left].some(function(side) {
+        return overflow[side] >= 0;
+      });
+    }
+    function hide(_ref) {
+      var state = _ref.state, name = _ref.name;
+      var referenceRect = state.rects.reference;
+      var popperRect = state.rects.popper;
+      var preventedOffsets = state.modifiersData.preventOverflow;
+      var referenceOverflow = detectOverflow(state, {
+        elementContext: "reference"
+      });
+      var popperAltOverflow = detectOverflow(state, {
+        altBoundary: true
+      });
+      var referenceClippingOffsets = getSideOffsets(referenceOverflow, referenceRect);
+      var popperEscapeOffsets = getSideOffsets(popperAltOverflow, popperRect, preventedOffsets);
+      var isReferenceHidden = isAnySideFullyClipped(referenceClippingOffsets);
+      var hasPopperEscaped = isAnySideFullyClipped(popperEscapeOffsets);
+      state.modifiersData[name] = {
+        referenceClippingOffsets,
+        popperEscapeOffsets,
+        isReferenceHidden,
+        hasPopperEscaped
+      };
+      state.attributes.popper = Object.assign({}, state.attributes.popper, {
+        "data-popper-reference-hidden": isReferenceHidden,
+        "data-popper-escaped": hasPopperEscaped
+      });
+    }
+    var hide$1 = {
+      name: "hide",
+      enabled: true,
+      phase: "main",
+      requiresIfExists: ["preventOverflow"],
+      fn: hide
+    };
+    var defaultModifiers$1 = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1];
+    var createPopper$1 = /* @__PURE__ */ popperGenerator({
+      defaultModifiers: defaultModifiers$1
+    });
+    var defaultModifiers = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1, offset$1, flip$1, preventOverflow$1, arrow$1, hide$1];
+    var createPopper = /* @__PURE__ */ popperGenerator({
+      defaultModifiers
+    });
+    exports2.applyStyles = applyStyles$1;
+    exports2.arrow = arrow$1;
+    exports2.computeStyles = computeStyles$1;
+    exports2.createPopper = createPopper;
+    exports2.createPopperLite = createPopper$1;
+    exports2.defaultModifiers = defaultModifiers;
+    exports2.detectOverflow = detectOverflow;
+    exports2.eventListeners = eventListeners;
+    exports2.flip = flip$1;
+    exports2.hide = hide$1;
+    exports2.offset = offset$1;
+    exports2.popperGenerator = popperGenerator;
+    exports2.popperOffsets = popperOffsets$1;
+    exports2.preventOverflow = preventOverflow$1;
+  }
+});
+
+// src/modules/command-uri-enhancer/file-suggester.js
+var require_file_suggester = __commonJS({
+  "src/modules/command-uri-enhancer/file-suggester.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var popper = require_popper();
+    function wrapAround(value, size) {
+      return (value % size + size) % size;
+    }
+    var Suggest = class {
+      constructor(owner, containerEl, scope) {
+        this.owner = owner;
+        this.containerEl = containerEl;
+        this.values = [];
+        this.suggestions = [];
+        this.selectedItem = 0;
+        containerEl.on("click", ".suggestion-item", (event, el) => this.onSuggestionClick(event, el));
+        containerEl.on("mousemove", ".suggestion-item", (_event, el) => this.onSuggestionMouseover(el));
+        scope.register([], "ArrowUp", (event) => {
+          if (!event.isComposing) {
+            this.setSelectedItem(this.selectedItem - 1, true);
+            return false;
+          }
+          return void 0;
+        });
+        scope.register([], "ArrowDown", (event) => {
+          if (!event.isComposing) {
+            this.setSelectedItem(this.selectedItem + 1, true);
+            return false;
+          }
+          return void 0;
+        });
+        scope.register([], "Enter", (event) => {
+          if (!event.isComposing) {
+            this.useSelectedItem(event);
+            return false;
+          }
+          return void 0;
+        });
+      }
+      // 点击建议项时选中并触发选择回调。
+      onSuggestionClick(event, el) {
+        event.preventDefault();
+        const item = this.suggestions.indexOf(el);
+        this.setSelectedItem(item, false);
+        this.useSelectedItem(event);
+      }
+      // 鼠标悬停时高亮对应建议项。
+      onSuggestionMouseover(_event, el) {
+        const item = this.suggestions.indexOf(el);
+        this.setSelectedItem(item, false);
+      }
+      // 重建建议列表内容。
+      setSuggestions(values) {
+        this.containerEl.empty();
+        const suggestionEls = [];
+        values.forEach((value) => {
+          const suggestionEl = this.containerEl.createDiv("suggestion-item");
+          this.owner.renderSuggestion(value, suggestionEl);
+          suggestionEls.push(suggestionEl);
+        });
+        this.values = values;
+        this.suggestions = suggestionEls;
+        this.setSelectedItem(0, false);
+      }
+      // 触发当前选中项的选择回调。
+      useSelectedItem(event) {
+        const currentValue = this.values[this.selectedItem];
+        if (currentValue) {
+          this.owner.selectSuggestion(currentValue, event);
+        }
+      }
+      // 更新选中项并同步高亮状态。
+      setSelectedItem(selectedIndex, scrollIntoView) {
+        const normalizedIndex = wrapAround(selectedIndex, this.suggestions.length);
+        const prevSelectedSuggestion = this.suggestions[this.selectedItem];
+        const selectedSuggestion = this.suggestions[normalizedIndex];
+        if (prevSelectedSuggestion) {
+          prevSelectedSuggestion.removeClass("is-selected");
+        }
+        if (selectedSuggestion) {
+          selectedSuggestion.addClass("is-selected");
+        }
+        this.selectedItem = normalizedIndex;
+        if (scrollIntoView && selectedSuggestion) {
+          selectedSuggestion.scrollIntoView(false);
+        }
+      }
+    };
+    var TextInputSuggest = class {
+      constructor(inputEl) {
+        this.inputEl = inputEl;
+        this.scope = new obsidian2.Scope();
+        this.suggestEl = createDiv("suggestion-container");
+        const suggestion = this.suggestEl.createDiv("suggestion");
+        this.suggest = new Suggest(this, suggestion, this.scope);
+        this.scope.register([], "Escape", this.close.bind(this));
+        this.inputEl.addEventListener("input", this.onInputChanged.bind(this));
+        this.inputEl.addEventListener("focus", this.onInputChanged.bind(this));
+        this.inputEl.addEventListener("blur", this.close.bind(this));
+        this.suggestEl.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+        });
+      }
+      // 输入变化时重新计算建议列表。
+      onInputChanged() {
+        const inputStr = this.inputEl.value;
+        const suggestions = this.getSuggestions(inputStr);
+        if (!suggestions) {
+          this.close();
+          return;
+        }
+        if (suggestions.length > 0) {
+          this.suggest.setSuggestions(suggestions);
+          this.open(app.dom.appContainerEl, this.inputEl);
+        } else {
+          this.close();
+        }
+      }
+      // 打开建议浮层并挂载到应用根容器。
+      open(container, inputEl) {
+        app.keymap.pushScope(this.scope);
+        container.appendChild(this.suggestEl);
+        this.popper = popper.createPopper(inputEl, this.suggestEl, {
+          placement: "bottom-start",
+          modifiers: [
+            {
+              name: "sameWidth",
+              enabled: true,
+              fn: ({ state, instance }) => {
+                const targetWidth = `${state.rects.reference.width}px`;
+                if (state.styles.popper.width === targetWidth) {
+                  return;
+                }
+                state.styles.popper.width = targetWidth;
+                instance.update();
+              },
+              phase: "beforeWrite",
+              requires: ["computeStyles"]
+            }
+          ]
+        });
+      }
+      // 关闭建议浮层并释放键盘作用域。
+      close() {
+        app.keymap.popScope(this.scope);
+        this.suggest.setSuggestions([]);
+        if (this.popper) {
+          this.popper.destroy();
+        }
+        this.suggestEl.detach();
+      }
+      getSuggestions() {
+      }
+      renderSuggestion() {
+      }
+      selectSuggestion() {
+      }
+    };
+    var FileSuggest = class extends TextInputSuggest {
+      constructor(inputEl, plugin) {
+        super(inputEl);
+        this.plugin = plugin;
+      }
+      // 根据输入关键字返回匹配的文件列表（大小写不敏感）。
+      getSuggestions(inputStr) {
+        const files = [];
+        const lowerInputStr = inputStr.toLowerCase();
+        this.plugin.app.vault.getFiles().forEach((file) => {
+          if (file instanceof obsidian2.TFile && file.path.toLowerCase().includes(lowerInputStr)) {
+            files.push(file);
+          }
+        });
+        return files;
+      }
+      // 建议项展示文件库内路径。
+      renderSuggestion(file, el) {
+        el.setText(file.path);
+      }
+      // 选中后先关闭建议浮层，再写入路径并触发 input 事件，
+      // 避免 trigger('input') 在 close() 之前同步触发 onInputChanged 导致 Popper 闪烁重建。
+      selectSuggestion(file) {
+        this.close();
+        this.inputEl.value = file.path;
+        this.inputEl.trigger("input");
+      }
+    };
+    module2.exports = {
+      TextInputSuggest,
+      FileSuggest
+    };
+  }
+});
+
+// src/modules/command-uri-enhancer/open-with-command-view.js
+var require_open_with_command_view = __commonJS({
+  "src/modules/command-uri-enhancer/open-with-command-view.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var constants = require_constants3();
+    var suggesters = require_file_suggester();
+    var viewHelpers = require_view2();
+    var renderModalHeader = viewHelpers.renderModalHeader;
+    var renderSectionTitle = viewHelpers.renderSectionTitle;
+    var renderEntryRow = viewHelpers.renderEntryRow;
+    var OpenWithCommandSettingsModal = class extends obsidian2.Modal {
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      onOpen() {
+        this.modalEl.addClass("mod-sidebar-layout", "nene-settings-panel-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      async render() {
+        const { contentEl } = this;
+        const store = this.plugin.commandUriEnhancerStore;
+        const settings = store.getSettings();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "文件速览命令设置",
+          ""
+        );
+        new obsidian2.Setting(contentEl).setName("删除文件时删除命令").setDesc("开启后，删除文件会同时删除该文件对应的命令。").addToggle((toggle) => {
+          toggle.setValue(settings.deleteCommandWhenFileIsDeleted).onChange(async (value) => {
+            await store.setDeleteCommandWhenFileIsDeleted(value);
+            new obsidian2.Notice(value ? "已开启：删除文件时同步删除命令" : "已关闭：删除文件时保留命令");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        new obsidian2.Setting(contentEl).setName("重命名文件时更新命令").setDesc("开启后，重命名文件会同步更新命令的名称与目标路径。").addToggle((toggle) => {
+          toggle.setValue(settings.updateCommandsOnRename).onChange(async (value) => {
+            await store.setUpdateCommandsOnRename(value);
+            new obsidian2.Notice(value ? "已开启：重命名文件时同步更新命令" : "已关闭：重命名文件时保留原命令");
+            await this.onSettingsChanged();
+            await this.render();
+          });
+        });
+        renderEntryRow(
+          contentEl,
+          "custom-variables",
+          "自定义变量",
+          "管理命令路径中的动态变量，支持日期格式与自定义代码",
+          null,
+          () => {
+            new ManageVariablesModal(this.app, this.plugin, async () => {
+              await this.onSettingsChanged();
+              await this.render();
+            }).open();
+          },
+          "变量管理"
+        );
+        renderSectionTitle(contentEl, "管理命令");
+        new obsidian2.Setting(contentEl).setName("创建新命令").setDesc("点击下方按钮为指定文件创建一条速览命令。").addButton((button) => {
+          button.setIcon("plus").setTooltip("创建新命令").onClick(() => {
+            this.addNewCommand(contentEl);
+          });
+        });
+        if (settings.commands.length === 0) {
+          this.addNewCommand(contentEl);
+          return;
+        }
+        var validCommands = [];
+        var invalidCommands = [];
+        settings.commands.forEach((cmd) => {
+          if (cmd.isValid !== false) {
+            validCommands.push(cmd);
+          } else {
+            invalidCommands.push(cmd);
+          }
+        });
+        validCommands.forEach((cmd) => {
+          this.renderCommandRow(contentEl, cmd, false);
+        });
+        if (invalidCommands.length > 0) {
+          renderSectionTitle(contentEl, "失效命令");
+          invalidCommands.forEach((cmd) => {
+            this.renderCommandRow(contentEl, cmd, true);
+          });
+        }
+      }
+      // 新增一条空命令并渲染到列表末尾。
+      addNewCommand(containerEl) {
+        const store = this.plugin.commandUriEnhancerStore;
+        const newCommand = {
+          id: crypto.randomUUID(),
+          name: "文件命令名",
+          filePath: "",
+          openFileIn: "activeTab"
+        };
+        void store.addCommand(newCommand);
+        this.plugin.openWithCommandRuntime.reload();
+        void this.onSettingsChanged();
+        this.renderCommandRow(containerEl, newCommand, true);
+      }
+      // 渲染单条命令配置行：删除 / 复制按钮 + 名称 + 路径搜索 + 打开位置下拉。
+      // isInvalid 为 true 时将渲染失效样式（半透明背景、警告图标），适用于目标文件已不存在的命令。
+      renderCommandRow(containerEl, commandConfig, isInvalid) {
+        const store = this.plugin.commandUriEnhancerStore;
+        const runtime = this.plugin.openWithCommandRuntime;
+        const setting = new obsidian2.Setting(containerEl);
+        setting.setClass("nene-open-command-row");
+        if (isInvalid) {
+          setting.setClass("nene-open-command-invalid");
+        }
+        setting.addButton((button) => {
+          button.setIcon("trash-2").setClass("nene-command-delete-button").setTooltip("删除命令").onClick(() => {
+            new ConfirmCommandDeleteModal(
+              this.app,
+              "删除命令",
+              `确定删除命令「${commandConfig.name || "未命名命令"}」吗？此操作不可撤销。`,
+              async () => {
+                await store.removeCommandById(commandConfig.id);
+                runtime.reload();
+                new obsidian2.Notice("命令已删除");
+                await this.onSettingsChanged();
+                await this.render();
+              }
+            ).open();
+          });
+        });
+        setting.addButton((button) => {
+          button.setIcon("copy").setTooltip("复制命令").onClick(() => {
+            const copyCommand = {
+              id: crypto.randomUUID(),
+              name: commandConfig.name,
+              filePath: commandConfig.filePath,
+              openFileIn: commandConfig.openFileIn
+            };
+            void store.addCommand(copyCommand);
+            runtime.reload();
+            void this.onSettingsChanged();
+            this.render();
+          });
+        });
+        setting.addText((text) => {
+          text.setPlaceholder("命令名称").setValue(commandConfig.name || "").onChange((value) => {
+            commandConfig.name = value;
+            void store.save();
+            runtime.reload();
+          });
+        });
+        setting.addSearch((search) => {
+          new suggesters.FileSuggest(search.inputEl, this.plugin);
+          search.setPlaceholder("文件路径").setValue(commandConfig.filePath || "").onChange((value) => {
+            const duplicate = store.getSettings().commands.find((command) => command && command.filePath === value && command.id !== commandConfig.id);
+            if (duplicate && value) {
+              new obsidian2.Notice(`已存在指向同一文件的命令「${duplicate.name}」`);
+              search.setValue(commandConfig.filePath || "");
+              return;
+            }
+            commandConfig.filePath = value;
+            void store.save();
+            runtime.reload();
+          });
+        });
+        setting.addDropdown((dropdown) => {
+          dropdown.addOptions(constants.OPEN_FILE_IN_OPTIONS);
+          dropdown.setValue(commandConfig.openFileIn || store.getSettings().openFileIn);
+          dropdown.onChange((value) => {
+            commandConfig.openFileIn = value;
+            void store.save();
+            runtime.reload();
+          });
+        });
+      }
+    };
+    var ManageVariablesModal = class extends obsidian2.Modal {
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
+        this.plugin = plugin;
+        this.onSettingsChanged = onSettingsChanged;
+      }
+      onOpen() {
+        this.modalEl.addClass("nene-popover-modal");
+        this.contentEl.empty();
+        this.contentEl.addClass("nene-settings-modal");
+        void this.render();
+      }
+      async render() {
+        const { contentEl } = this;
+        const store = this.plugin.commandUriEnhancerStore;
+        const settings = store.getSettings();
+        contentEl.empty();
+        renderModalHeader(
+          contentEl,
+          "自定义变量",
+          "变量可在命令的文件路径中以 {{变量名}} 形式引用，支持内置日期变量 {{d:格式}}（如 {{d:YYYY-MM-DD}}，区分大小写）。"
+        );
+        const docsEl = contentEl.createDiv({ cls: "nene-variable-docs" });
+        docsEl.createSpan({ text: "文档：" });
+        docsEl.createEl("a", {
+          text: "https://momentjs.com/docs/#/displaying/format/",
+          href: "https://momentjs.com/docs/#/displaying/format/"
+        });
+        const riskHint = contentEl.createDiv({ cls: "nene-variable-risk-hint" });
+        riskHint.createDiv({ cls: "nene-variable-risk-title", text: "安全提示" });
+        riskHint.createEl(
+          "p",
+          { text: "JavaScript 类型的变量会在命令执行时直接运行你输入的代码，等同于在配置中写代码。仅使用可信来源的代码，切勿粘贴来源不明的配置。" }
+        );
+        new obsidian2.Setting(contentEl).setName("管理变量").setDesc("添加变量后，可在命令的文件路径中直接使用。").addButton((button) => {
+          button.setButtonText("添加变量").onClick(async () => {
+            settings.customVariables.push({ name: "", value: "", type: "string" });
+            await store.save();
+            await this.render();
+          });
+        });
+        settings.customVariables.forEach((variable) => {
+          this.renderVariableRow(contentEl, variable);
+        });
+      }
+      // 渲染单条变量配置行：名称 + 值 + 类型 + 删除按钮。
+      renderVariableRow(containerEl, variable) {
+        const store = this.plugin.commandUriEnhancerStore;
+        const setting = new obsidian2.Setting(containerEl);
+        setting.setClass("nene-variable-row");
+        setting.addText((text) => {
+          text.setPlaceholder("变量名称").setValue(variable.name || "").onChange((value) => {
+            variable.name = value;
+            void store.save();
+          });
+        });
+        setting.addTextArea((textarea) => {
+          textarea.setPlaceholder("变量值").setValue(variable.value || "").onChange((value) => {
+            variable.value = value;
+            void store.save();
+          });
+        });
+        setting.addDropdown((dropdown) => {
+          dropdown.addOption("string", "字符串").addOption("javascript", "JavaScript").setValue(variable.type || "string").onChange((value) => {
+            variable.type = value;
+            void store.save();
+          });
+        });
+        setting.addButton((button) => {
+          button.setIcon("trash").setClass("nene-command-delete-button").setTooltip("删除变量").onClick(async () => {
+            const variableIndex = store.getSettings().customVariables.indexOf(variable);
+            if (variableIndex > -1) {
+              store.getSettings().customVariables.splice(variableIndex, 1);
+            }
+            await store.save();
+            await this.render();
+          });
+        });
+      }
+    };
+    var ConfirmCommandDeleteModal = class extends obsidian2.Modal {
+      constructor(app2, title, description, onConfirm) {
+        super(app2);
+        this.title = title;
+        this.description = description;
+        this.onConfirm = onConfirm;
+      }
+      onOpen() {
+        this.modalEl.addClass("nene-popover-modal");
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass("nene-settings-modal");
+        renderModalHeader(contentEl, this.title, this.description);
+        const actionRow = contentEl.createDiv({ cls: "nene-confirm-actions" });
+        actionRow.createEl("button", { cls: "mod-cta nene-confirm-cancel", text: "取消" }).addEventListener(
+          "click",
+          () => this.close()
+        );
+        actionRow.createEl("button", { cls: "mod-warning nene-confirm-ok", text: "删除" }).addEventListener("click", () => {
+          void this.onConfirm();
+          this.close();
+        });
+      }
+    };
+    module2.exports = {
+      OpenWithCommandSettingsModal,
+      ManageVariablesModal,
+      ConfirmCommandDeleteModal
     };
   }
 });
@@ -3080,6 +5209,48 @@ var require_view2 = __commonJS({
   "src/modules/command-uri-enhancer/view.js"(exports2, module2) {
     "use strict";
     var obsidian2 = require("obsidian");
+    function renderModalHeader(containerEl, title, description) {
+      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
+      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
+      if (description) {
+        headerEl.createEl("p", {
+          cls: "nene-settings-modal-description",
+          text: description
+        });
+      }
+    }
+    function renderSectionTitle(containerEl, title) {
+      containerEl.createDiv({ cls: "nene-modal-section-title", text: title });
+    }
+    function renderEntryRow(containerEl, key, title, description, iconName, onClick, buttonText) {
+      const rowEl = containerEl.createDiv({
+        cls: "nene-entry-row",
+        attr: { "data-entry-key": key }
+      });
+      const infoEl = rowEl.createDiv({ cls: "nene-entry-info" });
+      infoEl.createDiv({ cls: "nene-entry-title", text: title });
+      if (description) {
+        infoEl.createDiv({ cls: "nene-entry-desc", text: description });
+      }
+      const actionEl = rowEl.createDiv({ cls: "nene-entry-action" });
+      const buttonEl = actionEl.createEl("button", {
+        cls: buttonText ? "nene-entry-text-button" : "nene-icon-button",
+        attr: { "data-action-key": key, "aria-label": title }
+      });
+      if (buttonText) {
+        buttonEl.setText(buttonText);
+      } else {
+        obsidian2.setIcon(buttonEl, iconName);
+      }
+      buttonEl.addEventListener("click", onClick);
+      return rowEl;
+    }
+    function renderEmptyState(containerEl, text) {
+      const emptyEl = containerEl.createDiv({ cls: "nene-empty-state" });
+      const iconEl = emptyEl.createDiv({ cls: "nene-empty-state-icon" });
+      obsidian2.setIcon(iconEl, "info");
+      emptyEl.createDiv({ cls: "nene-empty-state-text", text });
+    }
     var COMMAND_ID_WHITELIST = [
       "copy-vault-path",
       "copy-full-path",
@@ -3117,53 +5288,15 @@ var require_view2 = __commonJS({
         throw new Error("Clipboard copy is not supported");
       }
     }
-    function renderModalHeader(containerEl, title, description) {
-      const headerEl = containerEl.createDiv({ cls: "nene-settings-modal-header" });
-      headerEl.createDiv({ cls: "nene-settings-modal-title", text: title });
-      if (description) {
-        headerEl.createEl("p", {
-          cls: "nene-settings-modal-description",
-          text: description
-        });
-      }
-    }
-    function renderSectionTitle(containerEl, title) {
-      containerEl.createDiv({ cls: "nene-modal-section-title", text: title });
-    }
-    function renderEntryRow(containerEl, key, title, description, iconName, onClick) {
-      const rowEl = containerEl.createDiv({
-        cls: "nene-entry-row",
-        attr: { "data-entry-key": key }
-      });
-      const infoEl = rowEl.createDiv({ cls: "nene-entry-info" });
-      infoEl.createDiv({ cls: "nene-entry-title", text: title });
-      if (description) {
-        infoEl.createDiv({ cls: "nene-entry-desc", text: description });
-      }
-      const actionEl = rowEl.createDiv({ cls: "nene-entry-action" });
-      const buttonEl = actionEl.createEl("button", {
-        cls: "nene-icon-button",
-        attr: { "data-action-key": key, "aria-label": title }
-      });
-      obsidian2.setIcon(buttonEl, iconName);
-      buttonEl.addEventListener("click", onClick);
-      return rowEl;
-    }
-    function renderEmptyState(containerEl, text) {
-      const emptyEl = containerEl.createDiv({ cls: "nene-empty-state" });
-      const iconEl = emptyEl.createDiv({ cls: "nene-empty-state-icon" });
-      obsidian2.setIcon(iconEl, "info");
-      emptyEl.createDiv({ cls: "nene-empty-state-text", text });
-    }
-    function collectWhitelistedCommands(app) {
-      const registry = typeof app.commands.listCommands === "function" ? app.commands.listCommands() : Object.values(app.commands.commands || {});
+    function collectWhitelistedCommands(app2) {
+      const registry = typeof app2.commands.listCommands === "function" ? app2.commands.listCommands() : Object.values(app2.commands.commands || {});
       return registry.filter(
         (command) => COMMAND_ID_WHITELIST.some((id) => command.id === id || command.id.endsWith(`:${id}`))
       );
     }
     var CommandListModal = class extends obsidian2.Modal {
-      constructor(app) {
-        super(app);
+      constructor(app2) {
+        super(app2);
       }
       // 打开弹窗时渲染命令列表。
       onOpen() {
@@ -3196,8 +5329,8 @@ var require_view2 = __commonJS({
       }
     };
     var UriListModal = class extends obsidian2.Modal {
-      constructor(app) {
-        super(app);
+      constructor(app2) {
+        super(app2);
       }
       // 打开弹窗时渲染 URI 语法表格。
       onOpen() {
@@ -3252,8 +5385,8 @@ var require_view2 = __commonJS({
       }
     };
     var CommandUriEnhancerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -3302,6 +5435,20 @@ var require_view2 = __commonJS({
             new CommandListModal(this.app).open();
           }
         );
+        renderEntryRow(
+          sectionEl,
+          "open-with-command-settings",
+          "文件速览命令",
+          "创建只打开单个文件的命令，支持变量替换与多种打开方式",
+          null,
+          () => {
+            const openWithCommandView = require_open_with_command_view();
+            new openWithCommandView.OpenWithCommandSettingsModal(this.app, this.plugin, async () => {
+              await this.onSettingsChanged();
+            }).open();
+          },
+          "打开命令设置"
+        );
       }
       // 渲染 URI 增强分区：“可用 URI”条目。
       renderUriSection(containerEl) {
@@ -3327,7 +5474,11 @@ var require_view2 = __commonJS({
       }
     };
     module2.exports = {
-      CommandUriEnhancerManagementModal
+      CommandUriEnhancerManagementModal,
+      renderModalHeader,
+      renderSectionTitle,
+      renderEntryRow,
+      renderEmptyState
     };
   }
 });
@@ -3411,8 +5562,8 @@ var require_command_uri_runtime = __commonJS({
     var around = require_monkey_around().around || require_monkey_around();
     var AUTO_OPEN_CLEANUP_TIMEOUT_MS = 1e4;
     var MARKET_ITEM_TIMEOUT_MS = 15e3;
-    function settingsAreOpen(app) {
-      return app.setting.containerEl.parentElement !== null;
+    function settingsAreOpen(app2) {
+      return app2.setting.containerEl.parentElement !== null;
     }
     function getMarketItemName(item) {
       const nameEl = item.querySelector(".community-item-name");
@@ -3502,8 +5653,8 @@ var require_command_uri_runtime = __commonJS({
       // 注意：不使用 registerObsidianProtocolHandler，因为该方法内部会自动注册清理回调，
       // 卸载时的清理顺序会导致恢复后的核心处理器被再次删除。
       registerOpenProtocolHandler() {
-        const app = this.plugin.app;
-        this.nativeHandlersRegistry = this.findNativeProtocolRegistry(app);
+        const app2 = this.plugin.app;
+        this.nativeHandlersRegistry = this.findNativeProtocolRegistry(app2);
         if (this.nativeHandlersRegistry && this.nativeHandlersRegistry.has("open")) {
           this.nativeOpenHandler = this.nativeHandlersRegistry.get("open");
           this.nativeHandlersRegistry.delete("open");
@@ -3525,22 +5676,22 @@ var require_command_uri_runtime = __commonJS({
       }
       // 在 app 内部属性中查找协议处理器注册表（Map 结构）。
       // Obsidian v1.4.16 中协议处理器存储在 app.workspace.protocolHandlers，属于未文档化内部 API。
-      findNativeProtocolRegistry(app) {
-        const wsProtocolHandlers = app.workspace && app.workspace.protocolHandlers;
+      findNativeProtocolRegistry(app2) {
+        const wsProtocolHandlers = app2.workspace && app2.workspace.protocolHandlers;
         if (wsProtocolHandlers instanceof Map && wsProtocolHandlers.has("open")) {
           return wsProtocolHandlers;
         }
-        for (const key of Object.getOwnPropertyNames(app)) {
+        for (const key of Object.getOwnPropertyNames(app2)) {
           try {
-            const obj = app[key];
+            const obj = app2[key];
             if (obj instanceof Map && obj.has("open")) return obj;
           } catch (e) {
           }
         }
-        if (app.workspace) {
-          for (const key of Object.getOwnPropertyNames(app.workspace)) {
+        if (app2.workspace) {
+          for (const key of Object.getOwnPropertyNames(app2.workspace)) {
             try {
-              const obj = app.workspace[key];
+              const obj = app2.workspace[key];
               if (obj instanceof Map && obj.has("open")) return obj;
             } catch (e) {
             }
@@ -3638,14 +5789,14 @@ var require_command_uri_runtime = __commonJS({
       // 在已安装第三方插件与核心插件清单中，按 manifest 的 name 字段精确查找插件 id。
       // 名称匹配采用严格相等比较，大小写敏感；仅接受 manifest.name，插件 id 不会被匹配。
       findPluginIdByName(name) {
-        const app = this.plugin.app;
-        const thirdPartyEntry = Object.entries(app.plugins.manifests || {}).find(
+        const app2 = this.plugin.app;
+        const thirdPartyEntry = Object.entries(app2.plugins.manifests || {}).find(
           ([, manifest]) => manifest && manifest.name === name
         );
         if (thirdPartyEntry) {
           return thirdPartyEntry[0];
         }
-        const coreEntry = Object.entries(app.internalPlugins.plugins || {}).find(
+        const coreEntry = Object.entries(app2.internalPlugins.plugins || {}).find(
           ([, corePlugin]) => corePlugin && corePlugin.instance && corePlugin.instance.manifest && corePlugin.instance.manifest.name === name
         );
         if (coreEntry) {
@@ -3721,15 +5872,15 @@ var require_command_uri_runtime = __commonJS({
       }
       // 打开设置面板并切换到指定标签页，返回标签页实例；切换失败时返回 false。
       showSettings(id) {
-        const app = this.plugin.app;
-        if (!settingsAreOpen(app)) {
-          app.setting.open();
+        const app2 = this.plugin.app;
+        if (!settingsAreOpen(app2)) {
+          app2.setting.open();
         }
         if (id) {
-          if (app.setting.activeTab && app.setting.activeTab.id !== id) {
-            app.setting.openTabById(id);
+          if (app2.setting.activeTab && app2.setting.activeTab.id !== id) {
+            app2.setting.openTabById(id);
           }
-          return app.setting.activeTab && app.setting.activeTab.id === id ? app.setting.activeTab : false;
+          return app2.setting.activeTab && app2.setting.activeTab.id === id ? app2.setting.activeTab : false;
         }
         return null;
       }
@@ -3764,6 +5915,280 @@ var require_command_uri_runtime = __commonJS({
   }
 });
 
+// src/modules/command-uri-enhancer/open-with-command.js
+var require_open_with_command = __commonJS({
+  "src/modules/command-uri-enhancer/open-with-command.js"(exports2, module2) {
+    "use strict";
+    var obsidian2 = require("obsidian");
+    var constants = require_constants3();
+    var moment = obsidian2.moment || (typeof window !== "undefined" ? window.moment : null);
+    var OpenWithFileCommand = class {
+      constructor(name, fileOrPath, plugin, id) {
+        this.plugin = plugin;
+        this.id = id;
+        this.name = name;
+        if (fileOrPath instanceof obsidian2.TFile) {
+          this.filePath = fileOrPath.path;
+        } else {
+          this.filePath = typeof fileOrPath === "string" ? fileOrPath : "";
+        }
+        this.openFileIn = this.plugin.commandUriEnhancerStore.getSettings().openFileIn;
+        this.command = null;
+      }
+      // 注册 Obsidian 命令，命令始终处于可执行状态，执行前再做存在性与模块开关校验。
+      registerCommand() {
+        const self = this;
+        this.command = this.plugin.addCommand({
+          id: this.id,
+          name: this.name,
+          checkCallback(checking) {
+            if (checking) {
+              return true;
+            }
+            void self.execute();
+            return true;
+          }
+        });
+        return this.command;
+      }
+      // 同步更新命令的名称与目标路径，并刷新已注册命令的显示名。
+      updateCommand(name, filePath, openFileIn) {
+        if (typeof name === "string") {
+          this.name = name;
+        }
+        if (typeof filePath === "string") {
+          this.filePath = filePath;
+        }
+        if (typeof openFileIn === "string") {
+          this.openFileIn = openFileIn;
+        }
+        if (this.command) {
+          this.command.name = this.name;
+        }
+      }
+      // 执行命令：校验模块开关与命令仍存在 → 变量替换 → 查找文件 → 按打开位置打开。
+      async execute() {
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          new obsidian2.Notice("命令&URI增强模块当前已关闭，请先在设置页中启用。");
+          return;
+        }
+        const settings = this.plugin.commandUriEnhancerStore.getSettings();
+        const stillExists = (settings.commands || []).some((command) => command && command.id === this.id);
+        if (!stillExists) {
+          return;
+        }
+        let filePath = await replaceArgs(this.filePath, this.plugin, settings.customVariables || []);
+        const file = this.plugin.app.vault.getAbstractFileByPath(filePath || "");
+        if (!(file instanceof obsidian2.TFile)) {
+          new obsidian2.Notice(`文件 "${filePath}" 不存在，请检查命令配置`);
+          return;
+        }
+        const leaf = getLeaf(this.plugin, this.openFileIn, file);
+        if (!leaf) {
+          return;
+        }
+        await leaf.openFile(file);
+      }
+    };
+    var OpenWithCommandRuntime = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.fileCommands = [];
+      }
+      // 按最新配置重建命令注册表：已存在的命令复用实例并同步字段，新增命令注册，被移除的命令不再维护。
+      reload() {
+        const settings = this.plugin.commandUriEnhancerStore.getSettings();
+        const configs = settings.commands || [];
+        const existingById = new Map(this.fileCommands.map((command) => [command.id, command]));
+        const nextCommands = [];
+        for (const config of configs) {
+          if (!config || !config.id) {
+            continue;
+          }
+          let command = existingById.get(config.id);
+          if (command) {
+            command.updateCommand(config.name, config.filePath, config.openFileIn);
+          } else {
+            command = new OpenWithFileCommand(config.name, config.filePath, this.plugin, config.id);
+            if (config.openFileIn) {
+              command.openFileIn = config.openFileIn;
+            }
+            command.registerCommand();
+          }
+          nextCommands.push(command);
+        }
+        this.fileCommands = nextCommands;
+      }
+      // 扫描全部命令，检查目标文件在仓库中是否仍存在，并将结果写入 isValid 字段持久化。
+      // 模块启用时调用，模块关闭期间文件变更导致的失效命令将在此次核查中被标记。
+      validateAllCommands() {
+        const settings = this.plugin.commandUriEnhancerStore.getSettings();
+        const commands = settings.commands || [];
+        let hasChange = false;
+        for (const cmd of commands) {
+          if (!cmd || !cmd.id) {
+            continue;
+          }
+          const file = cmd.filePath ? this.plugin.app.vault.getAbstractFileByPath(cmd.filePath) : null;
+          const isValid = file instanceof obsidian2.TFile;
+          if (cmd.isValid !== isValid) {
+            cmd.isValid = isValid;
+            hasChange = true;
+          }
+        }
+        if (hasChange) {
+          void this.plugin.commandUriEnhancerStore.save();
+        }
+      }
+      // 文件重命名同步：按配置开关更新所有指向原路径的命令的名称与目标路径。
+      // 仅在命令&URI增强模块启用时生效，模块关闭期间发生的文件变更由下次模块启用时按有效性核查归类。
+      handleFileRename(file, oldPath) {
+        if (!(file instanceof obsidian2.TFile)) {
+          return;
+        }
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          return;
+        }
+        const settings = this.plugin.commandUriEnhancerStore.getSettings();
+        if (!settings.updateCommandsOnRename) {
+          return;
+        }
+        const matchedConfigs = (settings.commands || []).filter((command) => command && command.filePath === oldPath);
+        if (matchedConfigs.length === 0) {
+          return;
+        }
+        for (const commandConfig of matchedConfigs) {
+          commandConfig.filePath = file.path;
+          commandConfig.name = file.basename;
+          const command = this.fileCommands.find((item) => item.id === commandConfig.id);
+          if (command) {
+            command.updateCommand(file.basename, file.path);
+          }
+        }
+        void this.plugin.commandUriEnhancerStore.save();
+      }
+      // 文件删除同步：按配置开关删除所有指向被删文件的命令的配置与实例。
+      // 仅在命令&URI增强模块启用时生效，模块关闭期间发生的文件变更由下次打开弹窗时按有效性重新归类。
+      handleFileDelete(file) {
+        const settings = this.plugin.commandUriEnhancerStore.getSettings();
+        if (!settings.deleteCommandWhenFileIsDeleted) {
+          return;
+        }
+        if (!this.plugin.isCommandUriEnhancerEnabled()) {
+          return;
+        }
+        const matchedIds = new Set(
+          (settings.commands || []).filter((command) => command && command.filePath === file.path).map((command) => command.id)
+        );
+        if (matchedIds.size === 0) {
+          return;
+        }
+        settings.commands = (settings.commands || []).filter((command) => command && !matchedIds.has(command.id));
+        this.fileCommands = this.fileCommands.filter((command) => !matchedIds.has(command.id));
+        void this.plugin.commandUriEnhancerStore.save();
+      }
+    };
+    async function replaceArgs(filePath, plugin, customVariables) {
+      const args = filePath.match(/\{\{([^}]+)\}\}/g);
+      if (!args) {
+        return filePath;
+      }
+      const result = await replaceVariables(filePath, plugin, customVariables, args);
+      if (result !== void 0) {
+        filePath = result;
+      }
+      return filePath;
+    }
+    async function replaceVariables(filePath, plugin, customVariables, args) {
+      for (const arg of args) {
+        const argName = arg.replace(/\{\{([^}]+)\}\}/g, "$1");
+        if (argName.startsWith("date:") || argName.startsWith("d:")) {
+          const format = argName.replace("date:", "").replace("d:", "");
+          const argValue = moment ? moment().format(format) : "";
+          filePath = filePath.replace(arg, argValue);
+        }
+        const customVariable = (customVariables || []).find((variable) => variable && variable.name === argName);
+        if (!customVariable) {
+          continue;
+        }
+        if (customVariable.type === "javascript") {
+          var userFunction = new Function(customVariable.value);
+          var jsResult = userFunction();
+          if (jsResult === void 0 || jsResult === null || jsResult === "") {
+            filePath = filePath.replace(arg, "");
+          } else {
+            filePath = filePath.replace(arg, String(jsResult));
+          }
+        } else {
+          const nestedArgs = customVariable.value.match(/\{\{([^}]+)\}\}/g);
+          let variableCopy = Object.assign({}, customVariable);
+          if (nestedArgs) {
+            const result = await replaceVariables(customVariable.value, plugin, customVariables, nestedArgs);
+            if (result !== void 0) {
+              variableCopy.value = result;
+            }
+          }
+          filePath = filePath.replace(arg, variableCopy.value);
+        }
+      }
+      return filePath;
+    }
+    function getLeaf(plugin, openFileIn, file) {
+      let leaf = null;
+      switch (openFileIn) {
+        case "activeTab":
+          leaf = plugin.app.workspace.getLeaf(false);
+          break;
+        case "newTab":
+          leaf = plugin.app.workspace.getLeaf("tab");
+          break;
+        case "newTabSplit":
+          leaf = plugin.app.workspace.getLeaf("split", "vertical");
+          break;
+        case "newTabSplitHorizontal":
+          leaf = plugin.app.workspace.getLeaf("split", "horizontal");
+          break;
+        case "window":
+          leaf = plugin.app.workspace.getLeaf("window");
+          break;
+        case "rightLeaf": {
+          const existingRightLeaf = findLeafInSplit(plugin, plugin.app.workspace.rightSplit, file);
+          if (existingRightLeaf) {
+            plugin.app.workspace.revealLeaf(existingRightLeaf);
+            return null;
+          }
+          leaf = plugin.app.workspace.getRightLeaf(false);
+          plugin.app.workspace.revealLeaf(leaf);
+          break;
+        }
+        case "leftLeaf": {
+          const existingLeftLeaf = findLeafInSplit(plugin, plugin.app.workspace.leftSplit, file);
+          if (existingLeftLeaf) {
+            plugin.app.workspace.revealLeaf(existingLeftLeaf);
+            return null;
+          }
+          leaf = plugin.app.workspace.getLeftLeaf(false);
+          plugin.app.workspace.revealLeaf(leaf);
+          break;
+        }
+        default:
+          leaf = plugin.app.workspace.getLeaf(false);
+          break;
+      }
+      return leaf;
+    }
+    function findLeafInSplit(plugin, split, file) {
+      return plugin.app.workspace.getLeavesOfType("markdown").find((leaf) => {
+        return leaf.getRoot() === split && leaf.view instanceof obsidian2.FileView && leaf.view.file && leaf.view.file.path === file.path;
+      });
+    }
+    module2.exports = {
+      OpenWithFileCommand,
+      OpenWithCommandRuntime
+    };
+  }
+});
+
 // src/modules/command-uri-enhancer/index.js
 var require_command_uri_enhancer = __commonJS({
   "src/modules/command-uri-enhancer/index.js"(exports2, module2) {
@@ -3773,7 +6198,9 @@ var require_command_uri_enhancer = __commonJS({
     var store = require_store4();
     var view = require_view2();
     var runtime = require_command_uri_runtime();
-    module2.exports = Object.assign({}, constants, service, store, view, runtime);
+    var openWithCommand = require_open_with_command();
+    var openWithCommandView = require_open_with_command_view();
+    module2.exports = Object.assign({}, constants, service, store, view, runtime, openWithCommand, openWithCommandView);
   }
 });
 
@@ -4468,8 +6895,8 @@ var require_organizer_view = __commonJS({
       }
     }
     var StatusBarOrganizerModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -4802,8 +7229,8 @@ var require_view3 = __commonJS({
       };
     }
     var StatusBarEnhancerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -5044,14 +7471,14 @@ var require_snippets_runtime = __commonJS({
       obsidian2.addIcon("nene-pantone", pantoneIconSvg);
       obsidian2.addIcon("ms-snippet", '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path d="M7.375 16.781l1.25-1.562L4.601 12l4.024-3.219l-1.25-1.562l-5 4a1 1 0 0 0 0 1.562l5 4zm9.25-9.562l-1.25 1.562L19.399 12l-4.024 3.219l1.25 1.562l5-4a1 1 0 0 0 0-1.562l-5-4zm-1.649-4.003l-4 18l-1.953-.434l4-18z" fill="currentColor"/></svg>');
     }
-    function isSnippetEnabled(app, snippet) {
+    function isSnippetEnabled(app2, snippet) {
       try {
-        if (app.customCss && typeof app.customCss.enabledSnippets !== "undefined") {
-          if (app.customCss.enabledSnippets instanceof Set) {
-            return app.customCss.enabledSnippets.has(snippet);
+        if (app2.customCss && typeof app2.customCss.enabledSnippets !== "undefined") {
+          if (app2.customCss.enabledSnippets instanceof Set) {
+            return app2.customCss.enabledSnippets.has(snippet);
           }
-          if (Array.isArray(app.customCss.enabledSnippets)) {
-            return app.customCss.enabledSnippets.includes(snippet);
+          if (Array.isArray(app2.customCss.enabledSnippets)) {
+            return app2.customCss.enabledSnippets.includes(snippet);
           }
         }
         return false;
@@ -5059,68 +7486,68 @@ var require_snippets_runtime = __commonJS({
         return false;
       }
     }
-    function getSnippets(app) {
+    function getSnippets(app2) {
       try {
-        if (app.customCss && Array.isArray(app.customCss.snippets)) {
-          return app.customCss.snippets.slice();
+        if (app2.customCss && Array.isArray(app2.customCss.snippets)) {
+          return app2.customCss.snippets.slice();
         }
         return [];
       } catch (_e) {
         return [];
       }
     }
-    function getSnippetPath(app, snippet) {
+    function getSnippetPath(app2, snippet) {
       try {
-        if (app.customCss && typeof app.customCss.getSnippetPath === "function") {
-          return app.customCss.getSnippetPath(snippet);
+        if (app2.customCss && typeof app2.customCss.getSnippetPath === "function") {
+          return app2.customCss.getSnippetPath(snippet);
         }
         return "";
       } catch (_e) {
         return "";
       }
     }
-    function customCssEnabled(app, snippet) {
+    function customCssEnabled(app2, snippet) {
       try {
-        if (app.customCss && app.customCss.enabledSnippets) {
-          if (app.customCss.enabledSnippets instanceof Set) {
-            return app.customCss.enabledSnippets.has(snippet);
+        if (app2.customCss && app2.customCss.enabledSnippets) {
+          if (app2.customCss.enabledSnippets instanceof Set) {
+            return app2.customCss.enabledSnippets.has(snippet);
           }
-          return app.customCss.enabledSnippets.includes(snippet);
+          return app2.customCss.enabledSnippets.includes(snippet);
         }
         return false;
       } catch (_e) {
         return false;
       }
     }
-    function getSnippetsFolder(app) {
+    function getSnippetsFolder(app2) {
       try {
-        if (app.customCss && typeof app.customCss.getSnippetsFolder === "function") {
-          return app.customCss.getSnippetsFolder();
+        if (app2.customCss && typeof app2.customCss.getSnippetsFolder === "function") {
+          return app2.customCss.getSnippetsFolder();
         }
         return "";
       } catch (_e) {
         return "";
       }
     }
-    function setCssEnabledStatus(app, snippet, enabled) {
+    function setCssEnabledStatus(app2, snippet, enabled) {
       try {
-        if (app.customCss && typeof app.customCss.setCssEnabledStatus === "function") {
-          app.customCss.setCssEnabledStatus(snippet, enabled);
+        if (app2.customCss && typeof app2.customCss.setCssEnabledStatus === "function") {
+          app2.customCss.setCssEnabledStatus(snippet, enabled);
         }
       } catch (_e) {
       }
     }
-    function requestLoadSnippets(app) {
+    function requestLoadSnippets(app2) {
       try {
-        if (app.customCss && typeof app.customCss.requestLoadSnippets === "function") {
-          app.customCss.requestLoadSnippets();
+        if (app2.customCss && typeof app2.customCss.requestLoadSnippets === "function") {
+          app2.customCss.requestLoadSnippets();
         }
       } catch (_e) {
       }
     }
     var CreateSnippetModal = class extends obsidian2.Modal {
-      constructor(app, plugin, settings) {
-        super(app);
+      constructor(app2, plugin, settings) {
+        super(app2);
         this.plugin = plugin;
         this.settings = settings;
       }
@@ -5193,8 +7620,8 @@ var require_snippets_runtime = __commonJS({
       }
     };
     var SnippetsRenameModal = class extends obsidian2.Modal {
-      constructor(app, plugin, oldSnippet, onRenamed) {
-        super(app);
+      constructor(app2, plugin, oldSnippet, onRenamed) {
+        super(app2);
         this.plugin = plugin;
         this.oldSnippet = oldSnippet;
         this.onRenamed = onRenamed;
@@ -5316,10 +7743,10 @@ var require_snippets_runtime = __commonJS({
       }
       // 显示 Snippets 管理菜单，沿用原 MySnippets Menu API + 样式排版。
       showMenu() {
-        var app = this.plugin.app;
+        var app2 = this.plugin.app;
         var self = this;
-        var currentSnippets = getSnippets(app);
-        var snippetsFolder = getSnippetsFolder(app);
+        var currentSnippets = getSnippets(app2);
+        var snippetsFolder = getSnippetsFolder(app2);
         var menu = new obsidian2.Menu();
         menu.setUseNativeMenu(false);
         var menuDom = menu.dom;
@@ -5331,8 +7758,8 @@ var require_snippets_runtime = __commonJS({
           menuDom.style.webkitBackdropFilter = "blur(8px)";
         }
         currentSnippets.forEach(function(snippet) {
-          var snippetPath = getSnippetPath(app, snippet);
-          var enabled = isSnippetEnabled(app, snippet);
+          var snippetPath = getSnippetPath(app2, snippet);
+          var enabled = isSnippetEnabled(app2, snippet);
           menu.addItem(function(item) {
             item.setTitle(snippet);
             var itemDom = item.dom;
@@ -5340,16 +7767,16 @@ var require_snippets_runtime = __commonJS({
             var openBtn = new obsidian2.ButtonComponent(itemDom);
             var renameBtn = new obsidian2.ButtonComponent(itemDom);
             toggle.setValue(enabled).onChange(function() {
-              var isOn = customCssEnabled(app, snippet);
-              setCssEnabledStatus(app, snippet, !isOn);
+              var isOn = customCssEnabled(app2, snippet);
+              setCssEnabledStatus(app2, snippet, !isOn);
             });
             openBtn.setIcon("ms-snippet").setClass("MS-OpenSnippet").onClick(function() {
-              app.openWithDefaultApp(snippetPath);
+              app2.openWithDefaultApp(snippetPath);
             });
             openBtn.buttonEl.setAttribute("aria-label", "打开CSS代码片段文件");
             openBtn.buttonEl.setAttribute("data-tooltip-position", "top");
             renameBtn.setIcon("pencil").setClass("MS-RenameSnippet").onClick(function() {
-              new SnippetsRenameModal(app, self, snippet, function() {
+              new SnippetsRenameModal(app2, self, snippet, function() {
               }).open();
             });
             renameBtn.buttonEl.setAttribute("aria-label", "重命名CSS代码片段");
@@ -5368,22 +7795,22 @@ var require_snippets_runtime = __commonJS({
           var actionsDom = actions.dom;
           var reloadBtn = new obsidian2.ButtonComponent(actionsDom);
           reloadBtn.setIcon("refresh-cw").setClass("MySnippetsButton").setClass("MS-Reload").onClick(function() {
-            requestLoadSnippets(app);
+            requestLoadSnippets(app2);
             new obsidian2.Notice("CSS代码片段已重新加载");
           });
           reloadBtn.buttonEl.setAttribute("aria-label", "重载CSS代码片段");
           reloadBtn.buttonEl.setAttribute("data-tooltip-position", "top");
           var folderBtn = new obsidian2.ButtonComponent(actionsDom);
           folderBtn.setIcon("folder-open").setClass("MySnippetsButton").setClass("MS-Folder").onClick(function() {
-            if (snippetsFolder && typeof app.openWithDefaultApp === "function") {
-              app.openWithDefaultApp(snippetsFolder);
+            if (snippetsFolder && typeof app2.openWithDefaultApp === "function") {
+              app2.openWithDefaultApp(snippetsFolder);
             }
           });
           folderBtn.buttonEl.setAttribute("aria-label", "打开CSS代码片段所在文件夹");
           folderBtn.buttonEl.setAttribute("data-tooltip-position", "top");
           var addBtn = new obsidian2.ButtonComponent(actionsDom);
           addBtn.setIcon("plus-circle").setClass("MySnippetsButton").setClass("MS-Folder").onClick(function() {
-            new CreateSnippetModal(app, self, self.settings).open();
+            new CreateSnippetModal(app2, self, self.settings).open();
           });
           addBtn.buttonEl.setAttribute("aria-label", "新建CSS代码片段");
           addBtn.buttonEl.setAttribute("data-tooltip-position", "top");
@@ -5810,8 +8237,8 @@ var require_view4 = __commonJS({
       });
     }
     var TabBarEnhancerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -7304,8 +9731,8 @@ var require_view5 = __commonJS({
       return store.getMenuTypeOptions().find((item) => item.id === menuType)?.name || menuType;
     }
     var MenuCustomizerConfirmModal = class extends obsidian2.Modal {
-      constructor(app, title, description, onConfirm) {
-        super(app);
+      constructor(app2, title, description, onConfirm) {
+        super(app2);
         this.title = title;
         this.description = description;
         this.onConfirm = onConfirm;
@@ -7340,8 +9767,8 @@ var require_view5 = __commonJS({
       }
     };
     var MenuCustomizerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
         this.activeMenuType = plugin.menuCustomizerStore.getMenuTypeOptions()[0]?.id || "editor";
@@ -9273,8 +11700,8 @@ var require_tag_name_editor = __commonJS({
       /**
        * @param {Object} app Obsidian App 实例，用于二次确认弹窗。
        */
-      constructor(app) {
-        this.app = app;
+      constructor(app2) {
+        this.app = app2;
         this.el = null;
         this.inputEl = null;
         this.errorEl = null;
@@ -9520,8 +11947,8 @@ var require_tag_name_editor = __commonJS({
        * @param {Object} app    Obsidian App 实例。
        * @param {Object} options { newName, onConfirm, onCancel }
        */
-      constructor(app, options) {
-        super(app);
+      constructor(app2, options) {
+        super(app2);
         this.options = options || {};
       }
       onOpen() {
@@ -9980,8 +12407,8 @@ var require_view6 = __commonJS({
       }
     }
     var EditorEnhancerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -11094,1380 +13521,6 @@ var require_runtime5 = __commonJS({
   }
 });
 
-// node_modules/@popperjs/core/dist/cjs/popper.js
-var require_popper = __commonJS({
-  "node_modules/@popperjs/core/dist/cjs/popper.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    function getWindow(node) {
-      if (node == null) {
-        return window;
-      }
-      if (node.toString() !== "[object Window]") {
-        var ownerDocument = node.ownerDocument;
-        return ownerDocument ? ownerDocument.defaultView || window : window;
-      }
-      return node;
-    }
-    function isElement(node) {
-      var OwnElement = getWindow(node).Element;
-      return node instanceof OwnElement || node instanceof Element;
-    }
-    function isHTMLElement(node) {
-      var OwnElement = getWindow(node).HTMLElement;
-      return node instanceof OwnElement || node instanceof HTMLElement;
-    }
-    function isShadowRoot(node) {
-      if (typeof ShadowRoot === "undefined") {
-        return false;
-      }
-      var OwnElement = getWindow(node).ShadowRoot;
-      return node instanceof OwnElement || node instanceof ShadowRoot;
-    }
-    var max = Math.max;
-    var min = Math.min;
-    var round = Math.round;
-    function getUAString() {
-      var uaData = navigator.userAgentData;
-      if (uaData != null && uaData.brands && Array.isArray(uaData.brands)) {
-        return uaData.brands.map(function(item) {
-          return item.brand + "/" + item.version;
-        }).join(" ");
-      }
-      return navigator.userAgent;
-    }
-    function isLayoutViewport() {
-      return !/^((?!chrome|android).)*safari/i.test(getUAString());
-    }
-    function getBoundingClientRect(element, includeScale, isFixedStrategy) {
-      if (includeScale === void 0) {
-        includeScale = false;
-      }
-      if (isFixedStrategy === void 0) {
-        isFixedStrategy = false;
-      }
-      var clientRect = element.getBoundingClientRect();
-      var scaleX = 1;
-      var scaleY = 1;
-      if (includeScale && isHTMLElement(element)) {
-        scaleX = element.offsetWidth > 0 ? round(clientRect.width) / element.offsetWidth || 1 : 1;
-        scaleY = element.offsetHeight > 0 ? round(clientRect.height) / element.offsetHeight || 1 : 1;
-      }
-      var _ref = isElement(element) ? getWindow(element) : window, visualViewport = _ref.visualViewport;
-      var addVisualOffsets = !isLayoutViewport() && isFixedStrategy;
-      var x = (clientRect.left + (addVisualOffsets && visualViewport ? visualViewport.offsetLeft : 0)) / scaleX;
-      var y = (clientRect.top + (addVisualOffsets && visualViewport ? visualViewport.offsetTop : 0)) / scaleY;
-      var width = clientRect.width / scaleX;
-      var height = clientRect.height / scaleY;
-      return {
-        width,
-        height,
-        top: y,
-        right: x + width,
-        bottom: y + height,
-        left: x,
-        x,
-        y
-      };
-    }
-    function getWindowScroll(node) {
-      var win = getWindow(node);
-      var scrollLeft = win.pageXOffset;
-      var scrollTop = win.pageYOffset;
-      return {
-        scrollLeft,
-        scrollTop
-      };
-    }
-    function getHTMLElementScroll(element) {
-      return {
-        scrollLeft: element.scrollLeft,
-        scrollTop: element.scrollTop
-      };
-    }
-    function getNodeScroll(node) {
-      if (node === getWindow(node) || !isHTMLElement(node)) {
-        return getWindowScroll(node);
-      } else {
-        return getHTMLElementScroll(node);
-      }
-    }
-    function getNodeName(element) {
-      return element ? (element.nodeName || "").toLowerCase() : null;
-    }
-    function getDocumentElement(element) {
-      return ((isElement(element) ? element.ownerDocument : (
-        // $FlowFixMe[prop-missing]
-        element.document
-      )) || window.document).documentElement;
-    }
-    function getWindowScrollBarX(element) {
-      return getBoundingClientRect(getDocumentElement(element)).left + getWindowScroll(element).scrollLeft;
-    }
-    function getComputedStyle(element) {
-      return getWindow(element).getComputedStyle(element);
-    }
-    function isScrollParent(element) {
-      var _getComputedStyle = getComputedStyle(element), overflow = _getComputedStyle.overflow, overflowX = _getComputedStyle.overflowX, overflowY = _getComputedStyle.overflowY;
-      return /auto|scroll|overlay|hidden/.test(overflow + overflowY + overflowX);
-    }
-    function isElementScaled(element) {
-      var rect = element.getBoundingClientRect();
-      var scaleX = round(rect.width) / element.offsetWidth || 1;
-      var scaleY = round(rect.height) / element.offsetHeight || 1;
-      return scaleX !== 1 || scaleY !== 1;
-    }
-    function getCompositeRect(elementOrVirtualElement, offsetParent, isFixed) {
-      if (isFixed === void 0) {
-        isFixed = false;
-      }
-      var isOffsetParentAnElement = isHTMLElement(offsetParent);
-      var offsetParentIsScaled = isHTMLElement(offsetParent) && isElementScaled(offsetParent);
-      var documentElement = getDocumentElement(offsetParent);
-      var rect = getBoundingClientRect(elementOrVirtualElement, offsetParentIsScaled, isFixed);
-      var scroll = {
-        scrollLeft: 0,
-        scrollTop: 0
-      };
-      var offsets = {
-        x: 0,
-        y: 0
-      };
-      if (isOffsetParentAnElement || !isOffsetParentAnElement && !isFixed) {
-        if (getNodeName(offsetParent) !== "body" || // https://github.com/popperjs/popper-core/issues/1078
-        isScrollParent(documentElement)) {
-          scroll = getNodeScroll(offsetParent);
-        }
-        if (isHTMLElement(offsetParent)) {
-          offsets = getBoundingClientRect(offsetParent, true);
-          offsets.x += offsetParent.clientLeft;
-          offsets.y += offsetParent.clientTop;
-        } else if (documentElement) {
-          offsets.x = getWindowScrollBarX(documentElement);
-        }
-      }
-      return {
-        x: rect.left + scroll.scrollLeft - offsets.x,
-        y: rect.top + scroll.scrollTop - offsets.y,
-        width: rect.width,
-        height: rect.height
-      };
-    }
-    function getLayoutRect(element) {
-      var clientRect = getBoundingClientRect(element);
-      var width = element.offsetWidth;
-      var height = element.offsetHeight;
-      if (Math.abs(clientRect.width - width) <= 1) {
-        width = clientRect.width;
-      }
-      if (Math.abs(clientRect.height - height) <= 1) {
-        height = clientRect.height;
-      }
-      return {
-        x: element.offsetLeft,
-        y: element.offsetTop,
-        width,
-        height
-      };
-    }
-    function getParentNode(element) {
-      if (getNodeName(element) === "html") {
-        return element;
-      }
-      return (
-        // this is a quicker (but less type safe) way to save quite some bytes from the bundle
-        // $FlowFixMe[incompatible-return]
-        // $FlowFixMe[prop-missing]
-        element.assignedSlot || // step into the shadow DOM of the parent of a slotted node
-        element.parentNode || // DOM Element detected
-        (isShadowRoot(element) ? element.host : null) || // ShadowRoot detected
-        // $FlowFixMe[incompatible-call]: HTMLElement is a Node
-        getDocumentElement(element)
-      );
-    }
-    function getScrollParent(node) {
-      if (["html", "body", "#document"].indexOf(getNodeName(node)) >= 0) {
-        return node.ownerDocument.body;
-      }
-      if (isHTMLElement(node) && isScrollParent(node)) {
-        return node;
-      }
-      return getScrollParent(getParentNode(node));
-    }
-    function listScrollParents(element, list) {
-      var _element$ownerDocumen;
-      if (list === void 0) {
-        list = [];
-      }
-      var scrollParent = getScrollParent(element);
-      var isBody = scrollParent === ((_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body);
-      var win = getWindow(scrollParent);
-      var target = isBody ? [win].concat(win.visualViewport || [], isScrollParent(scrollParent) ? scrollParent : []) : scrollParent;
-      var updatedList = list.concat(target);
-      return isBody ? updatedList : (
-        // $FlowFixMe[incompatible-call]: isBody tells us target will be an HTMLElement here
-        updatedList.concat(listScrollParents(getParentNode(target)))
-      );
-    }
-    function isTableElement(element) {
-      return ["table", "td", "th"].indexOf(getNodeName(element)) >= 0;
-    }
-    function getTrueOffsetParent(element) {
-      if (!isHTMLElement(element) || // https://github.com/popperjs/popper-core/issues/837
-      getComputedStyle(element).position === "fixed") {
-        return null;
-      }
-      return element.offsetParent;
-    }
-    function getContainingBlock(element) {
-      var isFirefox = /firefox/i.test(getUAString());
-      var isIE = /Trident/i.test(getUAString());
-      if (isIE && isHTMLElement(element)) {
-        var elementCss = getComputedStyle(element);
-        if (elementCss.position === "fixed") {
-          return null;
-        }
-      }
-      var currentNode = getParentNode(element);
-      if (isShadowRoot(currentNode)) {
-        currentNode = currentNode.host;
-      }
-      while (isHTMLElement(currentNode) && ["html", "body"].indexOf(getNodeName(currentNode)) < 0) {
-        var css = getComputedStyle(currentNode);
-        if (css.transform !== "none" || css.perspective !== "none" || css.contain === "paint" || ["transform", "perspective"].indexOf(css.willChange) !== -1 || isFirefox && css.willChange === "filter" || isFirefox && css.filter && css.filter !== "none") {
-          return currentNode;
-        } else {
-          currentNode = currentNode.parentNode;
-        }
-      }
-      return null;
-    }
-    function getOffsetParent(element) {
-      var window2 = getWindow(element);
-      var offsetParent = getTrueOffsetParent(element);
-      while (offsetParent && isTableElement(offsetParent) && getComputedStyle(offsetParent).position === "static") {
-        offsetParent = getTrueOffsetParent(offsetParent);
-      }
-      if (offsetParent && (getNodeName(offsetParent) === "html" || getNodeName(offsetParent) === "body" && getComputedStyle(offsetParent).position === "static")) {
-        return window2;
-      }
-      return offsetParent || getContainingBlock(element) || window2;
-    }
-    var top = "top";
-    var bottom = "bottom";
-    var right = "right";
-    var left = "left";
-    var auto = "auto";
-    var basePlacements = [top, bottom, right, left];
-    var start = "start";
-    var end = "end";
-    var clippingParents = "clippingParents";
-    var viewport = "viewport";
-    var popper = "popper";
-    var reference = "reference";
-    var variationPlacements = /* @__PURE__ */ basePlacements.reduce(function(acc, placement) {
-      return acc.concat([placement + "-" + start, placement + "-" + end]);
-    }, []);
-    var placements = /* @__PURE__ */ [].concat(basePlacements, [auto]).reduce(function(acc, placement) {
-      return acc.concat([placement, placement + "-" + start, placement + "-" + end]);
-    }, []);
-    var beforeRead = "beforeRead";
-    var read = "read";
-    var afterRead = "afterRead";
-    var beforeMain = "beforeMain";
-    var main = "main";
-    var afterMain = "afterMain";
-    var beforeWrite = "beforeWrite";
-    var write = "write";
-    var afterWrite = "afterWrite";
-    var modifierPhases = [beforeRead, read, afterRead, beforeMain, main, afterMain, beforeWrite, write, afterWrite];
-    function order(modifiers) {
-      var map = /* @__PURE__ */ new Map();
-      var visited = /* @__PURE__ */ new Set();
-      var result = [];
-      modifiers.forEach(function(modifier) {
-        map.set(modifier.name, modifier);
-      });
-      function sort(modifier) {
-        visited.add(modifier.name);
-        var requires = [].concat(modifier.requires || [], modifier.requiresIfExists || []);
-        requires.forEach(function(dep) {
-          if (!visited.has(dep)) {
-            var depModifier = map.get(dep);
-            if (depModifier) {
-              sort(depModifier);
-            }
-          }
-        });
-        result.push(modifier);
-      }
-      modifiers.forEach(function(modifier) {
-        if (!visited.has(modifier.name)) {
-          sort(modifier);
-        }
-      });
-      return result;
-    }
-    function orderModifiers(modifiers) {
-      var orderedModifiers = order(modifiers);
-      return modifierPhases.reduce(function(acc, phase) {
-        return acc.concat(orderedModifiers.filter(function(modifier) {
-          return modifier.phase === phase;
-        }));
-      }, []);
-    }
-    function debounce(fn) {
-      var pending;
-      return function() {
-        if (!pending) {
-          pending = new Promise(function(resolve) {
-            Promise.resolve().then(function() {
-              pending = void 0;
-              resolve(fn());
-            });
-          });
-        }
-        return pending;
-      };
-    }
-    function mergeByName(modifiers) {
-      var merged = modifiers.reduce(function(merged2, current) {
-        var existing = merged2[current.name];
-        merged2[current.name] = existing ? Object.assign({}, existing, current, {
-          options: Object.assign({}, existing.options, current.options),
-          data: Object.assign({}, existing.data, current.data)
-        }) : current;
-        return merged2;
-      }, {});
-      return Object.keys(merged).map(function(key) {
-        return merged[key];
-      });
-    }
-    function getViewportRect(element, strategy) {
-      var win = getWindow(element);
-      var html = getDocumentElement(element);
-      var visualViewport = win.visualViewport;
-      var width = html.clientWidth;
-      var height = html.clientHeight;
-      var x = 0;
-      var y = 0;
-      if (visualViewport) {
-        width = visualViewport.width;
-        height = visualViewport.height;
-        var layoutViewport = isLayoutViewport();
-        if (layoutViewport || !layoutViewport && strategy === "fixed") {
-          x = visualViewport.offsetLeft;
-          y = visualViewport.offsetTop;
-        }
-      }
-      return {
-        width,
-        height,
-        x: x + getWindowScrollBarX(element),
-        y
-      };
-    }
-    function getDocumentRect(element) {
-      var _element$ownerDocumen;
-      var html = getDocumentElement(element);
-      var winScroll = getWindowScroll(element);
-      var body = (_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body;
-      var width = max(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
-      var height = max(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
-      var x = -winScroll.scrollLeft + getWindowScrollBarX(element);
-      var y = -winScroll.scrollTop;
-      if (getComputedStyle(body || html).direction === "rtl") {
-        x += max(html.clientWidth, body ? body.clientWidth : 0) - width;
-      }
-      return {
-        width,
-        height,
-        x,
-        y
-      };
-    }
-    function contains(parent, child) {
-      var rootNode = child.getRootNode && child.getRootNode();
-      if (parent.contains(child)) {
-        return true;
-      } else if (rootNode && isShadowRoot(rootNode)) {
-        var next = child;
-        do {
-          if (next && parent.isSameNode(next)) {
-            return true;
-          }
-          next = next.parentNode || next.host;
-        } while (next);
-      }
-      return false;
-    }
-    function rectToClientRect(rect) {
-      return Object.assign({}, rect, {
-        left: rect.x,
-        top: rect.y,
-        right: rect.x + rect.width,
-        bottom: rect.y + rect.height
-      });
-    }
-    function getInnerBoundingClientRect(element, strategy) {
-      var rect = getBoundingClientRect(element, false, strategy === "fixed");
-      rect.top = rect.top + element.clientTop;
-      rect.left = rect.left + element.clientLeft;
-      rect.bottom = rect.top + element.clientHeight;
-      rect.right = rect.left + element.clientWidth;
-      rect.width = element.clientWidth;
-      rect.height = element.clientHeight;
-      rect.x = rect.left;
-      rect.y = rect.top;
-      return rect;
-    }
-    function getClientRectFromMixedType(element, clippingParent, strategy) {
-      return clippingParent === viewport ? rectToClientRect(getViewportRect(element, strategy)) : isElement(clippingParent) ? getInnerBoundingClientRect(clippingParent, strategy) : rectToClientRect(getDocumentRect(getDocumentElement(element)));
-    }
-    function getClippingParents(element) {
-      var clippingParents2 = listScrollParents(getParentNode(element));
-      var canEscapeClipping = ["absolute", "fixed"].indexOf(getComputedStyle(element).position) >= 0;
-      var clipperElement = canEscapeClipping && isHTMLElement(element) ? getOffsetParent(element) : element;
-      if (!isElement(clipperElement)) {
-        return [];
-      }
-      return clippingParents2.filter(function(clippingParent) {
-        return isElement(clippingParent) && contains(clippingParent, clipperElement) && getNodeName(clippingParent) !== "body";
-      });
-    }
-    function getClippingRect(element, boundary, rootBoundary, strategy) {
-      var mainClippingParents = boundary === "clippingParents" ? getClippingParents(element) : [].concat(boundary);
-      var clippingParents2 = [].concat(mainClippingParents, [rootBoundary]);
-      var firstClippingParent = clippingParents2[0];
-      var clippingRect = clippingParents2.reduce(function(accRect, clippingParent) {
-        var rect = getClientRectFromMixedType(element, clippingParent, strategy);
-        accRect.top = max(rect.top, accRect.top);
-        accRect.right = min(rect.right, accRect.right);
-        accRect.bottom = min(rect.bottom, accRect.bottom);
-        accRect.left = max(rect.left, accRect.left);
-        return accRect;
-      }, getClientRectFromMixedType(element, firstClippingParent, strategy));
-      clippingRect.width = clippingRect.right - clippingRect.left;
-      clippingRect.height = clippingRect.bottom - clippingRect.top;
-      clippingRect.x = clippingRect.left;
-      clippingRect.y = clippingRect.top;
-      return clippingRect;
-    }
-    function getBasePlacement(placement) {
-      return placement.split("-")[0];
-    }
-    function getVariation(placement) {
-      return placement.split("-")[1];
-    }
-    function getMainAxisFromPlacement(placement) {
-      return ["top", "bottom"].indexOf(placement) >= 0 ? "x" : "y";
-    }
-    function computeOffsets(_ref) {
-      var reference2 = _ref.reference, element = _ref.element, placement = _ref.placement;
-      var basePlacement = placement ? getBasePlacement(placement) : null;
-      var variation = placement ? getVariation(placement) : null;
-      var commonX = reference2.x + reference2.width / 2 - element.width / 2;
-      var commonY = reference2.y + reference2.height / 2 - element.height / 2;
-      var offsets;
-      switch (basePlacement) {
-        case top:
-          offsets = {
-            x: commonX,
-            y: reference2.y - element.height
-          };
-          break;
-        case bottom:
-          offsets = {
-            x: commonX,
-            y: reference2.y + reference2.height
-          };
-          break;
-        case right:
-          offsets = {
-            x: reference2.x + reference2.width,
-            y: commonY
-          };
-          break;
-        case left:
-          offsets = {
-            x: reference2.x - element.width,
-            y: commonY
-          };
-          break;
-        default:
-          offsets = {
-            x: reference2.x,
-            y: reference2.y
-          };
-      }
-      var mainAxis = basePlacement ? getMainAxisFromPlacement(basePlacement) : null;
-      if (mainAxis != null) {
-        var len = mainAxis === "y" ? "height" : "width";
-        switch (variation) {
-          case start:
-            offsets[mainAxis] = offsets[mainAxis] - (reference2[len] / 2 - element[len] / 2);
-            break;
-          case end:
-            offsets[mainAxis] = offsets[mainAxis] + (reference2[len] / 2 - element[len] / 2);
-            break;
-        }
-      }
-      return offsets;
-    }
-    function getFreshSideObject() {
-      return {
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0
-      };
-    }
-    function mergePaddingObject(paddingObject) {
-      return Object.assign({}, getFreshSideObject(), paddingObject);
-    }
-    function expandToHashMap(value, keys) {
-      return keys.reduce(function(hashMap, key) {
-        hashMap[key] = value;
-        return hashMap;
-      }, {});
-    }
-    function detectOverflow(state, options) {
-      if (options === void 0) {
-        options = {};
-      }
-      var _options = options, _options$placement = _options.placement, placement = _options$placement === void 0 ? state.placement : _options$placement, _options$strategy = _options.strategy, strategy = _options$strategy === void 0 ? state.strategy : _options$strategy, _options$boundary = _options.boundary, boundary = _options$boundary === void 0 ? clippingParents : _options$boundary, _options$rootBoundary = _options.rootBoundary, rootBoundary = _options$rootBoundary === void 0 ? viewport : _options$rootBoundary, _options$elementConte = _options.elementContext, elementContext = _options$elementConte === void 0 ? popper : _options$elementConte, _options$altBoundary = _options.altBoundary, altBoundary = _options$altBoundary === void 0 ? false : _options$altBoundary, _options$padding = _options.padding, padding = _options$padding === void 0 ? 0 : _options$padding;
-      var paddingObject = mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
-      var altContext = elementContext === popper ? reference : popper;
-      var popperRect = state.rects.popper;
-      var element = state.elements[altBoundary ? altContext : elementContext];
-      var clippingClientRect = getClippingRect(isElement(element) ? element : element.contextElement || getDocumentElement(state.elements.popper), boundary, rootBoundary, strategy);
-      var referenceClientRect = getBoundingClientRect(state.elements.reference);
-      var popperOffsets2 = computeOffsets({
-        reference: referenceClientRect,
-        element: popperRect,
-        strategy: "absolute",
-        placement
-      });
-      var popperClientRect = rectToClientRect(Object.assign({}, popperRect, popperOffsets2));
-      var elementClientRect = elementContext === popper ? popperClientRect : referenceClientRect;
-      var overflowOffsets = {
-        top: clippingClientRect.top - elementClientRect.top + paddingObject.top,
-        bottom: elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom,
-        left: clippingClientRect.left - elementClientRect.left + paddingObject.left,
-        right: elementClientRect.right - clippingClientRect.right + paddingObject.right
-      };
-      var offsetData = state.modifiersData.offset;
-      if (elementContext === popper && offsetData) {
-        var offset2 = offsetData[placement];
-        Object.keys(overflowOffsets).forEach(function(key) {
-          var multiply = [right, bottom].indexOf(key) >= 0 ? 1 : -1;
-          var axis = [top, bottom].indexOf(key) >= 0 ? "y" : "x";
-          overflowOffsets[key] += offset2[axis] * multiply;
-        });
-      }
-      return overflowOffsets;
-    }
-    var DEFAULT_OPTIONS = {
-      placement: "bottom",
-      modifiers: [],
-      strategy: "absolute"
-    };
-    function areValidElements() {
-      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-        args[_key] = arguments[_key];
-      }
-      return !args.some(function(element) {
-        return !(element && typeof element.getBoundingClientRect === "function");
-      });
-    }
-    function popperGenerator(generatorOptions) {
-      if (generatorOptions === void 0) {
-        generatorOptions = {};
-      }
-      var _generatorOptions = generatorOptions, _generatorOptions$def = _generatorOptions.defaultModifiers, defaultModifiers2 = _generatorOptions$def === void 0 ? [] : _generatorOptions$def, _generatorOptions$def2 = _generatorOptions.defaultOptions, defaultOptions = _generatorOptions$def2 === void 0 ? DEFAULT_OPTIONS : _generatorOptions$def2;
-      return function createPopper2(reference2, popper2, options) {
-        if (options === void 0) {
-          options = defaultOptions;
-        }
-        var state = {
-          placement: "bottom",
-          orderedModifiers: [],
-          options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions),
-          modifiersData: {},
-          elements: {
-            reference: reference2,
-            popper: popper2
-          },
-          attributes: {},
-          styles: {}
-        };
-        var effectCleanupFns = [];
-        var isDestroyed = false;
-        var instance = {
-          state,
-          setOptions: function setOptions(setOptionsAction) {
-            var options2 = typeof setOptionsAction === "function" ? setOptionsAction(state.options) : setOptionsAction;
-            cleanupModifierEffects();
-            state.options = Object.assign({}, defaultOptions, state.options, options2);
-            state.scrollParents = {
-              reference: isElement(reference2) ? listScrollParents(reference2) : reference2.contextElement ? listScrollParents(reference2.contextElement) : [],
-              popper: listScrollParents(popper2)
-            };
-            var orderedModifiers = orderModifiers(mergeByName([].concat(defaultModifiers2, state.options.modifiers)));
-            state.orderedModifiers = orderedModifiers.filter(function(m) {
-              return m.enabled;
-            });
-            runModifierEffects();
-            return instance.update();
-          },
-          // Sync update – it will always be executed, even if not necessary. This
-          // is useful for low frequency updates where sync behavior simplifies the
-          // logic.
-          // For high frequency updates (e.g. `resize` and `scroll` events), always
-          // prefer the async Popper#update method
-          forceUpdate: function forceUpdate() {
-            if (isDestroyed) {
-              return;
-            }
-            var _state$elements = state.elements, reference3 = _state$elements.reference, popper3 = _state$elements.popper;
-            if (!areValidElements(reference3, popper3)) {
-              return;
-            }
-            state.rects = {
-              reference: getCompositeRect(reference3, getOffsetParent(popper3), state.options.strategy === "fixed"),
-              popper: getLayoutRect(popper3)
-            };
-            state.reset = false;
-            state.placement = state.options.placement;
-            state.orderedModifiers.forEach(function(modifier) {
-              return state.modifiersData[modifier.name] = Object.assign({}, modifier.data);
-            });
-            for (var index = 0; index < state.orderedModifiers.length; index++) {
-              if (state.reset === true) {
-                state.reset = false;
-                index = -1;
-                continue;
-              }
-              var _state$orderedModifie = state.orderedModifiers[index], fn = _state$orderedModifie.fn, _state$orderedModifie2 = _state$orderedModifie.options, _options = _state$orderedModifie2 === void 0 ? {} : _state$orderedModifie2, name = _state$orderedModifie.name;
-              if (typeof fn === "function") {
-                state = fn({
-                  state,
-                  options: _options,
-                  name,
-                  instance
-                }) || state;
-              }
-            }
-          },
-          // Async and optimistically optimized update – it will not be executed if
-          // not necessary (debounced to run at most once-per-tick)
-          update: debounce(function() {
-            return new Promise(function(resolve) {
-              instance.forceUpdate();
-              resolve(state);
-            });
-          }),
-          destroy: function destroy() {
-            cleanupModifierEffects();
-            isDestroyed = true;
-          }
-        };
-        if (!areValidElements(reference2, popper2)) {
-          return instance;
-        }
-        instance.setOptions(options).then(function(state2) {
-          if (!isDestroyed && options.onFirstUpdate) {
-            options.onFirstUpdate(state2);
-          }
-        });
-        function runModifierEffects() {
-          state.orderedModifiers.forEach(function(_ref) {
-            var name = _ref.name, _ref$options = _ref.options, options2 = _ref$options === void 0 ? {} : _ref$options, effect2 = _ref.effect;
-            if (typeof effect2 === "function") {
-              var cleanupFn = effect2({
-                state,
-                name,
-                instance,
-                options: options2
-              });
-              var noopFn = function noopFn2() {
-              };
-              effectCleanupFns.push(cleanupFn || noopFn);
-            }
-          });
-        }
-        function cleanupModifierEffects() {
-          effectCleanupFns.forEach(function(fn) {
-            return fn();
-          });
-          effectCleanupFns = [];
-        }
-        return instance;
-      };
-    }
-    var passive = {
-      passive: true
-    };
-    function effect$2(_ref) {
-      var state = _ref.state, instance = _ref.instance, options = _ref.options;
-      var _options$scroll = options.scroll, scroll = _options$scroll === void 0 ? true : _options$scroll, _options$resize = options.resize, resize = _options$resize === void 0 ? true : _options$resize;
-      var window2 = getWindow(state.elements.popper);
-      var scrollParents = [].concat(state.scrollParents.reference, state.scrollParents.popper);
-      if (scroll) {
-        scrollParents.forEach(function(scrollParent) {
-          scrollParent.addEventListener("scroll", instance.update, passive);
-        });
-      }
-      if (resize) {
-        window2.addEventListener("resize", instance.update, passive);
-      }
-      return function() {
-        if (scroll) {
-          scrollParents.forEach(function(scrollParent) {
-            scrollParent.removeEventListener("scroll", instance.update, passive);
-          });
-        }
-        if (resize) {
-          window2.removeEventListener("resize", instance.update, passive);
-        }
-      };
-    }
-    var eventListeners = {
-      name: "eventListeners",
-      enabled: true,
-      phase: "write",
-      fn: function fn() {
-      },
-      effect: effect$2,
-      data: {}
-    };
-    function popperOffsets(_ref) {
-      var state = _ref.state, name = _ref.name;
-      state.modifiersData[name] = computeOffsets({
-        reference: state.rects.reference,
-        element: state.rects.popper,
-        strategy: "absolute",
-        placement: state.placement
-      });
-    }
-    var popperOffsets$1 = {
-      name: "popperOffsets",
-      enabled: true,
-      phase: "read",
-      fn: popperOffsets,
-      data: {}
-    };
-    var unsetSides = {
-      top: "auto",
-      right: "auto",
-      bottom: "auto",
-      left: "auto"
-    };
-    function roundOffsetsByDPR(_ref, win) {
-      var x = _ref.x, y = _ref.y;
-      var dpr = win.devicePixelRatio || 1;
-      return {
-        x: round(x * dpr) / dpr || 0,
-        y: round(y * dpr) / dpr || 0
-      };
-    }
-    function mapToStyles(_ref2) {
-      var _Object$assign2;
-      var popper2 = _ref2.popper, popperRect = _ref2.popperRect, placement = _ref2.placement, variation = _ref2.variation, offsets = _ref2.offsets, position = _ref2.position, gpuAcceleration = _ref2.gpuAcceleration, adaptive = _ref2.adaptive, roundOffsets = _ref2.roundOffsets, isFixed = _ref2.isFixed;
-      var _offsets$x = offsets.x, x = _offsets$x === void 0 ? 0 : _offsets$x, _offsets$y = offsets.y, y = _offsets$y === void 0 ? 0 : _offsets$y;
-      var _ref3 = typeof roundOffsets === "function" ? roundOffsets({
-        x,
-        y
-      }) : {
-        x,
-        y
-      };
-      x = _ref3.x;
-      y = _ref3.y;
-      var hasX = offsets.hasOwnProperty("x");
-      var hasY = offsets.hasOwnProperty("y");
-      var sideX = left;
-      var sideY = top;
-      var win = window;
-      if (adaptive) {
-        var offsetParent = getOffsetParent(popper2);
-        var heightProp = "clientHeight";
-        var widthProp = "clientWidth";
-        if (offsetParent === getWindow(popper2)) {
-          offsetParent = getDocumentElement(popper2);
-          if (getComputedStyle(offsetParent).position !== "static" && position === "absolute") {
-            heightProp = "scrollHeight";
-            widthProp = "scrollWidth";
-          }
-        }
-        offsetParent = offsetParent;
-        if (placement === top || (placement === left || placement === right) && variation === end) {
-          sideY = bottom;
-          var offsetY = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.height : (
-            // $FlowFixMe[prop-missing]
-            offsetParent[heightProp]
-          );
-          y -= offsetY - popperRect.height;
-          y *= gpuAcceleration ? 1 : -1;
-        }
-        if (placement === left || (placement === top || placement === bottom) && variation === end) {
-          sideX = right;
-          var offsetX = isFixed && offsetParent === win && win.visualViewport ? win.visualViewport.width : (
-            // $FlowFixMe[prop-missing]
-            offsetParent[widthProp]
-          );
-          x -= offsetX - popperRect.width;
-          x *= gpuAcceleration ? 1 : -1;
-        }
-      }
-      var commonStyles = Object.assign({
-        position
-      }, adaptive && unsetSides);
-      var _ref4 = roundOffsets === true ? roundOffsetsByDPR({
-        x,
-        y
-      }, getWindow(popper2)) : {
-        x,
-        y
-      };
-      x = _ref4.x;
-      y = _ref4.y;
-      if (gpuAcceleration) {
-        var _Object$assign;
-        return Object.assign({}, commonStyles, (_Object$assign = {}, _Object$assign[sideY] = hasY ? "0" : "", _Object$assign[sideX] = hasX ? "0" : "", _Object$assign.transform = (win.devicePixelRatio || 1) <= 1 ? "translate(" + x + "px, " + y + "px)" : "translate3d(" + x + "px, " + y + "px, 0)", _Object$assign));
-      }
-      return Object.assign({}, commonStyles, (_Object$assign2 = {}, _Object$assign2[sideY] = hasY ? y + "px" : "", _Object$assign2[sideX] = hasX ? x + "px" : "", _Object$assign2.transform = "", _Object$assign2));
-    }
-    function computeStyles(_ref5) {
-      var state = _ref5.state, options = _ref5.options;
-      var _options$gpuAccelerat = options.gpuAcceleration, gpuAcceleration = _options$gpuAccelerat === void 0 ? true : _options$gpuAccelerat, _options$adaptive = options.adaptive, adaptive = _options$adaptive === void 0 ? true : _options$adaptive, _options$roundOffsets = options.roundOffsets, roundOffsets = _options$roundOffsets === void 0 ? true : _options$roundOffsets;
-      var commonStyles = {
-        placement: getBasePlacement(state.placement),
-        variation: getVariation(state.placement),
-        popper: state.elements.popper,
-        popperRect: state.rects.popper,
-        gpuAcceleration,
-        isFixed: state.options.strategy === "fixed"
-      };
-      if (state.modifiersData.popperOffsets != null) {
-        state.styles.popper = Object.assign({}, state.styles.popper, mapToStyles(Object.assign({}, commonStyles, {
-          offsets: state.modifiersData.popperOffsets,
-          position: state.options.strategy,
-          adaptive,
-          roundOffsets
-        })));
-      }
-      if (state.modifiersData.arrow != null) {
-        state.styles.arrow = Object.assign({}, state.styles.arrow, mapToStyles(Object.assign({}, commonStyles, {
-          offsets: state.modifiersData.arrow,
-          position: "absolute",
-          adaptive: false,
-          roundOffsets
-        })));
-      }
-      state.attributes.popper = Object.assign({}, state.attributes.popper, {
-        "data-popper-placement": state.placement
-      });
-    }
-    var computeStyles$1 = {
-      name: "computeStyles",
-      enabled: true,
-      phase: "beforeWrite",
-      fn: computeStyles,
-      data: {}
-    };
-    function applyStyles(_ref) {
-      var state = _ref.state;
-      Object.keys(state.elements).forEach(function(name) {
-        var style = state.styles[name] || {};
-        var attributes = state.attributes[name] || {};
-        var element = state.elements[name];
-        if (!isHTMLElement(element) || !getNodeName(element)) {
-          return;
-        }
-        Object.assign(element.style, style);
-        Object.keys(attributes).forEach(function(name2) {
-          var value = attributes[name2];
-          if (value === false) {
-            element.removeAttribute(name2);
-          } else {
-            element.setAttribute(name2, value === true ? "" : value);
-          }
-        });
-      });
-    }
-    function effect$1(_ref2) {
-      var state = _ref2.state;
-      var initialStyles = {
-        popper: {
-          position: state.options.strategy,
-          left: "0",
-          top: "0",
-          margin: "0"
-        },
-        arrow: {
-          position: "absolute"
-        },
-        reference: {}
-      };
-      Object.assign(state.elements.popper.style, initialStyles.popper);
-      state.styles = initialStyles;
-      if (state.elements.arrow) {
-        Object.assign(state.elements.arrow.style, initialStyles.arrow);
-      }
-      return function() {
-        Object.keys(state.elements).forEach(function(name) {
-          var element = state.elements[name];
-          var attributes = state.attributes[name] || {};
-          var styleProperties = Object.keys(state.styles.hasOwnProperty(name) ? state.styles[name] : initialStyles[name]);
-          var style = styleProperties.reduce(function(style2, property) {
-            style2[property] = "";
-            return style2;
-          }, {});
-          if (!isHTMLElement(element) || !getNodeName(element)) {
-            return;
-          }
-          Object.assign(element.style, style);
-          Object.keys(attributes).forEach(function(attribute) {
-            element.removeAttribute(attribute);
-          });
-        });
-      };
-    }
-    var applyStyles$1 = {
-      name: "applyStyles",
-      enabled: true,
-      phase: "write",
-      fn: applyStyles,
-      effect: effect$1,
-      requires: ["computeStyles"]
-    };
-    function distanceAndSkiddingToXY(placement, rects, offset2) {
-      var basePlacement = getBasePlacement(placement);
-      var invertDistance = [left, top].indexOf(basePlacement) >= 0 ? -1 : 1;
-      var _ref = typeof offset2 === "function" ? offset2(Object.assign({}, rects, {
-        placement
-      })) : offset2, skidding = _ref[0], distance = _ref[1];
-      skidding = skidding || 0;
-      distance = (distance || 0) * invertDistance;
-      return [left, right].indexOf(basePlacement) >= 0 ? {
-        x: distance,
-        y: skidding
-      } : {
-        x: skidding,
-        y: distance
-      };
-    }
-    function offset(_ref2) {
-      var state = _ref2.state, options = _ref2.options, name = _ref2.name;
-      var _options$offset = options.offset, offset2 = _options$offset === void 0 ? [0, 0] : _options$offset;
-      var data = placements.reduce(function(acc, placement) {
-        acc[placement] = distanceAndSkiddingToXY(placement, state.rects, offset2);
-        return acc;
-      }, {});
-      var _data$state$placement = data[state.placement], x = _data$state$placement.x, y = _data$state$placement.y;
-      if (state.modifiersData.popperOffsets != null) {
-        state.modifiersData.popperOffsets.x += x;
-        state.modifiersData.popperOffsets.y += y;
-      }
-      state.modifiersData[name] = data;
-    }
-    var offset$1 = {
-      name: "offset",
-      enabled: true,
-      phase: "main",
-      requires: ["popperOffsets"],
-      fn: offset
-    };
-    var hash$1 = {
-      left: "right",
-      right: "left",
-      bottom: "top",
-      top: "bottom"
-    };
-    function getOppositePlacement(placement) {
-      return placement.replace(/left|right|bottom|top/g, function(matched) {
-        return hash$1[matched];
-      });
-    }
-    var hash = {
-      start: "end",
-      end: "start"
-    };
-    function getOppositeVariationPlacement(placement) {
-      return placement.replace(/start|end/g, function(matched) {
-        return hash[matched];
-      });
-    }
-    function computeAutoPlacement(state, options) {
-      if (options === void 0) {
-        options = {};
-      }
-      var _options = options, placement = _options.placement, boundary = _options.boundary, rootBoundary = _options.rootBoundary, padding = _options.padding, flipVariations = _options.flipVariations, _options$allowedAutoP = _options.allowedAutoPlacements, allowedAutoPlacements = _options$allowedAutoP === void 0 ? placements : _options$allowedAutoP;
-      var variation = getVariation(placement);
-      var placements$1 = variation ? flipVariations ? variationPlacements : variationPlacements.filter(function(placement2) {
-        return getVariation(placement2) === variation;
-      }) : basePlacements;
-      var allowedPlacements = placements$1.filter(function(placement2) {
-        return allowedAutoPlacements.indexOf(placement2) >= 0;
-      });
-      if (allowedPlacements.length === 0) {
-        allowedPlacements = placements$1;
-      }
-      var overflows = allowedPlacements.reduce(function(acc, placement2) {
-        acc[placement2] = detectOverflow(state, {
-          placement: placement2,
-          boundary,
-          rootBoundary,
-          padding
-        })[getBasePlacement(placement2)];
-        return acc;
-      }, {});
-      return Object.keys(overflows).sort(function(a, b) {
-        return overflows[a] - overflows[b];
-      });
-    }
-    function getExpandedFallbackPlacements(placement) {
-      if (getBasePlacement(placement) === auto) {
-        return [];
-      }
-      var oppositePlacement = getOppositePlacement(placement);
-      return [getOppositeVariationPlacement(placement), oppositePlacement, getOppositeVariationPlacement(oppositePlacement)];
-    }
-    function flip(_ref) {
-      var state = _ref.state, options = _ref.options, name = _ref.name;
-      if (state.modifiersData[name]._skip) {
-        return;
-      }
-      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? true : _options$altAxis, specifiedFallbackPlacements = options.fallbackPlacements, padding = options.padding, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, _options$flipVariatio = options.flipVariations, flipVariations = _options$flipVariatio === void 0 ? true : _options$flipVariatio, allowedAutoPlacements = options.allowedAutoPlacements;
-      var preferredPlacement = state.options.placement;
-      var basePlacement = getBasePlacement(preferredPlacement);
-      var isBasePlacement = basePlacement === preferredPlacement;
-      var fallbackPlacements = specifiedFallbackPlacements || (isBasePlacement || !flipVariations ? [getOppositePlacement(preferredPlacement)] : getExpandedFallbackPlacements(preferredPlacement));
-      var placements2 = [preferredPlacement].concat(fallbackPlacements).reduce(function(acc, placement2) {
-        return acc.concat(getBasePlacement(placement2) === auto ? computeAutoPlacement(state, {
-          placement: placement2,
-          boundary,
-          rootBoundary,
-          padding,
-          flipVariations,
-          allowedAutoPlacements
-        }) : placement2);
-      }, []);
-      var referenceRect = state.rects.reference;
-      var popperRect = state.rects.popper;
-      var checksMap = /* @__PURE__ */ new Map();
-      var makeFallbackChecks = true;
-      var firstFittingPlacement = placements2[0];
-      for (var i = 0; i < placements2.length; i++) {
-        var placement = placements2[i];
-        var _basePlacement = getBasePlacement(placement);
-        var isStartVariation = getVariation(placement) === start;
-        var isVertical = [top, bottom].indexOf(_basePlacement) >= 0;
-        var len = isVertical ? "width" : "height";
-        var overflow = detectOverflow(state, {
-          placement,
-          boundary,
-          rootBoundary,
-          altBoundary,
-          padding
-        });
-        var mainVariationSide = isVertical ? isStartVariation ? right : left : isStartVariation ? bottom : top;
-        if (referenceRect[len] > popperRect[len]) {
-          mainVariationSide = getOppositePlacement(mainVariationSide);
-        }
-        var altVariationSide = getOppositePlacement(mainVariationSide);
-        var checks = [];
-        if (checkMainAxis) {
-          checks.push(overflow[_basePlacement] <= 0);
-        }
-        if (checkAltAxis) {
-          checks.push(overflow[mainVariationSide] <= 0, overflow[altVariationSide] <= 0);
-        }
-        if (checks.every(function(check) {
-          return check;
-        })) {
-          firstFittingPlacement = placement;
-          makeFallbackChecks = false;
-          break;
-        }
-        checksMap.set(placement, checks);
-      }
-      if (makeFallbackChecks) {
-        var numberOfChecks = flipVariations ? 3 : 1;
-        var _loop = function _loop2(_i2) {
-          var fittingPlacement = placements2.find(function(placement2) {
-            var checks2 = checksMap.get(placement2);
-            if (checks2) {
-              return checks2.slice(0, _i2).every(function(check) {
-                return check;
-              });
-            }
-          });
-          if (fittingPlacement) {
-            firstFittingPlacement = fittingPlacement;
-            return "break";
-          }
-        };
-        for (var _i = numberOfChecks; _i > 0; _i--) {
-          var _ret = _loop(_i);
-          if (_ret === "break") break;
-        }
-      }
-      if (state.placement !== firstFittingPlacement) {
-        state.modifiersData[name]._skip = true;
-        state.placement = firstFittingPlacement;
-        state.reset = true;
-      }
-    }
-    var flip$1 = {
-      name: "flip",
-      enabled: true,
-      phase: "main",
-      fn: flip,
-      requiresIfExists: ["offset"],
-      data: {
-        _skip: false
-      }
-    };
-    function getAltAxis(axis) {
-      return axis === "x" ? "y" : "x";
-    }
-    function within(min$1, value, max$1) {
-      return max(min$1, min(value, max$1));
-    }
-    function withinMaxClamp(min2, value, max2) {
-      var v = within(min2, value, max2);
-      return v > max2 ? max2 : v;
-    }
-    function preventOverflow(_ref) {
-      var state = _ref.state, options = _ref.options, name = _ref.name;
-      var _options$mainAxis = options.mainAxis, checkMainAxis = _options$mainAxis === void 0 ? true : _options$mainAxis, _options$altAxis = options.altAxis, checkAltAxis = _options$altAxis === void 0 ? false : _options$altAxis, boundary = options.boundary, rootBoundary = options.rootBoundary, altBoundary = options.altBoundary, padding = options.padding, _options$tether = options.tether, tether = _options$tether === void 0 ? true : _options$tether, _options$tetherOffset = options.tetherOffset, tetherOffset = _options$tetherOffset === void 0 ? 0 : _options$tetherOffset;
-      var overflow = detectOverflow(state, {
-        boundary,
-        rootBoundary,
-        padding,
-        altBoundary
-      });
-      var basePlacement = getBasePlacement(state.placement);
-      var variation = getVariation(state.placement);
-      var isBasePlacement = !variation;
-      var mainAxis = getMainAxisFromPlacement(basePlacement);
-      var altAxis = getAltAxis(mainAxis);
-      var popperOffsets2 = state.modifiersData.popperOffsets;
-      var referenceRect = state.rects.reference;
-      var popperRect = state.rects.popper;
-      var tetherOffsetValue = typeof tetherOffset === "function" ? tetherOffset(Object.assign({}, state.rects, {
-        placement: state.placement
-      })) : tetherOffset;
-      var normalizedTetherOffsetValue = typeof tetherOffsetValue === "number" ? {
-        mainAxis: tetherOffsetValue,
-        altAxis: tetherOffsetValue
-      } : Object.assign({
-        mainAxis: 0,
-        altAxis: 0
-      }, tetherOffsetValue);
-      var offsetModifierState = state.modifiersData.offset ? state.modifiersData.offset[state.placement] : null;
-      var data = {
-        x: 0,
-        y: 0
-      };
-      if (!popperOffsets2) {
-        return;
-      }
-      if (checkMainAxis) {
-        var _offsetModifierState$;
-        var mainSide = mainAxis === "y" ? top : left;
-        var altSide = mainAxis === "y" ? bottom : right;
-        var len = mainAxis === "y" ? "height" : "width";
-        var offset2 = popperOffsets2[mainAxis];
-        var min$1 = offset2 + overflow[mainSide];
-        var max$1 = offset2 - overflow[altSide];
-        var additive = tether ? -popperRect[len] / 2 : 0;
-        var minLen = variation === start ? referenceRect[len] : popperRect[len];
-        var maxLen = variation === start ? -popperRect[len] : -referenceRect[len];
-        var arrowElement = state.elements.arrow;
-        var arrowRect = tether && arrowElement ? getLayoutRect(arrowElement) : {
-          width: 0,
-          height: 0
-        };
-        var arrowPaddingObject = state.modifiersData["arrow#persistent"] ? state.modifiersData["arrow#persistent"].padding : getFreshSideObject();
-        var arrowPaddingMin = arrowPaddingObject[mainSide];
-        var arrowPaddingMax = arrowPaddingObject[altSide];
-        var arrowLen = within(0, referenceRect[len], arrowRect[len]);
-        var minOffset = isBasePlacement ? referenceRect[len] / 2 - additive - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis : minLen - arrowLen - arrowPaddingMin - normalizedTetherOffsetValue.mainAxis;
-        var maxOffset = isBasePlacement ? -referenceRect[len] / 2 + additive + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis : maxLen + arrowLen + arrowPaddingMax + normalizedTetherOffsetValue.mainAxis;
-        var arrowOffsetParent = state.elements.arrow && getOffsetParent(state.elements.arrow);
-        var clientOffset = arrowOffsetParent ? mainAxis === "y" ? arrowOffsetParent.clientTop || 0 : arrowOffsetParent.clientLeft || 0 : 0;
-        var offsetModifierValue = (_offsetModifierState$ = offsetModifierState == null ? void 0 : offsetModifierState[mainAxis]) != null ? _offsetModifierState$ : 0;
-        var tetherMin = offset2 + minOffset - offsetModifierValue - clientOffset;
-        var tetherMax = offset2 + maxOffset - offsetModifierValue;
-        var preventedOffset = within(tether ? min(min$1, tetherMin) : min$1, offset2, tether ? max(max$1, tetherMax) : max$1);
-        popperOffsets2[mainAxis] = preventedOffset;
-        data[mainAxis] = preventedOffset - offset2;
-      }
-      if (checkAltAxis) {
-        var _offsetModifierState$2;
-        var _mainSide = mainAxis === "x" ? top : left;
-        var _altSide = mainAxis === "x" ? bottom : right;
-        var _offset = popperOffsets2[altAxis];
-        var _len = altAxis === "y" ? "height" : "width";
-        var _min = _offset + overflow[_mainSide];
-        var _max = _offset - overflow[_altSide];
-        var isOriginSide = [top, left].indexOf(basePlacement) !== -1;
-        var _offsetModifierValue = (_offsetModifierState$2 = offsetModifierState == null ? void 0 : offsetModifierState[altAxis]) != null ? _offsetModifierState$2 : 0;
-        var _tetherMin = isOriginSide ? _min : _offset - referenceRect[_len] - popperRect[_len] - _offsetModifierValue + normalizedTetherOffsetValue.altAxis;
-        var _tetherMax = isOriginSide ? _offset + referenceRect[_len] + popperRect[_len] - _offsetModifierValue - normalizedTetherOffsetValue.altAxis : _max;
-        var _preventedOffset = tether && isOriginSide ? withinMaxClamp(_tetherMin, _offset, _tetherMax) : within(tether ? _tetherMin : _min, _offset, tether ? _tetherMax : _max);
-        popperOffsets2[altAxis] = _preventedOffset;
-        data[altAxis] = _preventedOffset - _offset;
-      }
-      state.modifiersData[name] = data;
-    }
-    var preventOverflow$1 = {
-      name: "preventOverflow",
-      enabled: true,
-      phase: "main",
-      fn: preventOverflow,
-      requiresIfExists: ["offset"]
-    };
-    var toPaddingObject = function toPaddingObject2(padding, state) {
-      padding = typeof padding === "function" ? padding(Object.assign({}, state.rects, {
-        placement: state.placement
-      })) : padding;
-      return mergePaddingObject(typeof padding !== "number" ? padding : expandToHashMap(padding, basePlacements));
-    };
-    function arrow(_ref) {
-      var _state$modifiersData$;
-      var state = _ref.state, name = _ref.name, options = _ref.options;
-      var arrowElement = state.elements.arrow;
-      var popperOffsets2 = state.modifiersData.popperOffsets;
-      var basePlacement = getBasePlacement(state.placement);
-      var axis = getMainAxisFromPlacement(basePlacement);
-      var isVertical = [left, right].indexOf(basePlacement) >= 0;
-      var len = isVertical ? "height" : "width";
-      if (!arrowElement || !popperOffsets2) {
-        return;
-      }
-      var paddingObject = toPaddingObject(options.padding, state);
-      var arrowRect = getLayoutRect(arrowElement);
-      var minProp = axis === "y" ? top : left;
-      var maxProp = axis === "y" ? bottom : right;
-      var endDiff = state.rects.reference[len] + state.rects.reference[axis] - popperOffsets2[axis] - state.rects.popper[len];
-      var startDiff = popperOffsets2[axis] - state.rects.reference[axis];
-      var arrowOffsetParent = getOffsetParent(arrowElement);
-      var clientSize = arrowOffsetParent ? axis === "y" ? arrowOffsetParent.clientHeight || 0 : arrowOffsetParent.clientWidth || 0 : 0;
-      var centerToReference = endDiff / 2 - startDiff / 2;
-      var min2 = paddingObject[minProp];
-      var max2 = clientSize - arrowRect[len] - paddingObject[maxProp];
-      var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
-      var offset2 = within(min2, center, max2);
-      var axisProp = axis;
-      state.modifiersData[name] = (_state$modifiersData$ = {}, _state$modifiersData$[axisProp] = offset2, _state$modifiersData$.centerOffset = offset2 - center, _state$modifiersData$);
-    }
-    function effect(_ref2) {
-      var state = _ref2.state, options = _ref2.options;
-      var _options$element = options.element, arrowElement = _options$element === void 0 ? "[data-popper-arrow]" : _options$element;
-      if (arrowElement == null) {
-        return;
-      }
-      if (typeof arrowElement === "string") {
-        arrowElement = state.elements.popper.querySelector(arrowElement);
-        if (!arrowElement) {
-          return;
-        }
-      }
-      if (!contains(state.elements.popper, arrowElement)) {
-        return;
-      }
-      state.elements.arrow = arrowElement;
-    }
-    var arrow$1 = {
-      name: "arrow",
-      enabled: true,
-      phase: "main",
-      fn: arrow,
-      effect,
-      requires: ["popperOffsets"],
-      requiresIfExists: ["preventOverflow"]
-    };
-    function getSideOffsets(overflow, rect, preventedOffsets) {
-      if (preventedOffsets === void 0) {
-        preventedOffsets = {
-          x: 0,
-          y: 0
-        };
-      }
-      return {
-        top: overflow.top - rect.height - preventedOffsets.y,
-        right: overflow.right - rect.width + preventedOffsets.x,
-        bottom: overflow.bottom - rect.height + preventedOffsets.y,
-        left: overflow.left - rect.width - preventedOffsets.x
-      };
-    }
-    function isAnySideFullyClipped(overflow) {
-      return [top, right, bottom, left].some(function(side) {
-        return overflow[side] >= 0;
-      });
-    }
-    function hide(_ref) {
-      var state = _ref.state, name = _ref.name;
-      var referenceRect = state.rects.reference;
-      var popperRect = state.rects.popper;
-      var preventedOffsets = state.modifiersData.preventOverflow;
-      var referenceOverflow = detectOverflow(state, {
-        elementContext: "reference"
-      });
-      var popperAltOverflow = detectOverflow(state, {
-        altBoundary: true
-      });
-      var referenceClippingOffsets = getSideOffsets(referenceOverflow, referenceRect);
-      var popperEscapeOffsets = getSideOffsets(popperAltOverflow, popperRect, preventedOffsets);
-      var isReferenceHidden = isAnySideFullyClipped(referenceClippingOffsets);
-      var hasPopperEscaped = isAnySideFullyClipped(popperEscapeOffsets);
-      state.modifiersData[name] = {
-        referenceClippingOffsets,
-        popperEscapeOffsets,
-        isReferenceHidden,
-        hasPopperEscaped
-      };
-      state.attributes.popper = Object.assign({}, state.attributes.popper, {
-        "data-popper-reference-hidden": isReferenceHidden,
-        "data-popper-escaped": hasPopperEscaped
-      });
-    }
-    var hide$1 = {
-      name: "hide",
-      enabled: true,
-      phase: "main",
-      requiresIfExists: ["preventOverflow"],
-      fn: hide
-    };
-    var defaultModifiers$1 = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1];
-    var createPopper$1 = /* @__PURE__ */ popperGenerator({
-      defaultModifiers: defaultModifiers$1
-    });
-    var defaultModifiers = [eventListeners, popperOffsets$1, computeStyles$1, applyStyles$1, offset$1, flip$1, preventOverflow$1, arrow$1, hide$1];
-    var createPopper = /* @__PURE__ */ popperGenerator({
-      defaultModifiers
-    });
-    exports2.applyStyles = applyStyles$1;
-    exports2.arrow = arrow$1;
-    exports2.computeStyles = computeStyles$1;
-    exports2.createPopper = createPopper;
-    exports2.createPopperLite = createPopper$1;
-    exports2.defaultModifiers = defaultModifiers;
-    exports2.detectOverflow = detectOverflow;
-    exports2.eventListeners = eventListeners;
-    exports2.flip = flip$1;
-    exports2.hide = hide$1;
-    exports2.offset = offset$1;
-    exports2.popperGenerator = popperGenerator;
-    exports2.popperOffsets = popperOffsets$1;
-    exports2.preventOverflow = preventOverflow$1;
-  }
-});
-
 // src/modules/file-explorer-enhancer/view.js
 var require_view7 = __commonJS({
   "src/modules/file-explorer-enhancer/view.js"(exports2, module2) {
@@ -12547,8 +13600,8 @@ var require_view7 = __commonJS({
         selected.scrollIntoView(false);
       }
     };
-    function TextInputSuggest(app, inputEl) {
-      this.app = app;
+    function TextInputSuggest(app2, inputEl) {
+      this.app = app2;
       this.inputEl = inputEl;
       this.scope = new obsidian2.Scope();
       this.suggestEl = document.createElement("div");
@@ -12618,8 +13671,8 @@ var require_view7 = __commonJS({
         this.suggestEl.detach();
       }
     };
-    function PathSuggest(app, inputEl) {
-      TextInputSuggest.call(this, app, inputEl);
+    function PathSuggest(app2, inputEl) {
+      TextInputSuggest.call(this, app2, inputEl);
     }
     PathSuggest.prototype = Object.create(TextInputSuggest.prototype);
     PathSuggest.prototype.constructor = PathSuggest;
@@ -13310,6 +14363,9 @@ var require_settings_tab = __commonJS({
         case "command-uri":
           openSettingsModal(plugin, new CommandUriEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
           break;
+        case "open-with-command":
+          openSettingsModal(plugin, new commandUriEnhancerModule2.OpenWithCommandSettingsModal(plugin.app, plugin, refreshSettings), kind);
+          break;
         case "status-bar":
           openSettingsModal(plugin, new StatusBarEnhancerManagementModal(plugin.app, plugin, refreshSettings), kind);
           break;
@@ -13369,8 +14425,8 @@ var require_settings_tab = __commonJS({
       });
     }
     var ConfigurationExportModal = class extends obsidian2.Modal {
-      constructor(app, exportedText) {
-        super(app);
+      constructor(app2, exportedText) {
+        super(app2);
         this.exportedText = exportedText;
       }
       // 打开弹窗时渲染只读文本与复制按钮。
@@ -13416,8 +14472,8 @@ var require_settings_tab = __commonJS({
       }
     };
     var ConfigurationImportModal = class extends obsidian2.Modal {
-      constructor(app, onSubmit) {
-        super(app);
+      constructor(app2, onSubmit) {
+        super(app2);
         this.onSubmit = onSubmit;
       }
       // 打开弹窗时渲染输入框与确认按钮。
@@ -13471,8 +14527,8 @@ var require_settings_tab = __commonJS({
       }
     };
     var ConfirmActionModal = class extends obsidian2.Modal {
-      constructor(app, title, description, confirmText, onConfirm) {
-        super(app);
+      constructor(app2, title, description, confirmText, onConfirm) {
+        super(app2);
         this.title = title;
         this.description = description;
         this.confirmText = confirmText;
@@ -13512,8 +14568,8 @@ var require_settings_tab = __commonJS({
       }
     };
     var FileMarkerManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -13576,8 +14632,8 @@ var require_settings_tab = __commonJS({
       }
     };
     var AnchorGraphManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -13645,8 +14701,8 @@ var require_settings_tab = __commonJS({
     var EditorEnhancerManagementModal = class extends editorEnhancerModule2.EditorEnhancerManagementModal {
     };
     var ConfigManagementModal = class extends obsidian2.Modal {
-      constructor(app, plugin, onSettingsChanged) {
-        super(app);
+      constructor(app2, plugin, onSettingsChanged) {
+        super(app2);
         this.plugin = plugin;
         this.onSettingsChanged = onSettingsChanged;
       }
@@ -13734,8 +14790,8 @@ var require_settings_tab = __commonJS({
       }
     };
     var ObsidianNenePluginSettingTab = class extends obsidian2.PluginSettingTab {
-      constructor(app, plugin) {
-        super(app, plugin);
+      constructor(app2, plugin) {
+        super(app2, plugin);
         this.plugin = plugin;
       }
       // 渲染设置页内容，主页面只保留模块开启状态与管理入口。
@@ -13760,6 +14816,7 @@ var require_settings_tab = __commonJS({
         this.renderStatusBarEnhancerSection(featureGroupEl, summary);
         this.renderTabBarEnhancerSection(featureGroupEl, summary);
         this.renderCorePluginEnhancerSection(featureGroupEl, summary);
+        this.renderThemeEnhancerSection(featureGroupEl, summary);
         const managementGroupEl = containerEl.createDiv({ cls: "nene-settings-group" });
         managementGroupEl.createDiv({ cls: "nene-settings-group-title", text: "配置管理" });
         this.renderConfigManagementEntry(managementGroupEl);
@@ -13953,11 +15010,303 @@ var require_settings_tab = __commonJS({
           });
         });
       }
+      // 渲染主题增强模块分区，护眼模式开关与说明。
+      renderThemeEnhancerSection(containerEl, summary) {
+        containerEl.createDiv({ cls: "nene-settings-group-title", text: "主题增强" });
+        const desc = summary.themeEnhancerEnabled && summary.themeEnhancerEyeProtection ? '已启用，护眼模式已开启。会在"设置 → 外观 → 基础颜色"下拉框中追加"护眼模式"选项，以豆沙绿配色覆盖所有界面。' : summary.themeEnhancerEnabled ? '已启用，护眼模式未开启。启用护眼后，在"设置 → 外观 → 基础颜色"下拉框中选择"护眼模式"即可生效。' : '未启用。启用后会在 Obsidian 外观设置的基础颜色下拉框追加"护眼模式"选项，以豆沙绿配色保护眼睛。关闭该模块将自动回退至浅色。';
+        new obsidian2.Setting(containerEl).setName("护眼模式").setDesc(desc).addToggle((toggle) => {
+          toggle.setValue(summary.themeEnhancerEnabled).onChange(async (value) => {
+            await this.plugin.updateThemeEnhancerEnabled(value);
+            new obsidian2.Notice(value ? '已启用主题增强模块，可在"设置 → 外观 → 基础颜色"中切换' : "已关闭主题增强模块，已回退至浅色");
+            await this.display();
+          });
+        });
+      }
     };
     module2.exports = {
       ObsidianNenePluginSettingTab,
       reopenSettingsSubinterface
     };
+  }
+});
+
+// src/modules/theme-enhancer/store.js
+var require_store10 = __commonJS({
+  "src/modules/theme-enhancer/store.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants9();
+    var ThemeEnhancerStore = class {
+      constructor(plugin) {
+        this.plugin = plugin;
+        this.settings = constants.normalizeThemeEnhancerSettings();
+      }
+      // 从插件数据仓库挂载主题增强的独立配置切片。
+      load(settings) {
+        this.settings = constants.normalizeThemeEnhancerSettings(settings);
+      }
+      // 返回当前完整配置。
+      getSettings() {
+        return this.settings;
+      }
+      // 持久化当前配置到独立配置文件。
+      async save() {
+        this.plugin.dataStore.setThemeEnhancerData(this.settings);
+        await this.plugin.dataStore.saveThemeEnhancerData(this.settings);
+      }
+      // 更新护眼模式开关，并立即持久化。
+      async setEyeProtection(enabled) {
+        this.settings.eyeProtection = Boolean(enabled);
+        await this.save();
+        return this.settings.eyeProtection;
+      }
+    };
+    module2.exports = {
+      ThemeEnhancerStore
+    };
+  }
+});
+
+// src/modules/theme-enhancer/runtime.js
+var require_runtime6 = __commonJS({
+  "src/modules/theme-enhancer/runtime.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants9();
+    var ThemeEnhancerRuntime = class {
+      constructor(plugin, store) {
+        this.plugin = plugin;
+        this.store = store;
+        this.styleEl = null;
+        this.optionInjected = false;
+        this._bodyObserver = null;
+        this._dropdownSelectEl = null;
+        this._themeChangeBound = false;
+      }
+      // 加载最新配置。
+      load(settings) {
+        this.settings = settings || {};
+      }
+      // 启动：注入下拉框选项 + 监听主题变化 + 恢复护眼状态。
+      start() {
+        this.setupDropdownInjection();
+        this.setupThemeChangeListener();
+        if (this.settings.eyeProtection) {
+          this.applyEyeProtection();
+        }
+      }
+      // 停止：移除下拉框选项、body class、CSS 样式、监听器。
+      // 若护眼模式已开启，运行时回退到浅色，但保留配置文件中的护眼状态，
+      // 便于再次启用模块或重新启用插件时恢复到配置所记录的主题色。
+      stop() {
+        this.removeEyeProtection();
+        this.removeDropdownOption();
+        this.teardownBodyObserver();
+        this.teardownThemeChangeListener();
+        if (this.settings.eyeProtection) {
+          this.plugin.app.vault.setConfig("theme", "moonstone");
+        }
+      }
+      /* ---------- 下拉框注入 ---------- */
+      // 通过 MutationObserver 监听 body，在设置面板渲染后自动注入护眼选项。
+      setupDropdownInjection() {
+        var self = this;
+        if (self.tryInjectOption()) {
+          return;
+        }
+        self._bodyObserver = new MutationObserver(function() {
+          if (self.tryInjectOption()) {
+            self.teardownBodyObserver();
+          }
+        });
+        self._bodyObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+      // 尝试查找外观下拉框并注入"护眼模式"选项，成功返回 true。
+      tryInjectOption() {
+        if (this.optionInjected) {
+          return true;
+        }
+        var selectEl = this.findThemeDropdown();
+        if (!selectEl) {
+          return false;
+        }
+        this.injectOption(selectEl);
+        return true;
+      }
+      // 在页面中查找 Obsidian 外观设置中的基础颜色下拉框。
+      findThemeDropdown() {
+        var dropdowns = document.querySelectorAll(constants.THEME_DROPDOWN_SELECTOR);
+        for (var i = 0; i < dropdowns.length; i++) {
+          var options = dropdowns[i].querySelectorAll("option");
+          var hasObsidian = false;
+          var hasMoonstone = false;
+          for (var j = 0; j < options.length; j++) {
+            if (options[j].value === "obsidian") {
+              hasObsidian = true;
+            }
+            if (options[j].value === "moonstone") {
+              hasMoonstone = true;
+            }
+          }
+          if (hasObsidian && hasMoonstone) {
+            return dropdowns[i];
+          }
+        }
+        return null;
+      }
+      // 向目标 select 元素追加"护眼模式"<option> 并绑定 change 事件。
+      injectOption(selectEl) {
+        var self = this;
+        self._dropdownSelectEl = selectEl;
+        var option = document.createElement("option");
+        option.value = constants.EYE_SHIELD_OPTION_VALUE;
+        option.textContent = constants.EYE_SHIELD_OPTION_TEXT;
+        selectEl.appendChild(option);
+        self.optionInjected = true;
+        selectEl.addEventListener("change", function() {
+          self.handleDropdownChange(selectEl);
+        });
+        self.syncDropdownSelection(selectEl);
+      }
+      // 从下拉框中移除"护眼模式"选项。
+      removeDropdownOption() {
+        if (!this.optionInjected) {
+          return;
+        }
+        var selectEl = this.findThemeDropdown();
+        if (!selectEl) {
+          this.optionInjected = false;
+          this._dropdownSelectEl = null;
+          return;
+        }
+        var option = selectEl.querySelector('option[value="' + constants.EYE_SHIELD_OPTION_VALUE + '"]');
+        if (option) {
+          option.remove();
+        }
+        this.optionInjected = false;
+        this._dropdownSelectEl = null;
+      }
+      // 根据当前护眼状态与底层主题同步下拉框选中项。
+      syncDropdownSelection(selectEl) {
+        if (this.settings.eyeProtection) {
+          selectEl.value = constants.EYE_SHIELD_OPTION_VALUE;
+          return;
+        }
+        var currentTheme = this.plugin.app.vault.getConfig("theme");
+        if (currentTheme === "obsidian" || currentTheme === "moonstone" || currentTheme === "system") {
+          selectEl.value = currentTheme;
+        }
+      }
+      // 下拉框 change 事件处理：拦截护眼模式选项的选中。
+      handleDropdownChange(selectEl) {
+        var self = this;
+        var value = selectEl.value;
+        if (value === constants.EYE_SHIELD_OPTION_VALUE) {
+          self.plugin.app.vault.setConfig("theme", "moonstone");
+          self.store.setEyeProtection(true);
+          self.applyEyeProtection();
+        } else {
+          if (self.settings.eyeProtection) {
+            self.store.setEyeProtection(false);
+            self.removeEyeProtectionCSS();
+            document.body.classList.remove("theme-eyeshield");
+          }
+        }
+      }
+      /* ---------- body class 与 CSS 样式管理 ---------- */
+      // 应用护眼模式：确保底层为浅色主题 + 注入 CSS + body 添加 class。
+      applyEyeProtection() {
+        this.plugin.app.vault.setConfig("theme", "moonstone");
+        this.applyEyeProtectionCSS();
+        document.body.classList.add("theme-eyeshield");
+      }
+      // 移除护眼模式：移除 CSS + body 移除 class。
+      removeEyeProtection() {
+        this.removeEyeProtectionCSS();
+        document.body.classList.remove("theme-eyeshield");
+      }
+      // 向 <head> 注入护眼 CSS <style> 标签。
+      applyEyeProtectionCSS() {
+        if (this.styleEl) {
+          return;
+        }
+        var style = document.createElement("style");
+        style.id = constants.EYE_SHIELD_STYLE_ID;
+        style.textContent = constants.EYE_SHIELD_CSS;
+        document.head.appendChild(style);
+        this.styleEl = style;
+      }
+      // 从 <head> 移除护眼 CSS <style> 标签。
+      removeEyeProtectionCSS() {
+        if (this.styleEl && this.styleEl.parentNode) {
+          this.styleEl.parentNode.removeChild(this.styleEl);
+        }
+        this.styleEl = null;
+      }
+      /* ---------- 主题变化监听 ---------- */
+      // 监听 Obsidian 的 css-change 事件，处理外部主题切换。
+      setupThemeChangeListener() {
+        var self = this;
+        if (self._themeChangeBound) {
+          return;
+        }
+        self._themeChangeRef = self.plugin.app.vault.on("css-change", function() {
+          self.onExternalThemeChange();
+        });
+        self.plugin.registerEvent(self._themeChangeRef);
+        self._themeChangeBound = true;
+      }
+      // 外部主题变化回调：如果护眼模式下用户通过其他途径切换主题，需关闭护眼。
+      onExternalThemeChange() {
+        if (!this.settings.eyeProtection) {
+          return;
+        }
+        var currentTheme = this.plugin.app.vault.getConfig("theme");
+        if (currentTheme !== "moonstone") {
+          this.store.setEyeProtection(false);
+          this.removeEyeProtection();
+          this.syncDropdownIfPossible();
+        }
+      }
+      // 同步下拉框选中状态（如果下拉框可用）。
+      syncDropdownIfPossible() {
+        var selectEl = this._dropdownSelectEl || this.findThemeDropdown();
+        if (selectEl && this.settings.eyeProtection) {
+          selectEl.value = constants.EYE_SHIELD_OPTION_VALUE;
+        }
+      }
+      /* ---------- 清理 ---------- */
+      // 销毁 body MutationObserver。
+      teardownBodyObserver() {
+        if (this._bodyObserver) {
+          this._bodyObserver.disconnect();
+          this._bodyObserver = null;
+        }
+      }
+      // 销毁主题变化监听，真正移除注册的事件引用，避免模块反复开关时累积监听器。
+      teardownThemeChangeListener() {
+        if (this._themeChangeRef) {
+          this.plugin.app.vault.offref(this._themeChangeRef);
+          this._themeChangeRef = null;
+        }
+        this._themeChangeBound = false;
+      }
+    };
+    module2.exports = {
+      ThemeEnhancerRuntime
+    };
+  }
+});
+
+// src/modules/theme-enhancer/index.js
+var require_theme_enhancer = __commonJS({
+  "src/modules/theme-enhancer/index.js"(exports2, module2) {
+    "use strict";
+    var constants = require_constants9();
+    var store = require_store10();
+    var runtime = require_runtime6();
+    module2.exports = Object.assign({}, constants, store, runtime);
   }
 });
 
@@ -13975,6 +15324,7 @@ var contextMenuEnhancerModule = require_context_menu_enhancer();
 var settingsTabModule = require_settings_tab();
 var fileExplorerEnhancerModule = require_file_explorer_enhancer();
 var editorEnhancerModule = require_editor_enhancer();
+var themeEnhancerModule = require_theme_enhancer();
 var HOT_RELOAD_BRIDGE_KEY = "__nene_hot_reload_bridge__";
 var HOT_RELOAD_WINDOW_MS = 8e3;
 var SETTINGS_TAB_VISIBILITY_KEY = "__nene_settings_tab_visibility__";
@@ -13991,6 +15341,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this);
     this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this);
     this.commandUriRuntime = new commandUriEnhancerModule.CommandUriRuntime(this);
+    this.openWithCommandRuntime = new commandUriEnhancerModule.OpenWithCommandRuntime(this);
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this);
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this);
     this.organizerSpooler = null;
@@ -14004,6 +15355,8 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.editorEnhancerStore = new editorEnhancerModule.EditorEnhancerStore(this);
     this.editorEnhancerOverlay = new editorEnhancerModule.AutoCloseOverlay(this, this.editorEnhancerStore);
     this.editorEnhancerRuntime = new editorEnhancerModule.EditorEnhancerRuntime(this, this.editorEnhancerStore, this.editorEnhancerOverlay);
+    this.themeEnhancerStore = new themeEnhancerModule.ThemeEnhancerStore(this);
+    this.themeEnhancerRuntime = new themeEnhancerModule.ThemeEnhancerRuntime(this, this.themeEnhancerStore);
     this._fileExplorerView = null;
     this._lastFocusedFile = null;
     this._eyeToggleHistory = [];
@@ -14178,11 +15531,16 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
+    this.openWithCommandRuntime.reload();
+    if (this.isCommandUriEnhancerEnabled()) {
+      this.openWithCommandRuntime.validateAllCommands();
+    }
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.snippetsStore.load();
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
+    this.themeEnhancerStore.load(this.dataStore.getThemeEnhancerData());
     this.initializeOrganizerSpooler();
     await this.fileMarkerStore.pruneMissingMarks();
     this.setupFileMarkerView();
@@ -14191,6 +15549,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.setupStatusBarEnhancerEvents();
     this.setupTabBarEnhancerEvents();
     this.setupVaultEvents();
+    this.setupOpenWithCommandEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
     this.commandUriRuntime.registerProtocolHandlers();
@@ -14209,6 +15568,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
     this.syncEditorEnhancerState();
+    this.syncThemeEnhancerState();
   }
   // 插件卸载时清理动态资源和已打开视图。
   onunload() {
@@ -14226,6 +15586,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.fileExplorerEnhancerUnload();
     this.editorEnhancerRuntime.stop();
     this.editorEnhancerOverlay.destroy();
+    this.themeEnhancerRuntime.stop();
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
     });
@@ -14326,6 +15687,19 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
+      })
+    );
+  }
+  // 注册文件速览命令所需的文件系统事件：重命名与删除时按配置开关同步命令。
+  setupOpenWithCommandEvents() {
+    this.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        this.openWithCommandRuntime.handleFileRename(file, oldPath);
+      })
+    );
+    this.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        this.openWithCommandRuntime.handleFileDelete(file);
       })
     );
   }
@@ -14472,6 +15846,10 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   isEditorEnhancerEnabled() {
     return this.pluginSettingsStore.isEditorEnhancerEnabled();
   }
+  // 返回主题增强模块当前是否被用户启用。
+  isThemeEnhancerEnabled() {
+    return this.pluginSettingsStore.isThemeEnhancerEnabled();
+  }
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -14525,7 +15903,9 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
       fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length,
       editorEnhancerEnabled: this.isEditorEnhancerEnabled(),
       editorEnhancerAutoCompleteEnabled: this.editorEnhancerStore.getSettings().autoCompleteEnabled !== false,
-      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true
+      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true,
+      themeEnhancerEnabled: this.isThemeEnhancerEnabled(),
+      themeEnhancerEyeProtection: this.isThemeEnhancerEnabled() ? this.themeEnhancerStore.getSettings().eyeProtection : false
     };
   }
   // 返回设置页所需的配置文件状态摘要，便于展示导入导出与重置入口。
@@ -14615,7 +15995,11 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
   }
   // 更新命令&URI增强模块开关。
   async updateCommandUriEnhancerEnabled(enabled) {
-    return this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
+    const result = await this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
+    if (enabled) {
+      this.openWithCommandRuntime.validateAllCommands();
+    }
+    return result;
   }
   // 更新命令&URI增强模块的文件夹末尾斜杠配置。
   async updateCommandUriEnhancerTrailingSlashEnabled(enabled) {
@@ -14807,6 +16191,12 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     }
     return nextValue;
   }
+  // 更新主题增强模块开关，并立即同步运行时状态。
+  async updateThemeEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setThemeEnhancerEnabled(enabled);
+    this.syncThemeEnhancerState();
+    return nextEnabled;
+  }
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -14992,6 +16382,15 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.editorEnhancerRuntime.stop();
     this.editorEnhancerOverlay.disable();
   }
+  // 根据当前设置同步主题增强模块的启停状态。
+  syncThemeEnhancerState() {
+    this.themeEnhancerRuntime.load(this.themeEnhancerStore.getSettings());
+    if (this.isThemeEnhancerEnabled()) {
+      this.themeEnhancerRuntime.start();
+      return;
+    }
+    this.themeEnhancerRuntime.stop();
+  }
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -15007,10 +16406,15 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
+    this.openWithCommandRuntime.reload();
+    if (this.isCommandUriEnhancerEnabled()) {
+      this.openWithCommandRuntime.validateAllCommands();
+    }
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
+    this.themeEnhancerStore.load(this.dataStore.getThemeEnhancerData());
     this.snippetsStore.load();
     this.syncFileMarkerFeatureState();
     this.refreshAllFileMarkerViews();
@@ -15019,6 +16423,7 @@ var ObsidianNenePlugin = class extends obsidian.Plugin {
     this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
     this.syncEditorEnhancerState();
+    this.syncThemeEnhancerState();
     if (this.isAnchorGraphEnabled()) {
       await this.refreshAnchorGraphLinks(false);
     }

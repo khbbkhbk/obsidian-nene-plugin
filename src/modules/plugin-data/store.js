@@ -26,6 +26,7 @@ class PluginDataStore {
     this.featureData.tabBarEnhancer = await this.loadFeatureSlice('tabBarEnhancer', rawData?.tabBarEnhancer);
     this.featureData.fileExplorerEnhancer = await this.loadFeatureSlice('fileExplorerEnhancer', rawData?.fileExplorerEnhancer);
     this.featureData.editorEnhancer = await this.loadFeatureSlice('editorEnhancer', rawData?.editorEnhancer);
+    this.featureData.themeEnhancer = await this.loadFeatureSlice('themeEnhancer', rawData?.themeEnhancer);
 
     if (this.hasLegacyFeatureSlices(rawData)) {
       await this.save();
@@ -133,6 +134,20 @@ class PluginDataStore {
     this.featureData.editorEnhancer = this.normalizeEditorEnhancerData(editorEnhancerData);
   }
 
+  // 返回主题增强模块的独立配置切片。
+  getThemeEnhancerData() {
+    return this.featureData.themeEnhancer;
+  }
+  // 更新主题增强模块的独立配置切片缓存。
+  setThemeEnhancerData(themeEnhancerData) {
+    this.featureData.themeEnhancer = this.normalizeThemeEnhancerData(themeEnhancerData);
+  }
+  // 保存主题增强模块数据到独立配置文件。
+  async saveThemeEnhancerData(themeEnhancerData) {
+    this.setThemeEnhancerData(themeEnhancerData);
+    await this.featureConfigManager.save('themeEnhancer', this.featureData.themeEnhancer);
+  }
+
   // 保存文件标记功能数据到独立配置文件。
   async saveFileMarkerData(fileMarkerData) {
     this.setFileMarkerData(fileMarkerData);
@@ -191,6 +206,7 @@ class PluginDataStore {
     await this.featureConfigManager.save('statusBarEnhancer', this.featureData.statusBarEnhancer);
     await this.featureConfigManager.save('tabBarEnhancer', this.featureData.tabBarEnhancer);
     await this.featureConfigManager.save('editorEnhancer', this.featureData.editorEnhancer);
+    await this.featureConfigManager.save('themeEnhancer', this.featureData.themeEnhancer);
   }
 
   // 返回当前插件管理的配置文件状态摘要，供设置页展示配置文件入口。
@@ -205,6 +221,7 @@ class PluginDataStore {
     const tabBarEnhancerPath = this.featureConfigManager.getFeatureConfigPath('tabBarEnhancer');
     const fileExplorerEnhancerPath = this.featureConfigManager.getFeatureConfigPath('fileExplorerEnhancer');
     const editorEnhancerPath = this.featureConfigManager.getFeatureConfigPath('editorEnhancer');
+    const themeEnhancerPath = this.featureConfigManager.getFeatureConfigPath('themeEnhancer');
 
     return {
       directoryPath: this.featureConfigManager.getConfigDirectoryPath(),
@@ -271,6 +288,13 @@ class PluginDataStore {
         path: editorEnhancerPath,
         exists: await this.featureConfigManager.exists('editorEnhancer'),
         summary: `自动补全：${this.featureData.editorEnhancer.autoCompleteEnabled !== false ? '开' : '关'}，粘贴自动补全：${this.featureData.editorEnhancer.enablePasteAutoClose === true ? '开' : '关'}`
+      },
+      themeEnhancer: {
+        key: 'themeEnhancer',
+        name: '主题增强配置',
+        path: themeEnhancerPath,
+        exists: await this.featureConfigManager.exists('themeEnhancer'),
+        summary: '护眼模式：' + (this.featureData.themeEnhancer.eyeProtection === true ? '已开启' : '已关闭')
       }
     };
   }
@@ -326,6 +350,8 @@ class PluginDataStore {
       this.featureData.fileExplorerEnhancer = defaultFeatureData;
     } else if (featureKey === 'editorEnhancer') {
       this.featureData.editorEnhancer = defaultFeatureData;
+    } else if (featureKey === 'themeEnhancer') {
+      this.featureData.themeEnhancer = defaultFeatureData;
     }
 
     await this.featureConfigManager.save(featureKey, defaultFeatureData);
@@ -353,7 +379,8 @@ class PluginDataStore {
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
       fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
-      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
+      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer),
+      themeEnhancer: this.normalizeThemeEnhancerData(source.themeEnhancer)
     });
   }
 
@@ -370,6 +397,7 @@ class PluginDataStore {
     delete normalizedCoreData.tabBarEnhancer;
     delete normalizedCoreData.fileExplorerEnhancer;
     delete normalizedCoreData.editorEnhancer;
+    delete normalizedCoreData.themeEnhancer;
 
     normalizedCoreData.features = this.normalizeFeatures(source.features);
     return normalizedCoreData;
@@ -387,7 +415,8 @@ class PluginDataStore {
       statusBarEnhancer: this.normalizeStatusBarEnhancerData(source.statusBarEnhancer),
       tabBarEnhancer: this.normalizeTabBarEnhancerData(source.tabBarEnhancer),
       fileExplorerEnhancer: this.normalizeFileExplorerEnhancerData(source.fileExplorerEnhancer),
-      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer)
+      editorEnhancer: this.normalizeEditorEnhancerData(source.editorEnhancer),
+      themeEnhancer: this.normalizeThemeEnhancerData(source.themeEnhancer)
     };
   }
 
@@ -417,6 +446,9 @@ class PluginDataStore {
       },
       editorEnhancer: {
         enabled: features?.editorEnhancer?.enabled === true
+      },
+      themeEnhancer: {
+        enabled: features?.themeEnhancer?.enabled === true
       }
     };
   }
@@ -486,12 +518,53 @@ class PluginDataStore {
   // 归一化命令&URI增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
   // 注意：此处仅以用户存储值判断，不得再与默认值（恒为 false）做与运算，
   // 否则开关会被恒等钳制为 false，导致"文件夹路径末尾补 /"无法持久化。
+  // 同时补齐文件速览命令功能所需的打开位置、开关与命令/变量列表字段。
   normalizeCommandUriEnhancerData(commandUriEnhancerData) {
     const source = this.isPlainObject(commandUriEnhancerData) ? commandUriEnhancerData : {};
+    const commandUriEnhancerConstants = require('../command-uri-enhancer/constants');
+    const defaults = commandUriEnhancerConstants.DEFAULT_COMMAND_URI_ENHANCER_SETTINGS;
+    const openFileInValues = Object.keys(commandUriEnhancerConstants.OPEN_FILE_IN_OPTIONS);
 
     return {
-      addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false
+      addTrailingSlashToFolders: source.addTrailingSlashToFolders !== false,
+      openNewTab: source.openNewTab === true,
+      openFileIn: openFileInValues.indexOf(source.openFileIn) !== -1 ? source.openFileIn : defaults.openFileIn,
+      deleteCommandWhenFileIsDeleted: source.deleteCommandWhenFileIsDeleted !== false,
+      updateCommandsOnRename: source.updateCommandsOnRename !== false,
+      commands: this.normalizeOpenWithCommands(source.commands),
+      customVariables: Array.isArray(source.customVariables)
+        ? this.normalizeOpenWithVariables(source.customVariables)
+        : defaults.customVariables
     };
+  }
+
+  // 归一化文件速览命令列表，补齐 id 与缺失字段，保证命令配置形状稳定。
+  normalizeOpenWithCommands(commands) {
+    if (!Array.isArray(commands)) {
+      return [];
+    }
+    const openFileInValues = Object.keys(require('../command-uri-enhancer/constants').OPEN_FILE_IN_OPTIONS);
+
+    return commands
+      .filter((command) => this.isPlainObject(command))
+      .map((command) => ({
+        id: typeof command.id === 'string' && command.id ? command.id : crypto.randomUUID(),
+        name: typeof command.name === 'string' ? command.name : '',
+        filePath: typeof command.filePath === 'string' ? command.filePath : '',
+        openFileIn: openFileInValues.indexOf(command.openFileIn) !== -1 ? command.openFileIn : 'activeTab',
+        isValid: command.isValid !== false
+      }));
+  }
+
+  // 归一化自定义变量列表，校验类型取值。
+  normalizeOpenWithVariables(variables) {
+    return variables
+      .filter((variable) => this.isPlainObject(variable))
+      .map((variable) => ({
+        name: typeof variable.name === 'string' ? variable.name : '',
+        value: typeof variable.value === 'string' ? variable.value : '',
+        type: variable.type === 'javascript' ? 'javascript' : 'string'
+      }));
   }
 
   // 归一化状态栏增强模块配置结构，保证首次安装与旧数据迁移后形状稳定。
@@ -597,6 +670,14 @@ class PluginDataStore {
     };
   }
 
+  // 归一化主题增强模块配置结构。
+  normalizeThemeEnhancerData(themeEnhancerData) {
+    var source = this.isPlainObject(themeEnhancerData) ? themeEnhancerData : {};
+    return {
+      eyeProtection: source.eyeProtection === true
+    };
+  }
+
   // 归一化路径过滤器数组，保证 position 等字段在持久化时不会丢失。
   normalizePathFilters(filters) {
     return filters
@@ -671,6 +752,10 @@ class PluginDataStore {
       return this.normalizeEditorEnhancerData(featureData);
     }
 
+    if (featureKey === 'themeEnhancer') {
+      return this.normalizeThemeEnhancerData(featureData);
+    }
+
     return this.isPlainObject(featureData) ? featureData : {};
   }
 
@@ -707,7 +792,8 @@ class PluginDataStore {
         statusBarEnhancer: bundle.featureData?.statusBarEnhancer || bundle.statusBarEnhancer,
         tabBarEnhancer: bundle.featureData?.tabBarEnhancer || bundle.tabBarEnhancer,
         fileExplorerEnhancer: bundle.featureData?.fileExplorerEnhancer || bundle.fileExplorerEnhancer,
-        editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer
+        editorEnhancer: bundle.featureData?.editorEnhancer || bundle.editorEnhancer,
+        themeEnhancer: bundle.featureData?.themeEnhancer || bundle.themeEnhancer
       })
       : bundle;
 

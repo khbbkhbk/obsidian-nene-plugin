@@ -23,6 +23,9 @@
     },
     "editorEnhancer": {
       "enabled": true
+    },
+    "themeEnhancer": {
+      "enabled": true
     }
   }
 }

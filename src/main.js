@@ -13,6 +13,7 @@ var contextMenuEnhancerModule = require('./modules/context-menu-enhancer/index.j
 var settingsTabModule = require('./modules/settings-tab/index.js');
 var fileExplorerEnhancerModule = require('./modules/file-explorer-enhancer/index.js');
 var editorEnhancerModule = require('./modules/editor-enhancer/index.js');
+var themeEnhancerModule = require('./modules/theme-enhancer/index.js');
 
 // 热更新桥接键名：插件被 hot-reload 重载时，借助 window 全局对象跨旧实例与新实例传递
 // 需要恢复的状态（已打开的子界面类型、设置面板是否正显示本插件设置页）。
@@ -40,6 +41,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.commandUriEnhancerStore = new commandUriEnhancerModule.CommandUriEnhancerStore(this); // 管理命令&URI增强模块配置与右键菜单目标缓存
     this.commandUriEnhancerService = new commandUriEnhancerModule.CommandUriEnhancerService(this); // 管理命令&URI增强命令执行逻辑
     this.commandUriRuntime = new commandUriEnhancerModule.CommandUriRuntime(this); // 管理 goto-plugin URI 协议跳转逻辑
+    this.openWithCommandRuntime = new commandUriEnhancerModule.OpenWithCommandRuntime(this); // 管理文件速览命令注册与文件系统事件同步
     this.statusBarEnhancerStore = new statusBarEnhancerModule.StatusBarEnhancerStore(this); // 管理状态栏增强模块配置
     this.statusBarEnhancerRuntime = new statusBarEnhancerModule.StatusBarEnhancerRuntime(this); // 管理状态栏增强运行时
     this.organizerSpooler = null; // 状态栏元素管理 Spooler，在 onload 中初始化
@@ -53,6 +55,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.editorEnhancerStore = new editorEnhancerModule.EditorEnhancerStore(this); // 管理编辑增强模块配置
     this.editorEnhancerOverlay = new editorEnhancerModule.AutoCloseOverlay(this, this.editorEnhancerStore); // 管理 HTML 标签自动补全浮层（自建，替代官方 EditorSuggest）
     this.editorEnhancerRuntime = new editorEnhancerModule.EditorEnhancerRuntime(this, this.editorEnhancerStore, this.editorEnhancerOverlay); // 管理编辑增强运行时
+    this.themeEnhancerStore = new themeEnhancerModule.ThemeEnhancerStore(this); // 管理主题增强模块配置
+    this.themeEnhancerRuntime = new themeEnhancerModule.ThemeEnhancerRuntime(this, this.themeEnhancerStore); // 管理护眼模式下拉框注入与body class
     this._fileExplorerView = null; // 缓存文件资源管理器视图引用
     this._lastFocusedFile = null; // 文件列表中最后点击的文件/文件夹
     this._eyeToggleHistory = []; // 眼睛按钮停用的隐藏规则索引记录
@@ -89,11 +93,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       const tabContainer = this.settingTab && this.settingTab.containerEl;
       const settingsTabWasActive = Boolean(
         setting &&
-          ((setting.isOpen && setting.activeTab === this.settingTab) ||
-            (tabContainer &&
-              tabContainer.isConnected &&
-              typeof tabContainer.isShown === 'function' &&
-              tabContainer.isShown()))
+        ((setting.isOpen && setting.activeTab === this.settingTab) ||
+          (tabContainer &&
+            tabContainer.isConnected &&
+            typeof tabContainer.isShown === 'function' &&
+            tabContainer.isShown()))
       );
       if (settingsTabWasActive) {
         bridge.reopenSettingsTab = true;
@@ -131,8 +135,8 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     const visibilityMarker = window[SETTINGS_TAB_VISIBILITY_KEY];
     const settingsTabWasVisible = Boolean(
       visibilityMarker &&
-        visibilityMarker.visible === true &&
-        Date.now() - (visibilityMarker.timestamp || 0) <= SETTINGS_TAB_FRESH_MS
+      visibilityMarker.visible === true &&
+      Date.now() - (visibilityMarker.timestamp || 0) <= SETTINGS_TAB_FRESH_MS
     );
     delete window[SETTINGS_TAB_VISIBILITY_KEY];
 
@@ -172,10 +176,10 @@ class ObsidianNenePlugin extends obsidian.Plugin {
         const activeTab = setting.activeTab;
         const activeTabVisible = Boolean(
           activeTab &&
-            activeTab.containerEl &&
-            activeTab.containerEl.isConnected &&
-            typeof activeTab.containerEl.isShown === 'function' &&
-            activeTab.containerEl.isShown()
+          activeTab.containerEl &&
+          activeTab.containerEl.isConnected &&
+          typeof activeTab.containerEl.isShown === 'function' &&
+          activeTab.containerEl.isShown()
         );
         if (activeTabVisible) {
           return; // 用户正正常浏览某个设置页，不打扰
@@ -202,9 +206,9 @@ class ObsidianNenePlugin extends obsidian.Plugin {
           const tabContainer = self.settingTab && self.settingTab.containerEl;
           const visible = Boolean(
             tabContainer &&
-              tabContainer.isConnected &&
-              typeof tabContainer.isShown === 'function' &&
-              tabContainer.isShown()
+            tabContainer.isConnected &&
+            typeof tabContainer.isShown === 'function' &&
+            tabContainer.isShown()
           );
           window[SETTINGS_TAB_VISIBILITY_KEY] = { visible: visible, timestamp: Date.now() };
         } catch (error) {
@@ -253,9 +257,9 @@ class ObsidianNenePlugin extends obsidian.Plugin {
         const modalElementAfter = setting.modalEl || setting.containerEl;
         reopened = Boolean(
           reopened &&
-            modalElementAfter &&
-            modalElementAfter.isConnected &&
-            setting.activeTab === self.settingTab
+          modalElementAfter &&
+          modalElementAfter.isConnected &&
+          setting.activeTab === self.settingTab
         );
       } catch (error) {
         // 半公开 API 异常时按失败处理，进入重试
@@ -287,11 +291,16 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData()); // 将文件标记切片挂载到业务仓库
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData()); // 将右键菜单配置切片挂载到业务仓库
     this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData()); // 将命令&URI增强配置切片挂载到业务仓库
+    this.openWithCommandRuntime.reload(); // 按配置注册全部文件速览命令
+    if (this.isCommandUriEnhancerEnabled()) {
+      this.openWithCommandRuntime.validateAllCommands(); // 模块启用时核查全部命令有效性，标记失效命令
+    }
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData()); // 将状态栏增强配置切片挂载到业务仓库
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData()); // 将标签栏增强配置切片挂载到业务仓库
     this.snippetsStore.load(); // 从状态栏增强配置中提取 snippets 切片
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData()); // 将文件资源管理器增强配置切片挂载到业务仓库
     this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData()); // 将编辑增强配置切片挂载到业务仓库
+    this.themeEnhancerStore.load(this.dataStore.getThemeEnhancerData()); // 将主题增强配置切片挂载到业务仓库
     this.initializeOrganizerSpooler(); // 初始化状态栏元素管理 Spooler
     await this.fileMarkerStore.pruneMissingMarks(); // 清理已经不存在的文件标记
 
@@ -301,6 +310,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.setupStatusBarEnhancerEvents();
     this.setupTabBarEnhancerEvents();
     this.setupVaultEvents();
+    this.setupOpenWithCommandEvents();
     this.setupCommandEntries();
     this.setupLayoutEvents();
     this.commandUriRuntime.registerProtocolHandlers(); // 注册 goto-plugin 与 open 扩展 URI 协议处理器，随插件卸载自动清理
@@ -322,6 +332,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.syncFileExplorerEnhancerState();
     this.syncMenuCustomizerState();
     this.syncEditorEnhancerState();
+    this.syncThemeEnhancerState();
   }
 
   // 插件卸载时清理动态资源和已打开视图。
@@ -341,6 +352,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileExplorerEnhancerUnload();
     this.editorEnhancerRuntime.stop();
     this.editorEnhancerOverlay.destroy();
+    this.themeEnhancerRuntime.stop();
 
     this.app.workspace.getLeavesOfType(fileMarker.FILE_MARKER_VIEW_TYPE).forEach((leaf) => {
       leaf.detach();
@@ -462,6 +474,21 @@ class ObsidianNenePlugin extends obsidian.Plugin {
         if (hasChanged) {
           this.refreshAllFileMarkerViews();
         }
+      })
+    );
+  }
+
+  // 注册文件速览命令所需的文件系统事件：重命名与删除时按配置开关同步命令。
+  setupOpenWithCommandEvents() {
+    this.registerEvent(
+      this.app.vault.on('rename', (file, oldPath) => {
+        this.openWithCommandRuntime.handleFileRename(file, oldPath);
+      })
+    );
+
+    this.registerEvent(
+      this.app.vault.on('delete', (file) => {
+        this.openWithCommandRuntime.handleFileDelete(file);
       })
     );
   }
@@ -641,6 +668,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return this.pluginSettingsStore.isEditorEnhancerEnabled();
   }
 
+  // 返回主题增强模块当前是否被用户启用。
+  isThemeEnhancerEnabled() {
+    return this.pluginSettingsStore.isThemeEnhancerEnabled();
+  }
+
   // 返回当前文件标记数量，供设置页与后续状态摘要复用。
   getMarkCount() {
     return Object.keys(this.fileMarkerStore.getSettings().marks).length;
@@ -698,7 +730,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
       fileExplorerEnhancerHideFilterCount: (this.fileExplorerEnhancerStore.getSettings().hideFilters.paths || []).length,
       editorEnhancerEnabled: this.isEditorEnhancerEnabled(),
       editorEnhancerAutoCompleteEnabled: this.editorEnhancerStore.getSettings().autoCompleteEnabled !== false,
-      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true
+      editorEnhancerPasteAutoCloseEnabled: this.editorEnhancerStore.getSettings().enablePasteAutoClose === true,
+      themeEnhancerEnabled: this.isThemeEnhancerEnabled(),
+      themeEnhancerEyeProtection: this.isThemeEnhancerEnabled()
+        ? this.themeEnhancerStore.getSettings().eyeProtection
+        : false,
     };
   }
 
@@ -808,7 +844,11 @@ class ObsidianNenePlugin extends obsidian.Plugin {
 
   // 更新命令&URI增强模块开关。
   async updateCommandUriEnhancerEnabled(enabled) {
-    return this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
+    const result = await this.pluginSettingsStore.setCommandUriEnhancerEnabled(enabled);
+    if (enabled) {
+      this.openWithCommandRuntime.validateAllCommands(); // 模块启用时立即核查全部命令有效性
+    }
+    return result;
   }
 
   // 更新命令&URI增强模块的文件夹末尾斜杠配置。
@@ -1037,6 +1077,13 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     return nextValue;
   }
 
+  // 更新主题增强模块开关，并立即同步运行时状态。
+  async updateThemeEnhancerEnabled(enabled) {
+    const nextEnabled = await this.pluginSettingsStore.setThemeEnhancerEnabled(enabled);
+    this.syncThemeEnhancerState();
+    return nextEnabled;
+  }
+
   // 手动刷新关系图谱 HTML 链接识别结果，供图谱刷新按钮与命令面板调用。
   async refreshAnchorGraphLinks(showNotice) {
     if (!this.isAnchorGraphEnabled()) {
@@ -1263,6 +1310,18 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.editorEnhancerOverlay.disable();
   }
 
+  // 根据当前设置同步主题增强模块的启停状态。
+  syncThemeEnhancerState() {
+    this.themeEnhancerRuntime.load(this.themeEnhancerStore.getSettings());
+
+    if (this.isThemeEnhancerEnabled()) {
+      this.themeEnhancerRuntime.start();
+      return;
+    }
+
+    this.themeEnhancerRuntime.stop();
+  }
+
   // 根据当前设置同步右键菜单模块的启停状态，并在启用时刷新运行时配置。
   syncMenuCustomizerState() {
     this.menuCustomizerRuntime.load(this.menuCustomizerStore.getSettings());
@@ -1281,10 +1340,15 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.fileMarkerStore.load(this.dataStore.getFileMarkerData());
     this.menuCustomizerStore.load(this.dataStore.getMenuCustomizerData());
     this.commandUriEnhancerStore.load(this.dataStore.getCommandUriEnhancerData());
+    this.openWithCommandRuntime.reload(); // 重载文件速览命令注册表
+    if (this.isCommandUriEnhancerEnabled()) {
+      this.openWithCommandRuntime.validateAllCommands(); // 导入/重置后核查全部命令有效性
+    }
     this.statusBarEnhancerStore.load(this.dataStore.getStatusBarEnhancerData());
     this.tabBarEnhancerStore.load(this.dataStore.getTabBarEnhancerData());
     this.fileExplorerEnhancerStore.load(this.dataStore.getFileExplorerEnhancerData());
     this.editorEnhancerStore.load(this.dataStore.getEditorEnhancerData());
+    this.themeEnhancerStore.load(this.dataStore.getThemeEnhancerData());
     this.snippetsStore.load();
 
     this.syncFileMarkerFeatureState();
@@ -1294,6 +1358,7 @@ class ObsidianNenePlugin extends obsidian.Plugin {
     this.syncTabBarEnhancerState();
     this.syncMenuCustomizerState();
     this.syncEditorEnhancerState();
+    this.syncThemeEnhancerState();
 
     if (this.isAnchorGraphEnabled()) {
       await this.refreshAnchorGraphLinks(false);

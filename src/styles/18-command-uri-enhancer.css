@@ -1,0 +1,289 @@
+/* ------------------------------ */
+/* 命令&URI增强模块管理弹窗样式 */
+/* ------------------------------ */
+
+/* 模块分区：上下纵向排列。 */
+.nene-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 分区标题：小号全大写风格 + 顶部分隔线。 */
+.nene-modal-section-title {
+  margin: 14px 0 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-medium);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 分区内设置项保持紧凑节奏。 */
+.nene-modal-section .setting-item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-top: none;
+}
+
+/* 条目行：左侧文本 + 右侧按钮的 row flex 布局。 */
+.nene-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 条目左侧信息纵向排列，标题与描述分层。 */
+.nene-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nene-entry-title {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.nene-entry-desc {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+}
+
+.nene-entry-action {
+  flex-shrink: 0;
+}
+
+/* 图标按钮：仅图标展示，带悬停反馈。 */
+.nene-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 100ms ease-out, color 100ms ease-out;
+}
+
+.nene-icon-button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* 命令列表：命令名称与 ID 左右分布。 */
+.nene-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nene-command-name {
+  color: var(--text-normal);
+}
+
+.nene-command-id {
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+}
+
+/* 可用 URI 表格：表头与数据行保持对齐。 */
+.nene-uri-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.nene-uri-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nene-uri-col-syntax {
+  flex: 1;
+  min-width: 0;
+}
+
+.nene-uri-col-action {
+  flex-shrink: 0;
+}
+
+.nene-uri-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 行内左侧信息：URI 语法与注释纵向排列。 */
+.nene-uri-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nene-uri-syntax {
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nene-uri-comment {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.nene-uri-action {
+  flex-shrink: 0;
+}
+
+/* 二级弹窗统一使用紧凑宽度。 */
+.modal.nene-popover-modal {
+  width: min(90vw, 560px);
+}
+
+.modal.nene-popover-modal .modal-content {
+  padding: 20px 24px;
+}
+
+/* 空状态：居中弱化展示。 */
+.nene-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 0;
+  color: var(--text-muted);
+}
+
+.nene-empty-state-icon {
+  opacity: 0.7;
+}
+
+/* ------------------------------ */
+/* 文件速览命令 */
+/* ------------------------------ */
+
+/* 文件速览命令：删除按钮红色突出，悬停加深。 */
+.nene-command-delete-button {
+  color: var(--text-error);
+  border-color: var(--text-error);
+}
+
+.nene-command-delete-button:hover {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+/* 文件速览命令设置条目：文本按钮替代图标按钮。 */
+.nene-entry-text-button {
+  padding: 4px 12px;
+  font-size: var(--font-ui-small);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 100ms ease-out, color 100ms ease-out;
+}
+
+.nene-entry-text-button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* 变量文档链接：弱化说明文字。 */
+.nene-variable-docs {
+  padding: 2px 10px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+.nene-variable-docs a {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+/* 文件速览命令行与变量行：多控件在窄弹窗内换行排列。 */
+.nene-open-command-row .setting-item-control,
+.nene-variable-row .setting-item-control {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* 变量风险提示：左侧警示色竖条，弱化说明文字。 */
+.nene-variable-risk-hint {
+  padding: 8px 10px;
+  margin: 4px 0 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-left: 3px solid var(--text-warning);
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+
+.nene-variable-risk-title {
+  font-weight: 700;
+  color: var(--text-warning);
+  margin-bottom: 4px;
+}
+
+.nene-variable-risk-hint p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+/* 删除命令确认弹窗：按钮行右对齐。 */
+.nene-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* 失效命令行：半透明降低视觉权重，左侧警示色竖条提示状态异常。 */
+.nene-open-command-invalid {
+  opacity: 0.6;
+  border-left: 3px solid var(--text-warning);
+  padding-left: 8px;
+  background: var(--background-secondary);
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 4px;
+}
+
+.nene-open-command-invalid:hover {
+  opacity: 0.85;
+}

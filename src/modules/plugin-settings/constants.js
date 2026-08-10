@@ -25,6 +25,9 @@ const DEFAULT_FEATURE_SETTINGS = {
   },
   editorEnhancer: {
     enabled: false
+  },
+  themeEnhancer: {
+    enabled: false
   }
 };
 

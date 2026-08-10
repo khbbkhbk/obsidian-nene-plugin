@@ -117,6 +117,18 @@ class PluginSettingsStore {
     return this.isEditorEnhancerEnabled();
   }
 
+  // 返回主题增强模块是否启用，供主入口和设置页统一读取。
+  isThemeEnhancerEnabled() {
+    return Boolean(this.settings.themeEnhancer.enabled);
+  }
+
+  // 切换主题增强模块的启用状态，并立即持久化到本地。
+  async setThemeEnhancerEnabled(enabled) {
+    this.settings.themeEnhancer.enabled = Boolean(enabled);
+    await this.save();
+    return this.isThemeEnhancerEnabled();
+  }
+
   // 返回功能设置对象，供主入口与设置页读取当前切片。
   getSettings() {
     return this.settings;
@@ -149,6 +161,9 @@ class PluginSettingsStore {
       },
       editorEnhancer: {
         enabled: source.editorEnhancer?.enabled === true
+      },
+      themeEnhancer: {
+        enabled: source.themeEnhancer?.enabled === true
       }
     };
   }
