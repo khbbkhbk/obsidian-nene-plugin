@@ -61,7 +61,8 @@
 }
 
 .nene-settings-tab .setting-item-control>button,
-.nene-settings-tab .setting-item-control>select.dropdown {
+.nene-settings-tab .setting-item-control>select.dropdown,
+.nene-settings-tab .setting-item-control .checkbox-container {
   cursor: pointer;
 }
 
