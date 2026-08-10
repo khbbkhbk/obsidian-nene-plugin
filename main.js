@@ -1137,43 +1137,25 @@ body.theme-eyeshield.theme-light {
   --background-secondary-alt: #aed4aa;
   --background-modifier-border: #B6CCB3;
   --background-modifier-border-hover: #aed4aa;
-  --background-modifier-border-focus: #94c98b;
-  --background-modifier-hover: #aed4aa;
-  --background-modifier-active-hover: #b4d1b0;
+  /* --background-modifier-border-focus: #94c98b; */
+  /* --background-modifier-hover: #aed4aa; */
   --text-normal: #3B4B3E;
   --text-muted: #6B7B6E;
   --text-faint: #8B9B8E;
   --text-accent: #4A8C5C;
-  --interactive-accent: #5A9C6C;
-  --interactive-accent-hover: #4A8C5C;
+  --interactive-accent: var(--color-accent-1);
+  --interactive-accent-hover: var(--color-accent-2);
   --interactive-normal: #c1e0bc;
   --interactive-hover: #aed4aa;
   --background-modifier-form-field: #CFE8CC;
   --divider-color: #B6CCB3;
   --code-background: #c1e0bc;
-}
-
-body.theme-eyeshield.theme-dark {
-  --background-primary: #2B3B2E;
-  --background-secondary: #1E2D21;
-  --background-primary-alt: #253528;
-  --background-secondary-alt: #182619;
-  --background-modifier-border: #3B4B3E;
-  --background-modifier-border-hover: #455548;
-  --background-modifier-border-focus: #4A5C4E;
-  --background-modifier-hover: #354538;
-  --background-modifier-active-hover: #3B4B3E;
-  --text-normal: #C8D6CA;
-  --text-muted: #8A9A8C;
-  --text-faint: #6B7B6E;
-  --text-accent: #6ABA7C;
-  --interactive-accent: #5A9C6C;
-  --interactive-accent-hover: #6ABA7C;
-  --interactive-normal: #2B3B2E;
-  --interactive-hover: #354538;
-  --background-modifier-form-field: #1E2D21;
-  --divider-color: #3B4B3E;
-  --code-background: #1E2D21;
+  /* 保留原配色 */
+  --accent-original: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --link-external-color: var(--accent-original);
+  --link-external-color-hover: hsl(calc(var(--accent-h) - 3), calc(var(--accent-s) * 1.02), calc(var(--accent-l) * 1.15));
+  --icon-color-active: var(--accent-original);
+  --background-modifier-active-hover: hsla(var(--interactive-accent-hsl), 0.15);
 }
 `;
     var THEME_DROPDOWN_SELECTOR = "select.dropdown";
