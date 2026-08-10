@@ -85,7 +85,6 @@
     background-color: transparent;
   }
 
-
   60% {
     background-color: color-mix(in srgb, var(--text-highlight-bg) 50%, transparent);
   }
