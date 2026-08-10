@@ -476,6 +476,55 @@ function handleFilterDragStart(event, plugin, actionType, rowsContainer, station
 }
 
 // ---------------------------------------------------------------------------
+// 弹窗：删除过滤器二次确认
+// ---------------------------------------------------------------------------
+
+function ConfirmDeleteFilterModal(plugin, filter, actionType, onConfirm) {
+  obsidian.Modal.call(this, plugin.app);
+  this.plugin = plugin;
+  this.filter = filter;
+  this.actionType = actionType;
+  this.onConfirm = onConfirm || null;
+}
+
+ConfirmDeleteFilterModal.prototype = Object.create(obsidian.Modal.prototype);
+ConfirmDeleteFilterModal.prototype.constructor = ConfirmDeleteFilterModal;
+
+ConfirmDeleteFilterModal.prototype.onOpen = function () {
+  var contentEl = this.contentEl;
+  contentEl.empty();
+  contentEl.addClass('nene-settings-modal');
+
+  var filterDisplay = this.filter.name || this.filter.pattern || '(空)';
+  var titleText = this.actionType === 'PIN' ? '删除置顶过滤器' : '删除隐藏过滤器';
+  var headerEl = contentEl.createDiv({ cls: 'nene-settings-modal-header' });
+
+  headerEl.createDiv({ cls: 'nene-settings-modal-title', text: titleText });
+
+  var contentsEl = contentEl.createDiv({ cls: 'nene-settings-modal-content hide-border' });
+  contentsEl.createDiv({
+    cls: 'nene-settings-modal-description alert-window',
+    text: '确定要删除过滤器「' + filterDisplay + '」吗？删除后该规则将立即失效。' });
+
+  var footerEl = contentEl.createDiv({ cls: 'nene-settings-modal-footer' });
+
+  var actionEl = footerEl.createDiv({ cls: 'nene-settings-modal-actions' });
+  var cancelButtonEl = actionEl.createEl('button', { text: '取消' });
+  var confirmButtonEl = actionEl.createEl('button', { cls: 'mod-warning', text: '删除' });
+
+  var self = this;
+  cancelButtonEl.addEventListener('click', function () { self.close(); });
+  confirmButtonEl.addEventListener('click', function () {
+    if (self.onConfirm) self.onConfirm();
+    self.close();
+  });
+};
+
+ConfirmDeleteFilterModal.prototype.onClose = function () {
+  this.contentEl.empty();
+};
+
+// ---------------------------------------------------------------------------
 // 弹窗：路径过滤器管理列表（编辑、启用/禁用、删除）
 // ---------------------------------------------------------------------------
 
@@ -635,15 +684,17 @@ PathFilterListModal.prototype.renderFilterList = function (containerEl) {
           .setIcon('cross')
           .setTooltip('删除')
           .onClick(function () {
-            var list = actionType === 'PIN'
-              ? plugin.fileExplorerEnhancerSettings.pinFilters.paths
-              : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
-            list.splice(index, 1);
-            plugin.fileExplorerEnhancerStore.save();
-            if (plugin._fileExplorerView) {
-              plugin._fileExplorerView.requestSort();
-            }
-            self.onOpen();
+            new ConfirmDeleteFilterModal(plugin, getCurrentFilter(index), actionType, function () {
+              var currentList = actionType === 'PIN'
+                ? plugin.fileExplorerEnhancerSettings.pinFilters.paths
+                : plugin.fileExplorerEnhancerSettings.hideFilters.paths;
+              currentList.splice(index, 1);
+              plugin.fileExplorerEnhancerStore.save();
+              if (plugin._fileExplorerView) {
+                plugin._fileExplorerView.requestSort();
+              }
+              self.onOpen();
+            }).open();
           });
       });
 
@@ -817,15 +868,17 @@ NewPathFilterModal.prototype.onOpen = function () {
   };
 
   // 可滚动的内容区域
-  var bodyEl = contentEl.createDiv({ cls: 'nene-new-filter-body' });
+  var bodyEl = contentEl.createDiv({ cls: 'nene-new-filter-body nene-settings-modal-header' });
 
   var titleText = isEditing
     ? (actionType === 'PIN' ? '编辑置顶路径过滤器' : '编辑隐藏路径过滤器')
     : (actionType === 'PIN' ? '新建置顶路径过滤器' : '新建隐藏路径过滤器');
-  bodyEl.createEl('h3', { text: titleText });
+  bodyEl.createEl('div', { cls: 'nene-settings-modal-title', text: titleText });
+
+  var contentsEl = contentEl.createDiv({ cls: 'nene-settings-modal-content hide-border' });
 
   // 所有控件平铺一行（PathSuggest 异常已修复，放心使用 Setting API）
-  var setting = new obsidian.Setting(bodyEl);
+  var setting = new obsidian.Setting(contentsEl);
   setting.settingEl.addClass('nene-new-filter-setting');
   setting
     .addText(function (text) {
@@ -895,6 +948,13 @@ NewPathFilterModal.prototype.onOpen = function () {
     if (self.onSaved) self.onSaved();
     self.close();
   });
+
+  // 取消打开弹窗时自动聚焦到第一个输入框，避免移动端虚拟键盘自动弹出
+  window.setTimeout(function () {
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+  }, 0);
 };
 
 NewPathFilterModal.prototype.onClose = function () {

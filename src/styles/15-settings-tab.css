@@ -105,6 +105,8 @@
   flex-direction: column;
 }
 
+.nene-settings-modal .setting-item-control .checkbox-container,
+.nene-settings-modal .setting-item-control .clickable-icon,
 .nene-settings-modal .setting-item-control>button,
 .nene-settings-modal .setting-item-control>select.dropdown {
   cursor: pointer;
@@ -149,6 +151,14 @@
   margin: 0;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* 弹窗按钮区靠右对齐并保持紧凑间隔。 */
+.nene-settings-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .nene-settings-modal-content {
@@ -235,14 +245,6 @@
   resize: vertical;
 }
 
-/* 弹窗按钮区靠右对齐并保持紧凑间隔。 */
-.nene-settings-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 /* 详情列表使用轻量背景做信息归纳，不做卡片堆叠。 */
 .nene-settings-detail-list {
   display: flex;
@@ -305,10 +307,8 @@
   margin-top: 4px;
 }
 
-.checkbox-container {
-  cursor: pointer;
-}
-
 .hide-border {
   border-bottom: none;
 }
+
+.alert-window {}
