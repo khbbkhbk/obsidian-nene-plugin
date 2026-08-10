@@ -1,0 +1,19 @@
+/* ========================================
+   95 - 主题增强模块运行时样式
+   说明：仅当 body 挂载 .theme-eyeshield（护眼模式）
+   时生效，用于微调部分元素以适配豆沙绿配色。
+   ======================================== */
+
+.theme-eyeshield {
+  & button {
+    background-color: var(--interactive-normal);
+  }
+
+  & button:hover {
+    background-color: var(--interactive-hover);
+  }
+
+  & button:disabled {
+    color: color-mix(in srgb, var(--text-normal) 50%, transparent);
+  }
+}
