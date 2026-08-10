@@ -5,6 +5,11 @@
 var obsidian = require('obsidian');
 var popper = require('@popperjs/core');
 
+// 建议列表最大返回数量：文件库过大时避免一次性渲染海量建议项导致卡顿
+const MAX_SUGGESTIONS = 50;
+// 输入防抖延迟（毫秒）：高频输入时仅执行最后一次文件匹配，避免每次按键全量扫描
+const DEBOUNCE_DELAY = 150;
+
 // 取模循环，保证键盘上下移动在建议列表间循环。
 function wrapAround(value, size) {
   return ((value % size) + size) % size;
@@ -115,6 +120,9 @@ class TextInputSuggest {
     const suggestion = this.suggestEl.createDiv('suggestion');
     this.suggest = new Suggest(this, suggestion, this.scope);
 
+    // 输入防抖定时器句柄：延迟执行文件匹配，减少高频输入时的全量扫描次数
+    this.debounceTimer = null;
+
     // 具名绑定事件处理函数，便于 dispose() 精确移除监听，避免重渲染后监听泄漏
     this.onInputBound = () => this.onInputChanged();
     this.onCloseBound = () => this.close();
@@ -142,8 +150,16 @@ class TextInputSuggest {
     this.suggestEl.removeEventListener('mousedown', this.onMouseDownBound);
   }
 
-  // 输入变化时重新计算建议列表。
+  // 输入变化时防抖处理：清除上一次定时器，延迟 DEBOUNCE_DELAY 毫秒后再计算建议列表。
   onInputChanged() {
+    window.clearTimeout(this.debounceTimer);
+    this.debounceTimer = window.setTimeout(() => {
+      this.updateSuggestions();
+    }, DEBOUNCE_DELAY);
+  }
+
+  // 计算并刷新建议列表（由防抖定时器触发）。
+  updateSuggestions() {
     const inputStr = this.inputEl.value;
     const suggestions = this.getSuggestions(inputStr);
 
@@ -189,6 +205,9 @@ class TextInputSuggest {
 
   // 关闭建议浮层并释放键盘作用域。
   close() {
+    // 清除未执行的防抖定时器，避免浮层关闭后再被延迟任务重新打开
+    window.clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
     app.keymap.popScope(this.scope);
     this.suggest.setSuggestions([]);
     if (this.popper) {
@@ -209,19 +228,50 @@ class FileSuggest extends TextInputSuggest {
   constructor(inputEl, plugin) {
     super(inputEl);
     this.plugin = plugin; // 保存插件实例，便于访问 vault 文件列表
+
+    // 文件索引缓存：预转小写的路径数组，避免每次输入都全量遍历文件库
+    this.cachedIndex = null;
+    // vault 文件增删或改名时置空缓存，下次输入自动重建
+    this.vaultEventRefs = ['create', 'delete', 'rename'].map((eventName) =>
+      plugin.app.vault.on(eventName, () => {
+        this.cachedIndex = null;
+      })
+    );
   }
 
-  // 根据输入关键字返回匹配的文件列表（大小写不敏感）。
+  // 释放全部资源：卸载 vault 事件监听并清空缓存，避免弹窗重渲染后监听泄漏。
+  dispose() {
+    if (this.vaultEventRefs) {
+      this.vaultEventRefs.forEach((ref) => this.plugin.app.vault.offref(ref));
+      this.vaultEventRefs = null;
+    }
+    this.cachedIndex = null;
+    super.dispose();
+  }
+
+  // 根据输入关键字返回匹配的文件列表（大小写不敏感），最多返回 MAX_SUGGESTIONS 项。
   getSuggestions(inputStr) {
-    const files = [];
+    // 首次或文件库变化后重建索引：路径一次性转小写，避免每次匹配都重复转换
+    if (!this.cachedIndex) {
+      this.cachedIndex = [];
+      this.plugin.app.vault.getFiles().forEach((file) => {
+        if (file instanceof obsidian.TFile) {
+          this.cachedIndex.push({ file, lowerPath: file.path.toLowerCase() });
+        }
+      });
+    }
+
     const lowerInputStr = inputStr.toLowerCase();
-
-    this.plugin.app.vault.getFiles().forEach((file) => {
-      if (file instanceof obsidian.TFile && file.path.toLowerCase().includes(lowerInputStr)) {
-        files.push(file);
+    const files = [];
+    for (const entry of this.cachedIndex) {
+      if (entry.lowerPath.includes(lowerInputStr)) {
+        files.push(entry.file);
+        // 达到数量上限立即终止，避免继续全量扫描剩余文件
+        if (files.length >= MAX_SUGGESTIONS) {
+          break;
+        }
       }
-    });
-
+    }
     return files;
   }
 
@@ -236,6 +286,9 @@ class FileSuggest extends TextInputSuggest {
     this.close();
     this.inputEl.value = file.path;
     this.inputEl.trigger('input');
+    // trigger('input') 会同步启动防抖定时器，此处立即取消，避免选中后浮层重新弹出
+    window.clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
   }
 }
 
