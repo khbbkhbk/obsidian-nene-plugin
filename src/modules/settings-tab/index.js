@@ -664,15 +664,18 @@ class ObsidianNenePluginSettingTab extends obsidian.PluginSettingTab {
     const featureGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
     featureGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '功能模块' });
 
-    this.renderFileMarkerSection(featureGroupEl, summary);
-    this.renderAnchorGraphSection(featureGroupEl, summary);
+    this.renderThemeEnhancerSection(featureGroupEl, summary);
+    this.renderStatusBarEnhancerSection(featureGroupEl, summary);
+    this.renderTabBarEnhancerSection(featureGroupEl, summary);
     this.renderMenuCustomizerSection(featureGroupEl, summary);
     this.renderEditorEnhancerSection(featureGroupEl, summary);
     this.renderCommandUriEnhancerSection(featureGroupEl, summary);
-    this.renderStatusBarEnhancerSection(featureGroupEl, summary);
-    this.renderTabBarEnhancerSection(featureGroupEl, summary);
-    this.renderThemeEnhancerSection(featureGroupEl, summary);
-    this.renderCorePluginEnhancerSection(featureGroupEl, summary);
+    this.renderFileMarkerSection(featureGroupEl, summary);
+    this.renderAnchorGraphSection(featureGroupEl, summary);
+
+    // 核心插件增强作为独立分组，与功能模块、配置管理平级。
+    const corePluginGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
+    this.renderCorePluginEnhancerSection(corePluginGroupEl, summary);
 
     const managementGroupEl = containerEl.createDiv({ cls: 'nene-settings-group' });
     managementGroupEl.createDiv({ cls: 'nene-settings-group-title', text: '配置管理' });

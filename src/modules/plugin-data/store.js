@@ -299,6 +299,69 @@ class PluginDataStore {
     };
   }
 
+  // 获取指定功能模块的配置切片。
+  getFeatureDataSlice(featureKey) {
+    return this.featureData[featureKey];
+  }
+
+  // 更新指定功能模块的配置切片缓存。
+  setFeatureData(featureKey, featureData) {
+    this.featureData[featureKey] = this.normalizeFeatureSlice(featureKey, featureData);
+  }
+
+  // 保存指定功能模块数据到独立配置文件。
+  async saveFeatureData(featureKey, featureData) {
+    this.setFeatureData(featureKey, featureData);
+    await this.featureConfigManager.save(featureKey, this.featureData[featureKey]);
+  }
+
+  // 导出指定功能模块的配置快照，供管理弹窗复制备份与迁移。
+  exportFeatureData(featureKey) {
+    return {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      featureKey,
+      data: this.getFeatureDataSlice(featureKey)
+    };
+  }
+
+  // 导入指定功能模块的配置快照，校验后立即持久化。
+  async importFeatureData(featureKey, bundle) {
+    const source = this.isPlainObject(bundle) ? bundle : {};
+    const incomingData = this.isPlainObject(source.data) ? source.data : source;
+    const normalized = this.normalizeFeatureSlice(featureKey, incomingData);
+    await this.saveFeatureData(featureKey, normalized);
+    return normalized;
+  }
+
+  // 将指定功能模块的配置快照导出为独立备份文件，并返回写入结果。
+  async exportFeatureDataToFile(featureKey) {
+    const exportFileName = this.buildFeatureExportFileName(featureKey);
+    const exportText = JSON.stringify(this.exportFeatureData(featureKey), null, 2);
+    const filePath = await this.featureConfigManager.writeExportFile(exportFileName, exportText);
+
+    return {
+      fileName: exportFileName,
+      filePath
+    };
+  }
+
+  // 生成包含时间戳的模块级导出文件名，避免连续导出时相互覆盖。
+  buildFeatureExportFileName(featureKey) {
+    const now = new Date();
+    const timestamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+      '-',
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0')
+    ].join('');
+
+    return `${featureKey}-export-${timestamp}.json`;
+  }
+
   // 导出完整配置快照，便于设置页复制、备份和迁移。
   exportConfigurationBundle() {
     return {

@@ -174,20 +174,29 @@ class ThemeEnhancerRuntime {
     var value = selectEl.value;
 
     if (value === constants.EYE_SHIELD_OPTION_VALUE) {
-      // 用户选中了"护眼模式"
-      // 底层主题设为浅色，再叠加护眼 CSS
-      self.plugin.app.vault.setConfig('theme', 'moonstone');
-      // 延迟检查：setConfig 是异步的，css-change 事件稍后触发
-      self.store.setEyeProtection(true);
-      self.applyEyeProtection();
+      // 用户选中了"护眼模式"：底层主题设为浅色，再叠加护眼 CSS
+      void self.setEyeProtection(true);
     } else {
-      // 用户切换到了其他主题
+      // 用户切换到了其他主题，若当前处于护眼模式则关闭
       if (self.settings.eyeProtection) {
-        self.store.setEyeProtection(false);
-        self.removeEyeProtectionCSS();
-        document.body.classList.remove('theme-eyeshield');
+        void self.setEyeProtection(false);
       }
     }
+  }
+
+  // 由外部（管理子窗口开关 / 下拉框选择）设置护眼模式状态，
+  // 统一持久化配置、应用或移除护眼样式，并同步下拉框选中态。
+  async setEyeProtection(enabled) {
+    if (enabled) {
+      await this.store.setEyeProtection(true);
+      this.applyEyeProtection();
+    } else {
+      await this.store.setEyeProtection(false);
+      this.removeEyeProtection();
+    }
+
+    this.syncDropdownIfPossible();
+    return this.settings.eyeProtection;
   }
 
   /* ---------- body class 与 CSS 样式管理 ---------- */
@@ -262,9 +271,24 @@ class ThemeEnhancerRuntime {
 
   // 同步下拉框选中状态（如果下拉框可用）。
   syncDropdownIfPossible() {
-    var selectEl = this._dropdownSelectEl || this.findThemeDropdown();
-    if (selectEl && this.settings.eyeProtection) {
+    this.syncDropdownToState(this._dropdownSelectEl || this.findThemeDropdown());
+  }
+
+  // 将下拉框选中项同步为当前状态（护眼选项或底层主题对应选项）。
+  syncDropdownToState(selectEl) {
+    if (!selectEl) {
+      return;
+    }
+
+    if (this.settings.eyeProtection) {
       selectEl.value = constants.EYE_SHIELD_OPTION_VALUE;
+      return;
+    }
+
+    // 非护眼状态：同步 Obsidian 底层主题对应的下拉选项
+    var currentTheme = this.plugin.app.vault.getConfig('theme');
+    if (currentTheme === 'obsidian' || currentTheme === 'moonstone' || currentTheme === 'system') {
+      selectEl.value = currentTheme;
     }
   }
 
