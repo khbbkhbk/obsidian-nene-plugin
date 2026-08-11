@@ -1,13 +1,29 @@
+/* 调整置顶符号位置 */
 .file-explorer-plus.pin-icon {
-  color: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  display: flex;
+  flex-direction: row;
+  order: 3;
+  margin-top: 1px;
+  margin-left: auto;
   margin-right: 0.2em;
+  color: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
   width: 16px;
   height: 16px;
-  margin-top: -4px;
   align-self: center;
   scale: 0.75;
   rotate: 45deg;
   opacity: 0.7;
+}
+
+.tree-item-pinned>.tree-item-self .tree-item-inner {
+  order: 2;
+}
+
+/* 调整文件扩展名的位置 */
+.tree-item-pinned>.tree-item-self .nav-file-tag {
+  position: absolute;
+  right: 34px;
+  order: 3;
 }
 
 .file-explorer-plus.filters-activated-modal {
