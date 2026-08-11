@@ -31,12 +31,17 @@ body.theme-eyeshield.theme-light {
   --background-modifier-form-field: #CFE8CC;
   --divider-color: #B6CCB3;
   --code-background: #c1e0bc;
+  --tab-divider-color: #a6baa3;
   /* 保留原配色 */
   --accent-original: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
   --link-external-color: var(--accent-original);
   --link-external-color-hover: hsl(calc(var(--accent-h) - 3), calc(var(--accent-s) * 1.02), calc(var(--accent-l) * 1.15));
   --icon-color-active: var(--accent-original);
   --background-modifier-active-hover: hsla(var(--interactive-accent-hsl), 0.15);
+  --collapse-icon-color-collapsed: var(--color-accent);
+  --list-marker-color-collapsed: var(--color-accent);
+  --collapse-icon-color: var(--color-base-50);
+  --list-marker-color: var(--color-base-50);
 }
 `;
 

@@ -19,7 +19,7 @@
 }
 
 .nene-editor-enhancer-toggle.is-active .status-bar-item-icon svg path {
-  fill: var(--text-accent);
+  fill: var(--color-accent);
   opacity: 1;
 }
 

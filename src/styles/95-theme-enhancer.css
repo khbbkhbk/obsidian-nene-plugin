@@ -32,6 +32,49 @@
     background-color: var(--interactive-accent-hover);
   }
 
+  /* 左侧分屏工作区选项卡边框 */
+  & .mod-left-split>hr.workspace-leaf-resize-handle {
+    border-right-width: 0px;
+  }
+
+  & .mod-left-split .workspace-tabs>.workspace-tab-container,
+  .mod-right-split .workspace-tabs>.workspace-tab-header-container {
+    border-color: var(--divider-color);
+    border-width: var(--divider-width);
+    border-right-style: solid;
+  }
+
+  & .mod-left-split .workspace-tabs.mod-top>.workspace-tab-header-container {
+    border-right-color: var(--tab-divider-color);
+    border-right-width: var(--divider-width);
+    border-right-style: solid;
+    border-bottom: var(--tab-outline-width) solid var(--tab-outline-color);
+  }
+
+  /* 右侧分屏工作区选项卡边框 */
+  & .mod-right-split>hr.workspace-leaf-resize-handle {
+    border-left-width: 0px;
+  }
+
+  & .mod-right-split .workspace-tabs>.workspace-tab-container,
+  .mod-right-split .workspace-tabs>.workspace-tab-header-container {
+    border-color: var(--divider-color);
+    border-width: var(--divider-width);
+    border-left-style: solid;
+  }
+
+  & .mod-right-split .workspace-tabs.mod-top>.workspace-tab-header-container {
+    border-left-color: var(--tab-divider-color);
+    border-left-width: var(--divider-width);
+    border-left-style: solid;
+    border-bottom: var(--tab-outline-width) solid var(--tab-outline-color);
+  }
+
+  /* 空标签内部文本 */
+  & .empty-state-action {
+    color: var(--color-accent);
+  }
+
 }
 
 /* ========================================
